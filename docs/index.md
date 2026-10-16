@@ -1,4 +1,4 @@
-# EnvWeaver：接口怎么用
+## 接口怎么用
 
 安装到运行 Pipeline 的 Python 环境中（目前尚未发布到 PyPI）：
 
@@ -7,7 +7,14 @@ pip install -e /path/to/EnvWeaver
 ```
 
 ```python
-from envweaver import Runtime, RuntimeRef, TaskPool, agent, llm, verifier
+from envweaver import (
+    Runtime,
+    RuntimeRef,
+    TaskPool,
+    agent,
+    llm,
+    verifier,
+)
 
 runtime = Runtime("./storage/runtimes")
 pool = TaskPool("./storage/tasks", runtime=runtime)
@@ -15,21 +22,33 @@ pool = TaskPool("./storage/tasks", runtime=runtime)
 
 以下各段独立展示调用方式；文件、模型配置和运行中的 `instance` 换成你自己的。
 
-## Runtime：操作环境
+### Runtime：操作环境
 
 先准备可用的 Docker 和镜像。`ref` 是环境模板，`instance` 是启动后的环境。
 
 ```python
-ref = RuntimeRef("docker", "python:3.11-slim-bookworm", {
-    "command": ["sleep", "infinity"],
-})
+ref = RuntimeRef(
+    "docker",
+    "python:3.11-slim-bookworm",
+    {
+        "command": ["sleep", "infinity"],
+    },
+)
 instance = runtime.start(ref)
 
 try:
-    code, stdout, stderr = runtime.exec(instance, "python3 --version")
-    runtime.upload(instance, "./input.txt", "/work/input.txt")
-    runtime.download(instance, "/work/input.txt", "./downloaded.txt")
-    saved_ref = runtime.save(instance, "prepared-environment")
+    code, stdout, stderr = runtime.exec(
+        instance, "python3 --version"
+    )
+    runtime.upload(
+        instance, "./input.txt", "/work/input.txt"
+    )
+    runtime.download(
+        instance, "/work/input.txt", "./downloaded.txt"
+    )
+    saved_ref = runtime.save(
+        instance, "prepared-environment"
+    )
 finally:
     success, error = runtime.close(instance)
 ```
@@ -53,19 +72,29 @@ finally:
 
 </details>
 
-## Task Pool：保存、查找、读取任务
+### Task Pool：保存、查找、读取任务
 
 环境准备好后，把任务文字、验证器和输入文件一起保存。
 
 ```python
-goal = [{"type": "text", "text": "修改表格，完成销售额汇总。"}]
-context = [{"source": "./sales.xlsx", "target": "/work/sales.xlsx"}]
+goal = [
+    {"type": "text", "text": "修改表格，完成销售额汇总。"}
+]
+context = [
+    {"source": "./sales.xlsx", "target": "/work/sales.xlsx"}
+]
 
 task_ref = pool.save(
-    instance, "sales-summary", goal, "./verify/run.py",
-    context=context, metadata={"software": "LibreOffice"},
+    instance,
+    "sales-summary",
+    goal,
+    "./verify/run.py",
+    context=context,
+    metadata={"software": "LibreOffice"},
 )
-refs = pool.search(query="销售额", filters={"software": "LibreOffice"})
+refs = pool.search(
+    query="销售额", filters={"software": "LibreOffice"}
+)
 task = pool.load(task_ref)
 
 # 启动这道题；外 Context 文件会自动复制进去。
@@ -88,7 +117,7 @@ candidate = runtime.start(task.runtime, task.context)
 
 </details>
 
-## Agent：让 Agent 执行任务
+### Agent：让 Agent 执行任务
 
 先安装 pi。下面让 pi 操作指定的 `instance`，运行记录写入 `workspace`。
 
@@ -121,14 +150,19 @@ pi 在 Pipeline 侧运行；shell 和 IPython 在目标环境内执行。桌面�
 
 </details>
 
-## LLM：直接调用模型
+### LLM：直接调用模型
 
 ```python
 response = llm.call(
     base_url="https://your-provider/v1",
     model_name="your-model",
     api_key=api_key,
-    messages=[{"role": "user", "content": "从这些候选环境里选一个最合适的。"}],
+    messages=[
+        {
+            "role": "user",
+            "content": "从这些候选环境里选一个最合适的。",
+        }
+    ],
 )
 print(response["choices"][0]["message"]["content"])
 ```
@@ -142,7 +176,7 @@ print(response["choices"][0]["message"]["content"])
 
 </details>
 
-## Verifier：检查任务是否完成
+### Verifier：检查任务是否完成
 
 ```python
 result = verifier.run("./verify/run.py", instance)
@@ -160,7 +194,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--instance", required=True)
 instance = runtime.connect(parser.parse_args().instance)
 
-code, stdout, stderr = runtime.exec(instance, "python3 -m pytest -q", cwd="/work/repo")
+code, stdout, stderr = runtime.exec(
+    instance, "python3 -m pytest -q", cwd="/work/repo"
+)
 if code not in (0, 1):
     raise RuntimeError(stderr)
 print(json.dumps({"score": float(code == 0)}))

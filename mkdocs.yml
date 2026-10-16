@@ -20,8 +20,12 @@ plugins:
             docstring_style: google
             show_source: false
             show_root_heading: true
-            heading_level: 3
-            show_signature_annotations: true
+            heading_level: 4
+            separate_signature: true
+            show_signature_annotations: false
+            show_root_full_path: false
+            show_labels: false
+            docstring_section_style: list
             members_order: source
 markdown_extensions:
   - admonition
@@ -30,7 +34,7 @@ markdown_extensions:
       check_paths: true
   - toc:
       permalink: true
-      toc_depth: 2
+      toc_depth: "2-3"
 watch:
   - src/envweaver
 validation:
