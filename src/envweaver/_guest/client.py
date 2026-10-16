@@ -3,8 +3,8 @@ import time
 
 import httpx
 
-from ._files import pack, unpack
-from .errors import RuntimeError
+from .._files import pack, unpack
+from ..errors import RuntimeError
 
 
 class GuestClient:

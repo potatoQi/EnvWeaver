@@ -5,8 +5,8 @@ import httpx
 import pytest
 
 from envweaver._files import unpack
+from envweaver._guest.client import GuestClient
 from envweaver.tools import ipython
-from envweaver.transport import GuestClient
 
 
 def test_command_errors_timeouts_and_file_roundtrip(tmp_path, guest):

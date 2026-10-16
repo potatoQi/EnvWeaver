@@ -11,7 +11,7 @@ import pytest
 
 import envweaver
 from envweaver import Runtime, RuntimeRef
-from envweaver.transport import GuestClient
+from envweaver._guest.client import GuestClient
 
 pytestmark = [
     pytest.mark.integration,

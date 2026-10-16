@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from envweaver import Instance, Runtime, RuntimeRef
-from envweaver.guest import GuestServer
+from envweaver._guest.server import GuestServer
 
 
 class FilesystemBackend:

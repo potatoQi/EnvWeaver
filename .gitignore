@@ -15,6 +15,7 @@ venv/
 htmlcov/
 build/
 dist/
+site/
 *.egg-info/
 
 # Generated data and local work

@@ -1,0 +1,44 @@
+site_name: EnvWeaver
+site_description: Agent 编写任务生产 Pipeline 的 Python 基础设施
+theme:
+  name: mkdocs
+  locale: zh_CN
+nav:
+  - 首页: index.md
+  - 快速开始: quickstart.md
+  - 核心概念: concepts.md
+  - 使用指南: usage.md
+  - API 参考:
+      - 数据对象: api/models.md
+      - Runtime: api/runtime.md
+      - Task Pool: api/task.md
+      - Agent 与 LLM: api/agent.md
+      - Verifier: api/verifier.md
+      - Tools 与异常: api/tools.md
+  - 扩展指南: extending.md
+  - 设计约定: design.md
+  - 文档维护: contributing.md
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            docstring_style: google
+            show_source: false
+            show_root_heading: true
+            show_signature_annotations: true
+            members_order: source
+markdown_extensions:
+  - admonition
+  - pymdownx.snippets:
+      check_paths: true
+  - toc:
+      permalink: true
+watch:
+  - src/envweaver
+validation:
+  links:
+    not_found: warn
+    anchors: warn

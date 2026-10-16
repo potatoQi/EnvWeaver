@@ -6,6 +6,16 @@
 
 第一版基建代码已实现，可从源码或 wheel 安装，尚未发布到 PyPI。使用方式见 [使用说明](docs/usage.md)，已确认的设计见 [设计文档](docs/design.md)。
 
+完整手册从 [文档首页](docs/index.md) 开始，API 参考由 Python 签名、类型和 docstring 自动生成。本地预览：
+
+```bash
+uv run --group docs mkdocs serve
+# 严格构建，输出到 site/：
+uv run --group docs mkdocs build --strict
+```
+
+Markdown 指南、代码说明与生成页面之间的关系见 [文档维护](docs/contributing.md)。
+
 ```bash
 uv sync
 uv run pytest

@@ -10,6 +10,16 @@ uv build
 pip install dist/envweaver-0.1.0-py3-none-any.whl
 ```
 
+开发期间，在运行 Pipeline 的 Python 环境里使用编辑安装：
+
+```bash
+python -m pip install -e /path/to/EnvWeaver
+# 使用 uv 管理的环境时，等价命令：
+uv pip install --python /path/to/pipeline/.venv/bin/python -e /path/to/EnvWeaver
+```
+
+`uv sync` 默认也会编辑安装当前项目。编辑安装直接引用源码目录，修改 Python 源码后重新启动 Pipeline 即可生效；修改依赖或包配置后重新安装。不同机器需要各自安装并同步源码，编辑安装不会自动同步远端文件。
+
 ## 1. 对象与存储位置
 
 ```python
@@ -140,7 +150,11 @@ response = llm.call(
 
 `llm.call` 采用 OpenAI Chat Completions 协议，返回完整响应字典；支持文字/图片 messages 和可选 `output_schema`。不同提供方对图片、JSON Schema 的支持由提供方决定。HTTP/超时错误直接抛出，不自动重试。pi 自己调用模型，不需要经过此函数。
 
-验证包放在独立目录，入口固定 `run.py`。示例见 [可执行验证器](../examples/coding/verifier/run.py)。
+验证包放在独立目录，入口固定 `run.py`。下方从实际示例文件自动引入代码：
+
+```python
+--8<-- "examples/coding/verifier/run.py"
+```
 
 ```python
 score = verifier.run("./checker/run.py", instance)
@@ -190,6 +204,6 @@ ENVWEAVER_TEST_DOCKER=python:3.11-slim-bookworm uv run pytest tests/test_docker_
 ENVWEAVER_TEST_DESKTOP=your-desktop-image uv run pytest tests/test_desktop_integration.py
 ```
 
-当前验证结果：本地 33 项测试通过（含真实 pi 进程、会话继续和模拟模型服务）；casia23 上另外 3 项真实 Docker 集成测试通过，覆盖任务保存/恢复、非 root 用户修改上传文件、X11 桌面的 IPython 截图及鼠标操作。wheel 构建及独立安装检查通过。没有调用真实收费模型来衡量解题能力。
+当前验证结果：本地 33 项测试通过（含真实 pi 进程、会话继续和模拟模型服务）；casia23 上另外 3 项真实 Docker 集成测试通过，覆盖任务保存/恢复、非 root 用户修改上传文件、X11 桌面的 IPython 截图及鼠标操作。wheel 构建及独立安装检查通过。
 
 QEMU 的 QMP 和快照顺序有协议测试，Windows 命令路由有测试；尚无可用 KVM/Windows 镜像完成虚拟机实测，因此不能把后端代码就绪等同于四种操作系统已经验收。

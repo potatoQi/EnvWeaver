@@ -239,7 +239,7 @@ task.search(query=None, filters=None) -> task_refs
 
 代码保持普通函数和模块的组合：主流程负责串联步骤，配置转换、资源清理、材料归档各自使用具名的小函数。Runtime/Agent 的 Protocol 只描述后端接口，不要求实现类继承公共基类。不要把领域策略放入基建，也不要为假设中的扩展预先建立层级。
 
-目标端的 `guest.py` 负责 HTTP 连接与会话生命周期，`_kernel.py` 负责 IPython 执行；两者职责分开。Docker 和 QEMU 共用目标服务的连接等待逻辑，保存方式仍留在各自后端。
+内部 `_guest/` 目录集中放置目标环境的连接设施：`server.py` 负责 HTTP 服务与会话生命周期，`client.py` 负责连接，`kernel.py` 负责 IPython 执行。根目录的 `guest.py` 仅兼容已有镜像中的 `python -m envweaver.guest` 启动命令。Docker 和 QEMU 共用目标服务的连接等待逻辑，保存方式仍留在各自后端。
 
 参考项目的作用：
 

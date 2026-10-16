@@ -6,10 +6,10 @@ import subprocess
 import uuid
 from pathlib import Path
 
+from .._guest.client import GuestClient
 from .._util import write_json
 from ..errors import RuntimeError
 from ..models import Instance, RuntimeRef
-from ..transport import GuestClient
 
 
 class DockerBackend:
