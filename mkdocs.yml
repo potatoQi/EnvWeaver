@@ -4,20 +4,12 @@ theme:
   name: mkdocs
   locale: zh_CN
 nav:
-  - 首页: index.md
-  - 快速开始: quickstart.md
-  - 核心概念: concepts.md
-  - 使用指南: usage.md
-  - API 参考:
-      - 数据对象: api/models.md
-      - Runtime: api/runtime.md
-      - Task Pool: api/task.md
-      - Agent 与 LLM: api/agent.md
-      - Verifier: api/verifier.md
-      - Tools 与异常: api/tools.md
-  - 扩展指南: extending.md
-  - 设计约定: design.md
-  - 文档维护: contributing.md
+  - 接口用法: index.md
+exclude_docs: |
+  usage.md
+  extending.md
+  design.md
+  contributing.md
 plugins:
   - search
   - mkdocstrings:
@@ -28,14 +20,17 @@ plugins:
             docstring_style: google
             show_source: false
             show_root_heading: true
+            heading_level: 3
             show_signature_annotations: true
             members_order: source
 markdown_extensions:
   - admonition
+  - md_in_html
   - pymdownx.snippets:
       check_paths: true
   - toc:
       permalink: true
+      toc_depth: 2
 watch:
   - src/envweaver
 validation:

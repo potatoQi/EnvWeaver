@@ -4,9 +4,9 @@
 
 提供少量可组合的基建接口，让 Agent 根据真实数据源编写可复用的 Data Pipeline，持续生产可执行、可验证、可供训练的任务。
 
-第一版基建代码已实现，可从源码或 wheel 安装，尚未发布到 PyPI。使用方式见 [使用说明](docs/usage.md)，已确认的设计见 [设计文档](docs/design.md)。
+第一版基建代码已实现，可从源码或 wheel 安装，尚未发布到 PyPI。直接看 [接口怎么用](docs/index.md)。
 
-完整手册从 [文档首页](docs/index.md) 开始，API 参考由 Python 签名、类型和 docstring 自动生成。本地预览：
+手册只有一页：先看调用示例，需要时展开从代码生成的参数说明。本地预览：
 
 ```bash
 uv run --group docs mkdocs serve

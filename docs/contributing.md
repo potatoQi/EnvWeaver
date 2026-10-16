@@ -7,7 +7,7 @@ Python 签名、类型、docstring → mkdocstrings → API 页面
 Markdown 使用指南          → MkDocs       → 同一个文档网站
 ```
 
-API 页只列出要展示的对象，例如：
+用户手册集中在 index.md。每个接口先给调用示例，再在 details 折叠块里引用代码对象，例如：
 
 ```markdown
 ::: envweaver.TaskPool
@@ -37,7 +37,7 @@ uv run --group docs mkdocs build --strict
 ## 修改代码时
 
 1. 修改公开接口时，同时更新类型标注及 Google 风格 docstring 的 Args、Returns、Raises。
-2. 新增公开对象时，在对应 API 页加入引用。
+2. 新增公开对象时，在 index.md 对应的折叠块中加入引用，不为每个对象新建页面。
 3. 使用方式或约定发生变化时，更新受影响的指南。
 4. 执行严格文档构建和与改动相关的测试。
 
