@@ -1,4 +1,5 @@
 import os
+import time
 
 import httpx
 
@@ -40,6 +41,18 @@ class GuestClient:
 
     def health(self):
         return self.request("GET", "/health", timeout=2).json()
+
+    def wait_ready(self, timeout):
+        """Wait for startup without hiding unexpected programming/configuration errors."""
+        deadline = time.monotonic() + timeout
+        while True:
+            try:
+                self.health()
+                return
+            except (httpx.TransportError, RuntimeError) as error:
+                if time.monotonic() >= deadline:
+                    raise RuntimeError("Guest control service did not become ready") from error
+                time.sleep(0.25)
 
     def exec(self, command, cwd=None, timeout=300):
         result = self.request(

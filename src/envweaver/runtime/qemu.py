@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 import socket
 import subprocess
 import time
@@ -102,18 +103,9 @@ class QemuBackend:
             args += ["-drive", f"if=pflash,format=raw,file={data['nvram']}"]
         args += config.get("args", [])
         self._run(args)
-        deadline = time.monotonic() + config.get("startup_timeout", 180)
-        while time.monotonic() < deadline:
-            try:
-                GuestClient(instance).health()
-                return
-            except Exception:
-                time.sleep(0.25)
-        raise RuntimeError("Guest control service did not become ready; check base image and token")
+        GuestClient(instance).wait_ready(config.get("startup_timeout", 180))
 
     def start(self, ref):
-        import shutil
-
         directory = self.root / "instances" / uuid.uuid4().hex
         directory.mkdir(parents=True)
         # A short QMP socket path avoids AF_UNIX limits on long home paths.
@@ -208,8 +200,6 @@ class QemuBackend:
         raise RuntimeError("Guest did not shut down cleanly; snapshot was not created")
 
     def save(self, instance, name):
-        import shutil
-
         config = dict(instance.data["ref"]["config"])
         asset = self.root / "runtimes" / uuid.uuid4().hex
         asset.mkdir(parents=True)
@@ -242,8 +232,6 @@ class QemuBackend:
         return ref
 
     def close(self, instance):
-        import shutil
-
         with QMP(instance.data["qmp"]) as qmp:
             qmp.execute("quit")
         deadline = time.monotonic() + 15

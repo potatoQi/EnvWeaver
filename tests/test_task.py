@@ -83,3 +83,32 @@ def test_load_rejects_escaping_assets(tmp_path, runtime):
     Path(ref).write_text(json.dumps(data))
     with pytest.raises(ValueError, match="escapes"):
         pool.load(ref)
+
+
+def test_verifier_cannot_recursively_archive_the_pool(tmp_path, runtime):
+    original, package, *_ = materials(tmp_path)
+    instance = runtime.start(RuntimeRef("test", str(original)))
+    pool = TaskPool(package / "pool", runtime=runtime)
+    with pytest.raises(ValueError, match="separate verifier package"):
+        pool.save(instance, "recursive", [{"type": "text", "text": "task"}], package / "run.py")
+    assert pool.search() == []
+    assert not list((pool.root / "tasks").glob("*.lock"))
+
+
+def test_context_failure_keeps_original_error_when_cleanup_also_fails(
+    tmp_path, runtime, monkeypatch
+):
+    original, *_ = materials(tmp_path)
+
+    def fail_cleanup(_):
+        raise OSError("cleanup unavailable")
+
+    monkeypatch.setattr(runtime._backends["test"], "close", fail_cleanup)
+    with pytest.raises(FileNotFoundError) as failure:
+        runtime.start(
+            RuntimeRef("test", str(original)),
+            [
+                {"source": str(tmp_path / "missing"), "target": "/input"},
+            ],
+        )
+    assert "cleanup unavailable" in failure.value.__notes__[0]

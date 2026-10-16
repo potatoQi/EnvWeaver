@@ -10,7 +10,6 @@ class ToolBridge:
         definitions = {tool.name: tool for tool in tools}
         if len(definitions) != len(tools):
             raise ValueError("Tool names must be unique")
-        self.tools = tools
         self.token = secrets.token_urlsafe(32)
         token = self.token
 

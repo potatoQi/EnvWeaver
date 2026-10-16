@@ -35,6 +35,29 @@ def test_service_requires_authentication(guest):
     assert response.status_code == 401
 
 
+def test_startup_retries_connection_errors_but_not_programming_errors(guest, monkeypatch):
+    client = GuestClient(guest)
+    health = client.health
+    attempts = []
+
+    def delayed_health():
+        attempts.append(True)
+        if len(attempts) == 1:
+            raise httpx.ConnectError("service is still starting")
+        return health()
+
+    monkeypatch.setattr(client, "health", delayed_health)
+    client.wait_ready(2)
+    assert len(attempts) == 2
+
+    def invalid_health():
+        raise ValueError("invalid response")
+
+    monkeypatch.setattr(client, "health", invalid_health)
+    with pytest.raises(ValueError, match="invalid response"):
+        client.wait_ready(2)
+
+
 def test_archive_path_traversal_rejected(tmp_path):
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w") as archive:

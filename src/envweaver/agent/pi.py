@@ -3,144 +3,162 @@ import os
 import subprocess
 import tempfile
 import uuid
-from contextlib import ExitStack
+from contextlib import ExitStack, contextmanager
 from pathlib import Path
 
-from .. import tools as tool_factory
 from .._util import run_process, write_json
 from ..errors import AgentError
 from ..models import AgentResult
-from ..tools import Tool
+from ..tools import Tool, ipython, shell
 from ._bridge import ToolBridge
+
+
+@contextmanager
+def _toolset(selected, instance):
+    """Bind target tools and close only the sessions we create."""
+    if selected is None:
+        selected = ["shell"] if instance is not None else ["read", "bash", "edit", "write"]
+    if not isinstance(selected, (list, tuple)):
+        raise TypeError("tools must be a list of tool names or Tool objects")
+    native, bound = [], []
+    factories = {"shell": shell, "ipython": ipython}
+    with ExitStack() as cleanup:
+        for tool in selected:
+            if isinstance(tool, Tool):
+                bound.append(tool)
+            elif not isinstance(tool, str):
+                raise TypeError("tools must contain names or Tool objects")
+            elif instance is None:
+                native.append(tool)
+            else:
+                if tool not in factories:
+                    raise ValueError(
+                        f"Unknown target tool: {tool}; use shell, ipython, or a Tool object"
+                    )
+                created = factories[tool](instance)
+                bound.append(created)
+                if created.close:
+                    cleanup.callback(created.close)
+        yield native, bound
+
+
+def _environment(config, directory):
+    """Translate credentials without modifying a user's existing pi directory."""
+    env = {**os.environ, **config.get("env", {})}
+    agent_dir = Path(config.get("agent_dir", directory / "pi")).expanduser().resolve()
+    env["PI_CODING_AGENT_DIR"] = str(agent_dir)
+    if "agent_dir" in config and (config.get("base_url") or config.get("api_key")):
+        raise ValueError("Use either an existing agent_dir or base_url/api_key configuration")
+
+    if config.get("base_url"):
+        if not config.get("model_name"):
+            raise ValueError("model_name is required with base_url")
+        env["ENVWEAVER_PI_API_KEY"] = config.get("api_key", "local")
+        model = {
+            "id": config["model_name"],
+            "input": config.get("input", ["text", "image"]),
+            "reasoning": config.get("reasoning", False),
+            "contextWindow": config.get("context_window", 32768),
+            "maxTokens": config.get("max_tokens", 4096),
+        }
+        provider = {
+            "baseUrl": config["base_url"],
+            "api": "openai-completions",
+            "apiKey": "${ENVWEAVER_PI_API_KEY}",
+            "models": [model],
+        }
+        write_json(agent_dir / "models.json", {"providers": {"envweaver": provider}}, private=True)
+    elif config.get("api_key"):
+        if not config.get("provider"):
+            raise ValueError("provider is required for api_key without base_url")
+        credential = {"type": "api_key", "key": config["api_key"]}
+        write_json(agent_dir / "auth.json", {config["provider"]: credential}, private=True)
+    return env
+
+
+def _command(config, run_dir, names, has_bound_tools):
+    executable = config.get("command", ["pi"])
+    if isinstance(executable, str):
+        executable = [executable]
+    command = [
+        *executable,
+        "--mode",
+        "json",
+        "--print",
+        "--no-extensions",
+        "--no-skills",
+        "--no-prompt-templates",
+        "--no-context-files",
+        "--no-mcp",
+        "--no-approve",
+        "--session-dir",
+        str(run_dir / "sessions"),
+    ]
+    if has_bound_tools:
+        command += ["--extension", str(Path(__file__).with_name("pi_extension.ts"))]
+    command += ["--tools", ",".join(names)] if names else ["--no-tools"]
+    options = {
+        "--provider": "envweaver" if config.get("base_url") else config.get("provider"),
+        "--model": config.get("model_name"),
+        "--session": config.get("session"),
+        "--system-prompt": config.get("system_prompt"),
+        "--thinking": config.get("thinking"),
+    }
+    for flag, value in options.items():
+        if value is not None:
+            command += [flag, str(value)]
+    return command + config.get("args", [])
+
+
+def _read_result(run_dir, workspace, previous_session):
+    trajectory = run_dir / "events.jsonl"
+    last = None
+    # Read JSONL directly from disk; trajectories may contain many large screenshots.
+    with trajectory.open("rb") as records:
+        for line in records:
+            try:
+                event = json.loads(line)
+                message = event.get("message", {})
+            except (ValueError, AttributeError) as error:
+                raise AgentError(f"Invalid pi JSON stream; see {trajectory}") from error
+            if event.get("type") == "message_end" and message.get("role") == "assistant":
+                last = message
+            if event.get("type") == "agent_settled" and event.get("aborted"):
+                raise AgentError(f"pi run was aborted; see {trajectory}")
+    if last is None or last.get("stopReason") in ("error", "aborted", "toolUse"):
+        raise AgentError(f"pi did not complete successfully; see {trajectory}")
+    text = "".join(
+        block.get("text", "") for block in last.get("content", []) if block.get("type") == "text"
+    )
+    sessions = sorted((run_dir / "sessions").glob("**/*.jsonl"))
+    return AgentResult(
+        text=text,
+        workspace=str(workspace),
+        trajectory=str(trajectory),
+        session=str(sessions[-1]) if sessions else previous_session,
+    )
 
 
 class PiBackend:
     def run(self, instruction, workspace, tools=None, instance=None, config=None):
         config = dict(config or {})
         workspace = Path(workspace).expanduser().resolve()
-        workspace.mkdir(parents=True, exist_ok=True)
         run_dir = workspace / ".envweaver" / uuid.uuid4().hex
         run_dir.mkdir(parents=True)
-        selected = (
-            tools
-            if tools is not None
-            else (["shell"] if instance is not None else ["read", "bash", "edit", "write"])
-        )
-        if not isinstance(selected, (list, tuple)):
-            raise TypeError("tools must be a list of tool names or Tool objects")
-        native, bound = [], []
-        with ExitStack() as stack:
-            for tool in selected:
-                if isinstance(tool, Tool):
-                    bound.append(tool)
-                elif instance is not None:
-                    if tool not in ("shell", "ipython"):
-                        raise ValueError(
-                            f"Unknown target tool: {tool}; use shell, ipython, or a Tool object"
-                        )
-                    created = getattr(tool_factory, tool)(instance)
-                    bound.append(created)
-                    if created.close:
-                        stack.callback(created.close)
-                else:
-                    native.append(tool)
-            env = {**os.environ, **config.get("env", {})}
-            temporary = Path(
-                stack.enter_context(tempfile.TemporaryDirectory(prefix="envweaver-pi-"))
-            )
-            agent_dir = Path(config.get("agent_dir", temporary / "pi"))
-            env["PI_CODING_AGENT_DIR"] = str(agent_dir)
-            if config.get("base_url"):
-                if "agent_dir" in config:
-                    raise ValueError(
-                        "Use either base_url configuration or a preconfigured agent_dir"
-                    )
-                if not config.get("model_name"):
-                    raise ValueError("model_name is required with base_url")
-                env["ENVWEAVER_PI_API_KEY"] = config.get("api_key", "local")
-                write_json(
-                    agent_dir / "models.json",
-                    {
-                        "providers": {
-                            "envweaver": {
-                                "baseUrl": config["base_url"],
-                                "api": "openai-completions",
-                                "apiKey": "${ENVWEAVER_PI_API_KEY}",
-                                "models": [
-                                    {
-                                        "id": config["model_name"],
-                                        "input": config.get("input", ["text", "image"]),
-                                        "reasoning": config.get("reasoning", False),
-                                        "contextWindow": config.get("context_window", 32768),
-                                        "maxTokens": config.get("max_tokens", 4096),
-                                    }
-                                ],
-                            }
-                        }
-                    },
-                    private=True,
-                )
-            elif config.get("api_key"):
-                if "agent_dir" in config:
-                    raise ValueError(
-                        "Use provider environment credentials with an existing agent_dir"
-                    )
-                provider = config.get("provider")
-                if not provider:
-                    raise ValueError("provider is required for api_key without base_url")
-                write_json(
-                    agent_dir / "auth.json",
-                    {provider: {"type": "api_key", "key": config["api_key"]}},
-                    private=True,
-                )
-            executable = config.get("command", ["pi"])
-            if isinstance(executable, str):
-                executable = [executable]
-            command = [
-                *executable,
-                "--mode",
-                "json",
-                "--print",
-                "--no-extensions",
-                "--no-skills",
-                "--no-prompt-templates",
-                "--no-context-files",
-                "--no-mcp",
-                "--no-approve",
-                "--session-dir",
-                str(run_dir / "sessions"),
-            ]
+        with _toolset(tools, instance) as (native, bound), ExitStack() as resources:
+            directory = resources.enter_context(tempfile.TemporaryDirectory(prefix="envweaver-pi-"))
+            env = _environment(config, Path(directory))
             if bound:
-                bridge = stack.enter_context(ToolBridge(bound))
-                env["ENVWEAVER_TOOL_URL"] = bridge.url
-                env["ENVWEAVER_TOOL_TOKEN"] = bridge.token
-                command += ["--extension", str(Path(__file__).with_name("pi_extension.ts"))]
+                bridge = resources.enter_context(ToolBridge(bound))
+                env.update(ENVWEAVER_TOOL_URL=bridge.url, ENVWEAVER_TOOL_TOKEN=bridge.token)
             names = native + [tool.name for tool in bound]
-            command += ["--tools", ",".join(names)] if names else ["--no-tools"]
-            if config.get("base_url"):
-                command += ["--provider", "envweaver", "--model", config["model_name"]]
-            else:
-                for key, flag in [("model_name", "--model"), ("provider", "--provider")]:
-                    if config.get(key):
-                        command += [flag, config[key]]
-            for key, flag in [
-                ("session", "--session"),
-                ("system_prompt", "--system-prompt"),
-                ("thinking", "--thinking"),
-            ]:
-                if config.get(key) is not None:
-                    command += [flag, str(config[key])]
-            command += config.get("args", [])
+            command = _command(config, run_dir, names, bool(bound))
             # stdin avoids CLI flag/@file interpretation of user instructions.
-            trajectory = run_dir / "events.jsonl"
-            diagnostics = run_dir / "stderr.log"
             try:
-                import io
-
                 with (
                     tempfile.TemporaryFile() as prompt,
-                    trajectory.open("wb") as output,
-                    diagnostics.open("wb") as errors,
+                    (run_dir / "events.jsonl").open("wb") as output,
+                    (run_dir / "stderr.log").open("wb") as errors,
                 ):
                     prompt.write(instruction.encode())
                     prompt.seek(0)
@@ -161,30 +179,4 @@ class PiBackend:
                 raise AgentError(
                     f"pi exited with {process.returncode}; see {run_dir / 'stderr.log'}"
                 )
-            last = None
-            for line in io.BytesIO(trajectory.read_bytes()):
-                try:
-                    event = json.loads(line)
-                except ValueError as error:
-                    raise AgentError(f"Invalid pi JSON stream; see {trajectory}") from error
-                if (
-                    event.get("type") == "message_end"
-                    and event.get("message", {}).get("role") == "assistant"
-                ):
-                    last = event["message"]
-                if event.get("type") == "agent_settled" and event.get("aborted"):
-                    raise AgentError(f"pi run was aborted; see {trajectory}")
-            if last is None or last.get("stopReason") in ("error", "aborted", "toolUse"):
-                raise AgentError(f"pi did not complete successfully; see {trajectory}")
-            text = "".join(
-                block.get("text", "")
-                for block in last.get("content", [])
-                if block.get("type") == "text"
-            )
-            sessions = sorted((run_dir / "sessions").glob("**/*.jsonl"))
-            return AgentResult(
-                text,
-                str(workspace),
-                str(trajectory),
-                str(sessions[-1]) if sessions else config.get("session"),
-            )
+            return _read_result(run_dir, workspace, config.get("session"))

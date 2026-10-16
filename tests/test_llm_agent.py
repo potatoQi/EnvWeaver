@@ -39,6 +39,33 @@ def test_agent_adapter_and_error_artifacts(tmp_path):
     assert list(tmp_path.glob(".envweaver/*/events.jsonl"))
 
 
+def test_existing_pi_config_is_resolved_before_changing_workspace(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    directory = tmp_path / "pi-config"
+    directory.mkdir()
+    sentinel = directory / "settings.json"
+    sentinel.write_text('{"unchanged": true}')
+    script = tmp_path / "pi.py"
+    script.write_text("""import json, os
+print(json.dumps({'type': 'message_end', 'message': {
+    'role': 'assistant', 'stopReason': 'stop',
+    'content': [{'type': 'text', 'text': os.environ['PI_CODING_AGENT_DIR']}],
+}}))
+""")
+    result = agent.run(
+        "pi",
+        "test",
+        tmp_path / "different-workspace",
+        config={
+            "command": [sys.executable, str(script)],
+            "agent_dir": "pi-config",
+        },
+    )
+    assert result.text == str(directory)
+    assert sentinel.read_text() == '{"unchanged": true}'
+    assert sorted(path.name for path in directory.iterdir()) == ["settings.json"]
+
+
 @pytest.mark.skipif(
     not os.environ.get("ENVWEAVER_TEST_PI"),
     reason="set ENVWEAVER_TEST_PI to an installed pi 1.3.x executable",

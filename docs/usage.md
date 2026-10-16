@@ -190,6 +190,6 @@ ENVWEAVER_TEST_DOCKER=python:3.11-slim-bookworm uv run pytest tests/test_docker_
 ENVWEAVER_TEST_DESKTOP=your-desktop-image uv run pytest tests/test_desktop_integration.py
 ```
 
-当前验证结果：本地 29 项测试通过（含真实 pi 进程、会话继续和模拟模型服务）；casia23 上另外 3 项真实 Docker 集成测试通过，覆盖任务保存/恢复、非 root 用户修改上传文件、X11 桌面的 IPython 截图及鼠标操作。wheel 构建及独立安装检查通过。没有调用真实收费模型来衡量解题能力。
+当前验证结果：本地 33 项测试通过（含真实 pi 进程、会话继续和模拟模型服务）；casia23 上另外 3 项真实 Docker 集成测试通过，覆盖任务保存/恢复、非 root 用户修改上传文件、X11 桌面的 IPython 截图及鼠标操作。wheel 构建及独立安装检查通过。没有调用真实收费模型来衡量解题能力。
 
 QEMU 的 QMP 和快照顺序有协议测试，Windows 命令路由有测试；尚无可用 KVM/Windows 镜像完成虚拟机实测，因此不能把后端代码就绪等同于四种操作系统已经验收。

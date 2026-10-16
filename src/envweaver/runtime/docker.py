@@ -1,13 +1,15 @@
 import json
 import os
+import posixpath
+import shlex
 import subprocess
-import time
 import uuid
 from pathlib import Path
 
 from .._util import write_json
 from ..errors import RuntimeError
 from ..models import Instance, RuntimeRef
+from ..transport import GuestClient
 
 
 class DockerBackend:
@@ -72,17 +74,7 @@ class DockerBackend:
             instance = Instance(cid, "docker", str(self.root), data)
             self.exec(instance, "true", None, 15)
             if config.get("guest_port"):
-                from ..transport import GuestClient
-
-                deadline = time.monotonic() + config.get("startup_timeout", 120)
-                while True:
-                    try:
-                        GuestClient(instance).health()
-                        break
-                    except Exception:
-                        if time.monotonic() >= deadline:
-                            raise RuntimeError("Guest control service did not become ready")
-                        time.sleep(0.25)
+                GuestClient(instance).wait_ready(config.get("startup_timeout", 120))
             return instance
         except BaseException:
             try:
@@ -109,9 +101,6 @@ class DockerBackend:
         return result["exit_code"], result["stdout"], result["stderr"]
 
     def upload(self, instance, local_path, remote_path):
-        import posixpath
-        import shlex
-
         local = Path(local_path).resolve(strict=True)
         parent = posixpath.dirname(remote_path) or "."
         code, _, error = self.exec(instance, f"mkdir -p -- {shlex.quote(parent)}")
@@ -142,8 +131,6 @@ class DockerBackend:
     def download(self, instance, remote_path, local_path):
         target = Path(local_path).absolute()
         target.parent.mkdir(parents=True, exist_ok=True)
-        import shlex
-
         code, _, _ = self.exec(instance, f"test -d {shlex.quote(remote_path)}")
         if code == 0:
             target.mkdir(parents=True, exist_ok=True)

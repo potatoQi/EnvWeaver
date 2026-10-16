@@ -4,6 +4,10 @@ from pathlib import Path
 from .._util import read_json, write_json
 from ..models import Instance, RuntimeRef
 from .base import RuntimeBackend
+from .docker import DockerBackend
+from .qemu import QemuBackend
+
+_BUILTIN_BACKENDS = {"docker": DockerBackend, "qemu": QemuBackend}
 
 
 class Runtime:
@@ -18,16 +22,9 @@ class Runtime:
 
     def _backend(self, name):
         if name not in self._backends:
-            if name == "docker":
-                from .docker import DockerBackend
-
-                self._backends[name] = DockerBackend(self.root)
-            elif name == "qemu":
-                from .qemu import QemuBackend
-
-                self._backends[name] = QemuBackend(self.root)
-            else:
+            if name not in _BUILTIN_BACKENDS:
                 raise ValueError(f"Unknown runtime backend: {name}")
+            self._backends[name] = _BUILTIN_BACKENDS[name](self.root)
         return self._backends[name]
 
     def start(self, ref, context=None):
@@ -38,8 +35,11 @@ class Runtime:
         try:
             for item in context or []:
                 backend.upload(instance, item["source"], item["target"])
-        except BaseException:
-            backend.close(instance)
+        except BaseException as error:
+            try:
+                backend.close(instance)
+            except Exception as cleanup_error:
+                error.add_note(f"Instance cleanup also failed: {cleanup_error}")
             raise
         return instance
 
