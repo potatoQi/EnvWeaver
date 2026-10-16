@@ -6,10 +6,7 @@ theme:
 nav:
   - 接口用法: index.md
 exclude_docs: |
-  usage.md
-  extending.md
   design.md
-  contributing.md
 plugins:
   - search
   - mkdocstrings:
@@ -30,8 +27,6 @@ plugins:
 markdown_extensions:
   - admonition
   - md_in_html
-  - pymdownx.snippets:
-      check_paths: true
   - toc:
       permalink: true
       toc_depth: "2-3"
