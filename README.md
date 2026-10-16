@@ -4,7 +4,27 @@
 
 提供少量可组合的基建接口，让 Agent 根据真实数据源编写可复用的 Data Pipeline，持续生产可执行、可验证、可供训练的任务。
 
-当前处于设计阶段，尚未实现或发布 Python 包。第一版已确认的技术路线、接口和数据契约见 [设计文档](docs/design.md)。文档中的签名是设计约定，不是已经可运行的 API。
+第一版基建代码已实现，可从源码或 wheel 安装，尚未发布到 PyPI。使用方式见 [使用说明](docs/usage.md)，已确认的设计见 [设计文档](docs/design.md)。
+
+```bash
+uv sync
+uv run pytest
+uv build
+```
+
+```python
+from envweaver import Runtime, RuntimeRef, TaskPool, agent, llm, verifier
+
+runtime = Runtime("./storage/runtime")
+task = TaskPool("./storage/tasks", runtime=runtime)
+instance = runtime.start(RuntimeRef("docker", "python:3.11-slim-bookworm", {
+    "command": ["sleep", "infinity"],
+}))
+try:
+    print(runtime.exec(instance, "python3 --version"))
+finally:
+    runtime.close(instance)
+```
 
 ## 使用方式
 
@@ -56,4 +76,6 @@ Pipeline 的编写者决定数据获取、任务构造、Agent 选择、会话�
 
 模型优先用于选择、提取、实现和判断；Goal 尽量保留真实需求，减少自由创作带来的分布偏差。具体生成策略仍由 Pipeline 决定。
 
-接口能够承载生产流程，不等于已经验证 Agent 可以稳定写出高质量 Pipeline。后续将以 Coding 和 CUA 场景检验设计。
+已验证真实 Docker 的任务保存/恢复闭环、Linux X11 桌面的截图与鼠标操作，以及真实 pi + IPython 与模拟模型服务的工具、图片交互。QEMU/KVM 后端已经实现，但当前测试服务器没有 KVM，因此 Linux/Windows 虚拟机尚未完成实测。详见 [验证范围](docs/usage.md#7-示例和验证范围)。
+
+接口能够承载生产流程，不等于已经验证 Agent 可以稳定写出高质量 Pipeline。[Coding 示例](examples/coding/pipeline.py) 展示调用方式；领域流程不进入基础设施代码。
