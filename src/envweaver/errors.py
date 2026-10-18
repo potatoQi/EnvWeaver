@@ -1,5 +1,5 @@
 class EnvWeaverError(Exception):
-    """Base error for infrastructure failures (never a task score)."""
+    """EnvWeaver 定义的操作失败异常基类，不代表任务得分。"""
 
 
 class RuntimeError(EnvWeaverError):
@@ -8,10 +8,6 @@ class RuntimeError(EnvWeaverError):
 
 class VerifierError(EnvWeaverError):
     """验证器无法正常执行或结果不合法，不等同于任务得零分。"""
-
-
-class AgentError(EnvWeaverError):
-    """Agent 进程或输出处理失败；任务本身是否正确需另行验证。"""
 
 
 class TaskExistsError(EnvWeaverError):

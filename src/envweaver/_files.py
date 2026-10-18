@@ -17,8 +17,9 @@ def pack(path):
     return "directory", buffer.getvalue()
 
 
-def unpack(kind, payload, target):
+def unpack(kind, payload, target, *, mode=None):
     target = Path(target)
+    permissions = []
     if kind == "file":
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(payload)
@@ -43,5 +44,12 @@ def unpack(kind, payload, target):
                     destination.parent.mkdir(parents=True, exist_ok=True)
                     with archive.open(item) as source, destination.open("wb") as output:
                         shutil.copyfileobj(source, output)
+                if mode is not None:
+                    permissions.append((destination, (item.external_attr >> 16) & 0o777))
     else:
         raise ValueError(f"Unknown file transfer kind: {kind}")
+    if mode is not None:
+        # Set directory modes last so read-only inputs can still be populated.
+        for path, permission in reversed(permissions):
+            path.chmod(permission)
+        target.chmod(mode & 0o777)

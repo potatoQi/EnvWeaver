@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block next_prev %}{% endblock %}
+
+{% block search_button %}
+  <li class="nav-item">
+    <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#mkdocs_search_modal">
+      <i class="fa fa-search" aria-hidden="true"></i> 搜索
+    </a>
+  </li>
+{% endblock %}
+
+{% block scripts %}
+  {{ super() }}
+  {% if config.extra.docs_version %}
+    <script id="docs-version-script" data-version="{{ config.extra.docs_version }}" src="{{ 'javascripts/versions.js'|url }}"></script>
+  {% endif %}
+{% endblock %}

@@ -8,9 +8,9 @@ import sys
 
 
 def execute(command, cwd=None, timeout=300):
-    if timeout is None or timeout <= 0:
-        raise ValueError("timeout must be positive")
-    shell = (
+    if timeout is not None and timeout <= 0:
+        raise ValueError("timeout must be positive or None")
+    shell = command if isinstance(command, list) else (
         ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", command]
         if os.name == "nt"
         else ["/bin/sh", "-c", command]

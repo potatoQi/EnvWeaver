@@ -1,92 +1,114 @@
 from dataclasses import asdict, dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from .verifier import Verifier
 
 
 @dataclass(frozen=True)
 class RuntimeRef:
-    """可启动的基础环境或已保存环境，不是运行中的实例。
+    """Runtime.create 或 Runtime.save 返回的镜像和配置，可传给 Runtime.start。
 
     Attributes:
         backend: 后端名称，例如 `docker`、`qemu`。
-        image: Docker 镜像名或 QEMU 磁盘路径。
-        config: 后端启动配置；保存后可能包含镜像归档等资产路径。
+        image: Docker 镜像名或 QEMU 磁盘文件路径。
+        config: 后端配置，见[后端配置](index.md#backend-config)。
+        connection: SSH 用户名、Python 路径或 VNC 密码环境变量名，见[连接配置](index.md#connection-config)。
     """
 
     backend: str
     image: str
     config: dict[str, Any] = field(default_factory=dict)
+    connection: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        """返回可写入 JSON 的描述；config 中的值需由调用者保证可序列化。"""
+        """转换为字典。
+
+        Returns:
+            包含 backend、image、config、connection 的字典。
+        """
         return asdict(self)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "RuntimeRef":
-        """从描述字典还原引用，不启动环境。"""
+        """从字典创建 RuntimeRef。
+
+        Args:
+            data: 包含 backend、image 和可选 config、connection 的字典。
+
+        Returns:
+            RuntimeRef 对象。
+
+        Raises:
+            TypeError: 缺少必要字段或包含未知字段。
+        """
         return cls(**data)
 
 
 @dataclass(frozen=True)
 class Instance:
-    """运行中环境的连接描述，由 `Runtime.start` 返回。
+    """`Runtime.start` 或 `Runtime.connect` 返回的对象，代表已启动的容器或虚拟机。
 
     Attributes:
-        id: 后端分配的实例标识。
+        id: 容器或虚拟机的 ID。
         backend: 管理实例的后端名称。
-        root: Runtime 资产存储的绝对路径。
-        data: 后端连接信息；调用者通常无需修改。
+        root: 环境记录的存储目录。
+        host: 实例所在的服务器地址；None 表示本地。
+        data: 自动记录的实例信息，如镜像配置、磁盘路径和连接地址，无需手动填写。
     """
 
     id: str
     backend: str
-    root: str
+    root: str | None = None
     data: dict[str, Any] = field(default_factory=dict)
+    host: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        """返回连接描述；不保存运行状态或复制环境。"""
+        """转换为字典。
+
+        Returns:
+            包含 id、backend、root、data、host 的字典。
+        """
         return asdict(self)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "Instance":
-        """还原连接描述，不检查目标是否仍在运行。"""
+        """从字典创建 Instance。
+
+        Args:
+            data: to_dict 返回的字典。
+
+        Returns:
+            Instance 对象。
+
+        Raises:
+            TypeError: 缺少必要字段或包含未知字段。
+        """
         return cls(**data)
 
 
 @dataclass(frozen=True)
 class Task:
-    """TaskPool 读取的完整任务描述，材料路径已解析为绝对路径。
+    """TaskPool.load 返回的任务。
 
     Attributes:
-        name: Pool 内唯一的任务名。
-        task_ref: 任务描述文件路径。
-        runtime: 可用于启动环境的引用。
+        name: 任务名称。
+        task_ref: task.json 或 ZIP 的本地路径或 SSH 地址。
         goal: 有序文字/图片列表；文字使用 text 字段，图片使用 path 字段。
-        verifier: 验证包的 run.py 路径。
-        context: 外部文件映射列表，每项包含 source 和 target。
-        metadata: Pipeline 自定的 JSON 元数据。
+        metadata: 自定义任务信息，如来源、标签、软件名称。
+        task_runtime_ref: 任务环境的镜像引用。
+        context: 任务输入文件列表；source 是源文件，target 是环境内的目标路径。
+        setup: 复制 context 后执行的准备命令和超时；可传给 Runtime.start。
+        verifier_runtime_ref: 验证环境的镜像引用。
+        verifier: 任务验证器。
     """
 
     name: str
     task_ref: str
-    runtime: RuntimeRef
     goal: list[dict[str, Any]]
-    verifier: str
-    context: list[dict[str, str]]
     metadata: dict[str, Any]
-
-
-@dataclass(frozen=True)
-class AgentResult:
-    """Agent 的执行结果；任务是否正确应由 Verifier 独立判断。
-
-    Attributes:
-        text: Agent 最终回答。
-        workspace: 本次使用的 Pipeline 侧工作目录。
-        trajectory: 事件轨迹文件路径。
-        session: 可交给后续调用继续会话的标识，未提供时为 None。
-    """
-
-    text: str
-    workspace: str
-    trajectory: str
-    session: str | None = None
+    task_runtime_ref: RuntimeRef
+    context: list[dict[str, str]]
+    setup: dict[str, Any] | None = field(default=None, kw_only=True)
+    verifier_runtime_ref: RuntimeRef
+    verifier: "Verifier"
