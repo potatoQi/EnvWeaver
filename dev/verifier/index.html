@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="zh_CN" data-bs-theme="auto">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        
+        <link rel="shortcut icon" href="../img/favicon.ico">
+        <title>Verifier - EnvWeaver</title>
+        <link href="../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../css/fontawesome.min.css" rel="stylesheet">
+        <link href="../css/brands.min.css" rel="stylesheet">
+        <link href="../css/solid.min.css" rel="stylesheet">
+        <link href="../css/v4-font-face.min.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/vs.min.css" disabled>
+        <link id="hljs-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css" disabled>
+        <link href="../assets/_mkdocstrings.css" rel="stylesheet">
+        <link href="../stylesheets/white.css" rel="stylesheet">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="..">EnvWeaver</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar-collapse" aria-controls="navbar-collapse" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="nav-item">
+                                <a href=".." class="nav-link">项目简介</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../runtime/" class="nav-link">Runtime</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="./" class="nav-link active" aria-current="page">Verifier</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../task/" class="nav-link">Task</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ms-md-auto">
+  <li class="nav-item">
+    <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#mkdocs_search_modal">
+      <i class="fa fa-search" aria-hidden="true"></i> 搜索
+    </a>
+  </li>
+
+                            <li class="nav-item dropdown">
+                              <button id="theme-menu" aria-expanded="false" data-bs-toggle="dropdown" data-bs-display="static" aria-label="Toggle theme" class="nav-link dropdown-toggle">
+                                <i class="fa-solid fa-circle-half-stroke fa-fw"></i>
+                                <span class="d-lg-none ms-2">Toggle theme</span>
+                              </button>
+                              <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                  <button class="dropdown-item d-flex align-items-center" data-bs-theme-value="light" aria-pressed="false">
+                                    <i class="fa-solid fa-sun fa-fw"></i>
+                                    <span class="ms-2">Light</span>
+                                    <i class="fa-solid fa-check ms-auto d-none"></i>
+                                  </button>
+                                </li>
+                                <li>
+                                  <button class="dropdown-item d-flex align-items-center" data-bs-theme-value="dark" aria-pressed="false">
+                                    <i class="fa-solid fa-moon fa-fw"></i>
+                                    <span class="ms-2">Dark</span>
+                                    <i class="fa-solid fa-check ms-auto d-none"></i>
+                                  </button>
+                                </li>
+                                <li>
+                                  <button class="dropdown-item d-flex align-items-center" data-bs-theme-value="auto" aria-pressed="true">
+                                    <i class="fa-solid fa-circle-half-stroke fa-fw"></i>
+                                    <span class="ms-2">Auto</span>
+                                    <i class="fa-solid fa-check ms-auto"></i>
+                                  </button>
+                                </li>
+                              </ul>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <script src="../js/darkmode.js"></script>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-bs-toggle="collapse" data-bs-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-body-tertiary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-bs-level="1"><a href="#verifier" class="nav-link">Verifier</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="2"><a href="#verifier_1" class="nav-link">Verifier：配置验证</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#run" class="nav-link">Verifier.run：执行 Verify</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="verifier">Verifier<a class="headerlink" href="#verifier" title="Permanent link">&para;</a></h1>
+<p>Verifier 在验证沙箱中执行 Verify，评估任务完成情况并返回得分，可用于 Data Pipeline、Training、Evaluation。</p>
+<h2 id="verifier_1">Verifier：配置验证<a class="headerlink" href="#verifier_1" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<a id="envweaver.Verifier"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>entry</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | <span title="pathlib.Path">Path</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>run.py 的本地路径或 ssh://服务器/绝对路径。run.py 所在目录是验证材料包，保存 Task 和执行 Verify 时会复制整个目录。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>runtime</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="envweaver.runtime.Runtime" href="../runtime/#envweaver.Runtime">Runtime</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>用于操作验证沙箱和任务沙箱的沙箱管理器。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>timeout</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>run.py 的最长运行秒数，须大于 0。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>required_env</code>
+            </td>
+            <td>
+                  <code><span title="list">list</span>[<span title="str">str</span>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>验证程序需要的环境变量名称。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>requires_task_instance</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>是否需要任务沙箱。</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>entry 地址无效或文件名不是 run.py、timeout 不是正数、required_env 中的名称无效或重复，或 requires_task_instance 不是布尔值。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div><pre><code class="language-python">from envweaver import Verifier
+
+checker = Verifier(
+    entry=&quot;ssh://server/data/verify/run.py&quot;,
+    runtime=runtime,
+    timeout=300,
+    required_env=[&quot;LLM_BASE_URL&quot;, &quot;LLM_API_KEY&quot;],
+    requires_task_instance=True,
+)
+</code></pre>
+<h2 id="run">Verifier.run：执行 Verify<a class="headerlink" href="#run" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="envweaver.Verifier.run"></a>
+    <div class="doc doc-contents first">
+
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>verifier_instance</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="envweaver.models.Instance" href="../runtime/#envweaver.models.Instance">Instance</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>验证沙箱。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>task_instance</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="envweaver.models.Instance" href="../runtime/#envweaver.models.Instance">Instance</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>任务沙箱；requires_task_instance 为 True 时必填，为 False 时不能传入。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>files</code>
+            </td>
+            <td>
+                  <code><span title="list">list</span>[<span title="dict">dict</span>[<span title="str">str</span>, <span title="str">str</span> | <span title="pathlib.Path">Path</span>]] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>要复制的文件或目录列表。source 是当前机器上的路径或 ssh://服务器/绝对路径；target 是验证沙箱内的路径，相对路径以 run.py 所在目录为基准。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>env</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="str">str</span>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>传给验证程序的环境变量，须包含 required_env 中的全部变量。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="dict">dict</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>run.py 输出的 JSON 对象。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>task_instance 与 requires_task_instance 不匹配、文件映射或环境变量无效，或缺少 required_env 中的变量。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="OSError">OSError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>验证材料或输入文件无法读取。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="envweaver.errors.VerifierError">VerifierError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>验证超时、执行失败或结果格式错误。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="envweaver.errors.RuntimeError">RuntimeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>材料传输或沙箱操作失败。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="TimeoutError">TimeoutError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>材料传输超时。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="TypeError">TypeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>verifier_instance 或 task_instance 不是 Instance。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div><pre><code class="language-python">result = checker.run(
+    verifier_instance=verifier_instance,
+    task_instance=task_instance,
+    files=[
+        {&quot;source&quot;: &quot;./answer.json&quot;, &quot;target&quot;: &quot;answer.json&quot;},
+        {&quot;source&quot;: &quot;ssh://server/data/screenshots&quot;, &quot;target&quot;: &quot;/data/screenshots&quot;},
+    ],
+    env={&quot;LLM_BASE_URL&quot;: base_url, &quot;LLM_API_KEY&quot;: api_key},
+)
+</code></pre>
+<details id="entry">
+<summary>run.py 入口</summary>
+<ul>
+<li>文件名为 <code>run.py</code>，作为 Python 脚本在验证沙箱内执行，不要求定义特定函数或类。</li>
+<li>标准输出只写一个 JSON 对象，必须包含数值 <code>score</code>，范围为 0～1；可以包含其他 JSON 字段。日志写标准错误。</li>
+<li>验证正常完成时退出码为 <code>0</code>，包括任务得零分的情况。非零退出、超过 <code>timeout</code> 或输出格式错误属于执行失败。</li>
+<li>需要任务沙箱时，脚本接收 <code>--instance &lt;连接文件路径&gt;</code>，用 <code>Runtime.connect</code> 连接。不需要时，无须处理这个参数。</li>
+</ul>
+<p><strong>示例：在任务沙箱中运行测试</strong></p>
+<p>设置 <code>requires_task_instance=True</code>。<code>tests/</code> 与 <code>run.py</code> 放在一起，测试在任务沙箱的 <code>/work/repo</code> 中运行。</p>
+<pre><code class="language-python">import argparse
+import json
+from envweaver import Runtime
+
+parser = argparse.ArgumentParser()
+parser.add_argument(&quot;--instance&quot;, required=True)
+runtime = Runtime()
+task_instance = runtime.connect(path=parser.parse_args().instance)
+
+runtime.upload(
+    instance=task_instance,
+    source=&quot;./tests&quot;,
+    target=&quot;/work/repo/tests&quot;,
+)
+code, stdout, stderr = runtime.exec(
+    instance=task_instance,
+    command=&quot;python3 -m pytest -q&quot;,
+    cwd=&quot;/work/repo&quot;,
+)
+if code not in (0, 1):
+    raise RuntimeError(stderr)
+print(json.dumps({&quot;score&quot;: float(code == 0)}))
+</code></pre>
+<p><strong>示例：在验证沙箱中运行测试</strong></p>
+<p>设置 <code>requires_task_instance=False</code>。<code>repo/</code> 与 <code>run.py</code> 放在一起，<code>submission.patch</code> 通过 <code>files</code> 传入。</p>
+<pre><code class="language-python">import json
+import subprocess
+import sys
+from pathlib import Path
+
+subprocess.run(
+    [&quot;git&quot;, &quot;apply&quot;, str(Path(&quot;submission.patch&quot;).resolve())],
+    cwd=&quot;repo&quot;, check=True, capture_output=True,
+)
+result = subprocess.run(
+    [sys.executable, &quot;-m&quot;, &quot;pytest&quot;, &quot;-q&quot;],
+    cwd=&quot;repo&quot;, capture_output=True,
+)
+if result.returncode not in (0, 1):
+    raise RuntimeError(result.stderr.decode())
+print(json.dumps({&quot;score&quot;: float(result.returncode == 0)}))
+</code></pre>
+</details></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+  
+        <script src="../js/bootstrap.bundle.min.js"></script>
+        <script>
+            var base_url = "..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../js/base.js"></script>
+        <script src="../javascripts/search.js"></script>
+  
+    <script id="docs-version-script" data-version="dev" src="../javascripts/versions.js"></script>
+  
+
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title" id="searchModalLabel">搜索</h4>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+      </div>
+      <div class="modal-body">
+        <form>
+          <input type="search" class="form-control" id="mkdocs-search-query" placeholder="请输入搜索内容" aria-label="请输入搜索内容">
+        </form>
+        <div id="mkdocs-search-results" aria-live="polite"></div>
+      </div>
+    </div>
+  </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>

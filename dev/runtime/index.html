@@ -1,0 +1,2810 @@
+<!DOCTYPE html>
+<html lang="zh_CN" data-bs-theme="auto">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        
+        <link rel="shortcut icon" href="../img/favicon.ico">
+        <title>Runtime - EnvWeaver</title>
+        <link href="../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../css/fontawesome.min.css" rel="stylesheet">
+        <link href="../css/brands.min.css" rel="stylesheet">
+        <link href="../css/solid.min.css" rel="stylesheet">
+        <link href="../css/v4-font-face.min.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/vs.min.css" disabled>
+        <link id="hljs-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css" disabled>
+        <link href="../assets/_mkdocstrings.css" rel="stylesheet">
+        <link href="../stylesheets/white.css" rel="stylesheet">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="..">EnvWeaver</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar-collapse" aria-controls="navbar-collapse" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="nav-item">
+                                <a href=".." class="nav-link">项目简介</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="./" class="nav-link active" aria-current="page">Runtime</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../verifier/" class="nav-link">Verifier</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../task/" class="nav-link">Task</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ms-md-auto">
+  <li class="nav-item">
+    <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#mkdocs_search_modal">
+      <i class="fa fa-search" aria-hidden="true"></i> 搜索
+    </a>
+  </li>
+
+                            <li class="nav-item dropdown">
+                              <button id="theme-menu" aria-expanded="false" data-bs-toggle="dropdown" data-bs-display="static" aria-label="Toggle theme" class="nav-link dropdown-toggle">
+                                <i class="fa-solid fa-circle-half-stroke fa-fw"></i>
+                                <span class="d-lg-none ms-2">Toggle theme</span>
+                              </button>
+                              <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                  <button class="dropdown-item d-flex align-items-center" data-bs-theme-value="light" aria-pressed="false">
+                                    <i class="fa-solid fa-sun fa-fw"></i>
+                                    <span class="ms-2">Light</span>
+                                    <i class="fa-solid fa-check ms-auto d-none"></i>
+                                  </button>
+                                </li>
+                                <li>
+                                  <button class="dropdown-item d-flex align-items-center" data-bs-theme-value="dark" aria-pressed="false">
+                                    <i class="fa-solid fa-moon fa-fw"></i>
+                                    <span class="ms-2">Dark</span>
+                                    <i class="fa-solid fa-check ms-auto d-none"></i>
+                                  </button>
+                                </li>
+                                <li>
+                                  <button class="dropdown-item d-flex align-items-center" data-bs-theme-value="auto" aria-pressed="true">
+                                    <i class="fa-solid fa-circle-half-stroke fa-fw"></i>
+                                    <span class="ms-2">Auto</span>
+                                    <i class="fa-solid fa-check ms-auto"></i>
+                                  </button>
+                                </li>
+                              </ul>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <script src="../js/darkmode.js"></script>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-bs-toggle="collapse" data-bs-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-body-tertiary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-bs-level="1"><a href="#runtime" class="nav-link">Runtime</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="2"><a href="#runtime_1" class="nav-link">Runtime：沙箱管理器</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#runtimeref" class="nav-link">RuntimeRef：环境引用</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#instance" class="nav-link">Instance：运行实例</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#create" class="nav-link">Runtime.create：创建环境引用</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#start" class="nav-link">Runtime.start：启动环境</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#exec" class="nav-link">Runtime.exec：执行命令</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#upload" class="nav-link">Runtime.upload：上传文件</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#download" class="nav-link">Runtime.download：下载文件</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#screenshot" class="nav-link">Runtime.screenshot：桌面截图</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#save" class="nav-link">Runtime.save：保存环境</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#close" class="nav-link">Runtime.close：释放实例</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#backend-config" class="nav-link">后端配置</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#_1" class="nav-link">扩展与连接</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="runtime">Runtime<a class="headerlink" href="#runtime" title="Permanent link">&para;</a></h1>
+<p>Runtime 用统一接口启动、操作、保存和关闭沙箱，支持 Docker、QEMU 及自定义后端，可用于 Data Pipeline、Training、Evaluation。</p>
+<p>一个 Runtime 可以创建和操作多个沙箱。</p>
+<h2 id="runtime_1">Runtime：沙箱管理器<a class="headerlink" href="#runtime_1" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<a id="envweaver.Runtime"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>root</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | <span title="pathlib.Path">Path</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>可选的环境记录目录；支持本地路径或 ssh://服务器/绝对目录。省略时不写记录。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>host</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>后端服务地址；Docker、QEMU 填 ssh://服务器，不填则使用当前机器。自定义后端决定地址格式。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>ssh</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>连接服务器使用的 SSH 配置，字段见<a href="../#ssh-config">SSH 配置</a>。不填则使用 OpenSSH 配置。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>root 或 host 为空，或 root 地址格式有误。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="TypeError">TypeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>ssh 不是字典。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div><pre><code class="language-python">from envweaver import Runtime
+
+runtime = Runtime(root=&quot;./storage/runtimes&quot;)
+</code></pre>
+<details id="ssh-config">
+<summary>SSH 配置</summary>
+<p><code>Runtime(ssh=...)</code> 配置服务器连接。</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>用法与默认值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>config_file</code></td>
+<td>当前机器上的 SSH 配置文件路径；不填则使用 OpenSSH 配置</td>
+</tr>
+<tr>
+<td><code>known_hosts_file</code></td>
+<td>当前机器上的主机身份记录文件路径；不填则使用 OpenSSH 配置</td>
+</tr>
+<tr>
+<td><code>identity_file</code></td>
+<td>当前机器上的 SSH 私钥路径；不填则使用 OpenSSH 配置</td>
+</tr>
+<tr>
+<td><code>host_key_alias</code></td>
+<td>在身份记录文件中查找虚拟机或服务器时使用的名称；默认不指定</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-python">runtime = Runtime(
+    root=&quot;./storage/runtimes&quot;,
+    host=&quot;ssh://worker@server&quot;,
+    ssh={
+        &quot;config_file&quot;: &quot;./experiment/ssh/config&quot;,
+        &quot;known_hosts_file&quot;: &quot;./experiment/ssh/known_hosts&quot;,
+        &quot;identity_file&quot;: &quot;./experiment/ssh/id_ed25519&quot;,
+    },
+)
+</code></pre>
+</details>
+<h2 id="runtimeref">RuntimeRef：环境引用<a class="headerlink" href="#runtimeref" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<a id="envweaver.models.RuntimeRef"></a>
+    <div class="doc doc-contents first">
+
+
+
+        <p>Runtime.create 或 Runtime.save 返回的镜像和配置，可传给 Runtime.start。</p>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.models.RuntimeRef.backend">backend</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>后端名称，例如 <code>docker</code>、<code>qemu</code>。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.models.RuntimeRef.image">image</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Docker 镜像名或 QEMU 磁盘文件路径。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.models.RuntimeRef.config">config</span></code></td>
+            <td>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>后端配置，见<a href="../#backend-config">后端配置</a>。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.models.RuntimeRef.connection">connection</span></code></td>
+            <td>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>SSH 用户名、Python 路径或 VNC 密码环境变量名，见<a href="../#connection-config">连接配置</a>。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div><h2 id="instance">Instance：运行实例<a class="headerlink" href="#instance" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<a id="envweaver.models.Instance"></a>
+    <div class="doc doc-contents first">
+
+
+
+        <p><code>Runtime.start</code> 或 <code>Runtime.connect</code> 返回的对象，代表已启动的容器或虚拟机。</p>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.models.Instance.id">id</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>容器或虚拟机的 ID。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.models.Instance.backend">backend</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>管理实例的后端名称。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.models.Instance.root">root</span></code></td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>环境记录的存储目录。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.models.Instance.host">host</span></code></td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>实例所在的服务器地址；None 表示本地。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.models.Instance.data">data</span></code></td>
+            <td>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>自动记录的实例信息，如镜像配置、磁盘路径和连接地址，无需手动填写。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div><h2 id="create">Runtime.create：创建环境引用<a class="headerlink" href="#create" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="envweaver.Runtime.create"></a>
+    <div class="doc doc-contents first">
+
+        <p>检查现有镜像并创建引用。</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>backend</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>docker、qemu 或通过 register 注册的后端名称。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>image</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Docker 镜像名/ID、QEMU 磁盘路径，或自定义后端的环境标识。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>config</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>后端配置，默认 {}，字段见<a href="../#backend-config">后端配置</a>。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>connection</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>SSH 用户名、Python 路径或 VNC 密码环境变量名，见<a href="../#connection-config">连接配置</a>。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="envweaver.models.RuntimeRef" href="#envweaver.models.RuntimeRef">RuntimeRef</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>可传给 start 的 RuntimeRef。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>镜像为空、后端未注册或配置有误。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="TypeError">TypeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>config 或 connection 不是字典。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="OSError">OSError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>镜像文件不存在、不可读，或缺少所需程序。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="envweaver.errors.RuntimeError">RuntimeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Docker 镜像不存在或后端检查失败。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="TimeoutError">TimeoutError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>SSH 操作超时。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="subprocess.TimeoutExpired">TimeoutExpired</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Docker 命令超时。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div><pre><code class="language-python">ref = runtime.create(
+    backend=&quot;docker&quot;,
+    image=&quot;python:3.11-slim-bookworm&quot;,
+    config={&quot;command&quot;: [&quot;sleep&quot;, &quot;infinity&quot;]},
+)
+</code></pre>
+<h2 id="start">Runtime.start：启动环境<a class="headerlink" href="#start" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="envweaver.Runtime.start"></a>
+    <div class="doc doc-contents first">
+
+        <p>启动容器或虚拟机。</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>ref</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="envweaver.models.RuntimeRef" href="#envweaver.models.RuntimeRef">RuntimeRef</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>要启动的环境，包含镜像和启动配置。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>context</code>
+            </td>
+            <td>
+                  <code><span title="list">list</span>[<span title="dict">dict</span>[<span title="str">str</span>, <span title="str">str</span>]] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>启动后要复制进去的文件列表，不填则不复制。<br>
+每项的 source 填本地路径或 ssh://服务器/绝对路径，
+target 填容器或虚拟机内的目标路径。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>setup</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>复制 context 后执行的准备操作；command 为命令字符串或参数列表，
+timeout 为最长执行秒数，须大于 0。命令准备完成后以退出码 0 结束。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>connection</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>本次连接设置；重新填写的覆盖 ref.connection 中的值，没填的保留原值。
+字段见<a href="../#connection-config">连接配置</a>。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="envweaver.models.Instance" href="#envweaver.models.Instance">Instance</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>完成文件复制和准备操作后的 Instance。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="TypeError">TypeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>ref 不是 RuntimeRef 对象，或 connection 不是字典。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>后端名称、配置或 setup 有误。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="OSError">OSError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>无法访问镜像、输入文件或存储目录，或缺少所需程序。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="envweaver.errors.RuntimeError">RuntimeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>环境启动、初始化文件传输失败，或准备命令返回非零退出码。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="TimeoutError">TimeoutError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>初始化命令或 SSH 操作超时。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="subprocess.TimeoutExpired">TimeoutExpired</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Docker 或 QEMU 命令超时。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div><pre><code class="language-python">instance = runtime.start(
+    ref=ref,
+    context=[{&quot;source&quot;: &quot;./prepare&quot;, &quot;target&quot;: &quot;/work/prepare&quot;}],
+    setup={&quot;command&quot;: [&quot;python3&quot;, &quot;/work/prepare/setup.py&quot;], &quot;timeout&quot;: 120},
+)
+</code></pre>
+<details id="connection-config">
+<summary>连接配置</summary>
+<p><code>create(connection=...)</code> 可填写 QEMU 的 SSH 用户名、Python 路径，或 Docker 的 VNC 密码环境变量名。其他连接设置传给 <code>start(connection=...)</code>。</p>
+<p><code>start</code> 中重新填写的设置会覆盖引用中的值，没填的保留原值。</p>
+<p><code>save</code> 保留实际使用的 SSH 用户名、Python 路径和 VNC 密码环境变量名；不保存服务器地址、端口、密码或私钥路径。</p>
+<pre><code class="language-python">ref = runtime.create(
+    backend=&quot;qemu&quot;,
+    image=&quot;/images/windows.qcow2&quot;,
+    config={&quot;disk_dir&quot;: &quot;/data/vms&quot;},
+    connection={&quot;ssh&quot;: {&quot;user&quot;: &quot;worker&quot;, &quot;python&quot;: &quot;python&quot;}},
+)
+instance = runtime.start(
+    ref=ref,
+    connection={&quot;ssh&quot;: {
+        &quot;config_file&quot;: &quot;./experiment/ssh/config&quot;,
+        &quot;known_hosts_file&quot;: &quot;./experiment/ssh/known_hosts&quot;,
+        &quot;identity_file&quot;: &quot;./experiment/ssh/vm_key&quot;,
+    }},
+)
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>用法与默认值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ssh.user</code></td>
+<td>虚拟机中的 SSH 用户名，必填</td>
+</tr>
+<tr>
+<td><code>ssh.python</code></td>
+<td>虚拟机内的 Python 程序，默认 <code>python3</code></td>
+</tr>
+<tr>
+<td><code>ssh.config_file</code>、<code>ssh.known_hosts_file</code>、<code>ssh.identity_file</code>、<code>ssh.host_key_alias</code></td>
+<td>与上面的 <a href="#ssh-config">SSH 配置</a> 相同，用于连接虚拟机</td>
+</tr>
+<tr>
+<td><code>vnc.host</code></td>
+<td>Docker 桌面的 VNC 地址，截图时必填；需能从当前机器访问</td>
+</tr>
+<tr>
+<td><code>vnc.port</code></td>
+<td>VNC 端口，默认 <code>5900</code></td>
+</tr>
+<tr>
+<td><code>vnc.password_env</code></td>
+<td>当前机器上保存 VNC 密码的环境变量名；默认不传密码</td>
+</tr>
+</tbody>
+</table>
+</details>
+<h2 id="exec">Runtime.exec：执行命令<a class="headerlink" href="#exec" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="envweaver.Runtime.exec"></a>
+    <div class="doc doc-contents first">
+
+        <p>在容器或虚拟机中执行命令。</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>instance</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="envweaver.models.Instance" href="#envweaver.models.Instance">Instance</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>要操作的 Instance。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>command</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | <span title="list">list</span>[<span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>命令字符串，或程序及参数列表，如 ["python3", "-c", "print(1)"]。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>cwd</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>在容器或虚拟机内的哪个目录执行。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>timeout</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>最长执行秒数，None 表示不限时。</p>
+              </div>
+            </td>
+            <td>
+                  <code>300</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="tuple">tuple</span>[<span title="int">int</span>, <span title="str">str</span>, <span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>退出码、标准输出、标准错误。命令执行失败时返回非零退出码。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="TimeoutError">TimeoutError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>目标命令或 SSH 操作超时。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>后端未注册，或连接配置、访问密钥有误。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="envweaver.errors.RuntimeError">RuntimeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>无法执行后端操作或目标连接服务报错。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="OSError">OSError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>无法启动所需程序。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="subprocess.TimeoutExpired">TimeoutExpired</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Docker 命令超时。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div><pre><code class="language-python">code, stdout, stderr = runtime.exec(
+    instance=instance,
+    command=&quot;python3 --version&quot;,
+    timeout=30,
+)
+</code></pre>
+<h2 id="upload">Runtime.upload：上传文件<a class="headerlink" href="#upload" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="envweaver.Runtime.upload"></a>
+    <div class="doc doc-contents first">
+
+        <p>上传文件或目录到容器或虚拟机。</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>instance</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="envweaver.models.Instance" href="#envweaver.models.Instance">Instance</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>要操作的 Instance。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>source</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | <span title="pathlib.Path">Path</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>文件或目录的本地路径，或 ssh://服务器/绝对路径。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>target</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>容器或虚拟机内的完整目标路径，包含文件名或目录名。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>None。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="OSError">OSError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>文件无法读取、路径类型冲突，或缺少所需程序。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>文件地址、后端或连接配置有误，或待传目录含不支持的符号链接。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="envweaver.errors.RuntimeError">RuntimeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>上传失败，例如目标路径不可写或连接服务报错。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="TimeoutError">TimeoutError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>目标准备命令或 SSH 操作超时。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="subprocess.TimeoutExpired">TimeoutExpired</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Docker 命令超时。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+        <p>同名文件覆盖，目录合并。</p>
+
+
+    </div>
+
+</div><pre><code class="language-python">runtime.upload(
+    instance=instance,
+    source=&quot;./input.txt&quot;,
+    target=&quot;/work/input.txt&quot;,
+)
+</code></pre>
+<h2 id="download">Runtime.download：下载文件<a class="headerlink" href="#download" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="envweaver.Runtime.download"></a>
+    <div class="doc doc-contents first">
+
+        <p>下载容器或虚拟机内的文件或目录。</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>instance</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="envweaver.models.Instance" href="#envweaver.models.Instance">Instance</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>要下载文件的 Instance。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>source</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>容器或虚拟机内的文件或目录。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>target</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | <span title="pathlib.Path">Path</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>完整目标路径，包含文件名或目录名；支持本地路径或 ssh://服务器/绝对路径。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>None。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="OSError">OSError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>目标无法写入、路径类型冲突，或缺少所需程序。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>文件地址、后端或连接配置有误，或返回的文件包路径不合法。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="envweaver.errors.RuntimeError">RuntimeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>下载失败，例如远端文件不存在或连接服务报错。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="TimeoutError">TimeoutError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>目标检查命令或 SSH 操作超时。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="subprocess.TimeoutExpired">TimeoutExpired</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Docker 命令超时。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+        <p>同名文件覆盖，目录合并。</p>
+
+
+    </div>
+
+</div><pre><code class="language-python">runtime.download(
+    instance=instance,
+    source=&quot;/work/input.txt&quot;,
+    target=&quot;./downloaded.txt&quot;,
+)
+</code></pre>
+<h2 id="screenshot">Runtime.screenshot：桌面截图<a class="headerlink" href="#screenshot" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="envweaver.Runtime.screenshot"></a>
+    <div class="doc doc-contents first">
+
+        <p>获取桌面截图。</p>
+<p>Docker 使用 VNC，调用该接口的环境需要安装 <code>envweaver[desktop]</code>；QEMU 使用 QMP。</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>instance</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="envweaver.models.Instance" href="#envweaver.models.Instance">Instance</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>要截图的 Instance。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="bytes">bytes</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>PNG 图片字节。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>实例未配置桌面连接。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="OSError">OSError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>截图程序不可用。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="envweaver.errors.RuntimeError">RuntimeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>截图失败。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="TimeoutError">TimeoutError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>截图超时。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div><pre><code class="language-python">from pathlib import Path
+
+image = runtime.screenshot(instance=instance)
+Path(&quot;screen.png&quot;).write_bytes(image)
+</code></pre>
+<h2 id="save">Runtime.save：保存环境<a class="headerlink" href="#save" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="envweaver.Runtime.save"></a>
+    <div class="doc doc-contents first">
+
+        <p>将当前实例保存为可复用的环境。</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>instance</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="envweaver.models.Instance" href="#envweaver.models.Instance">Instance</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>start 返回的 Instance；connect 返回的实例不能保存。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="envweaver.models.RuntimeRef" href="#envweaver.models.RuntimeRef">RuntimeRef</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>包含镜像、启动配置和<a href="../#connection-config">连接配置</a>的 RuntimeRef。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>实例来自 connect，或后端、配置、保存模式有误。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="OSError">OSError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>无法读写环境资产，或缺少所需程序。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="envweaver.errors.RuntimeError">RuntimeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>保存失败，或虚拟机无法正常关机、重启。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="TimeoutError">TimeoutError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>同步文件、连接虚拟机或 SSH 操作超时。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="subprocess.TimeoutExpired">TimeoutExpired</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Docker 或 QEMU 命令超时。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div><pre><code class="language-python">saved_ref = runtime.save(instance=instance)
+</code></pre>
+<h2 id="close">Runtime.close：释放实例<a class="headerlink" href="#close" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="envweaver.Runtime.close"></a>
+    <div class="doc doc-contents first">
+
+        <p>关闭并删除容器或虚拟机，保留已保存的环境。</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>instance</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="envweaver.models.Instance" href="#envweaver.models.Instance">Instance</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>要关闭的 Instance。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>None。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>后端或连接配置有误。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="OSError">OSError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>无法删除实例文件，或缺少所需程序。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="envweaver.errors.RuntimeError">RuntimeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>容器或虚拟机关闭失败。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="TimeoutError">TimeoutError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>连接虚拟机或 SSH 操作超时。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="subprocess.TimeoutExpired">TimeoutExpired</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Docker 命令超时。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div><pre><code class="language-python">runtime.close(instance=instance)
+</code></pre>
+<h2 id="backend-config">后端配置<a class="headerlink" href="#backend-config" title="Permanent link">&para;</a></h2>
+<details>
+<summary>Docker config</summary>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>用法与默认值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>command</code></td>
+<td>容器启动时执行的命令。 例如：<code>["sleep", "infinity"]</code>；默认：<code>[]</code>，沿用镜像默认命令</td>
+</tr>
+<tr>
+<td><code>env</code></td>
+<td>向容器传入环境变量。 例如：<code>{"LANG": "C.UTF-8"}</code>；默认：<code>{}</code></td>
+</tr>
+<tr>
+<td><code>user</code></td>
+<td>容器运行用户。 例如：<code>"1000:1000"</code>；默认：镜像默认用户</td>
+</tr>
+<tr>
+<td><code>memory</code></td>
+<td>内存上限，使用 Docker 格式。 例如：<code>"4g"</code>；默认：不额外指定</td>
+</tr>
+<tr>
+<td><code>cpus</code></td>
+<td>可使用的 CPU 核数，可填小数。 例如：<code>2</code>；默认：不额外指定</td>
+</tr>
+<tr>
+<td><code>network</code></td>
+<td>网络模式或网络名称。 例如：<code>"bridge"</code>；默认：Docker 默认网络</td>
+</tr>
+<tr>
+<td><code>shm_size</code></td>
+<td>共享内存大小。 例如：<code>"1g"</code>；默认：Docker 默认值</td>
+</tr>
+<tr>
+<td><code>gpus</code></td>
+<td>允许使用的 GPU。 例如：<code>"all"</code>；默认：不请求 GPU</td>
+</tr>
+<tr>
+<td><code>python</code></td>
+<td>容器内执行命令所用的 Python。 例如：<code>"/usr/bin/python3"</code>；默认：<code>"python3"</code></td>
+</tr>
+<tr>
+<td><code>startup_timeout</code></td>
+<td><code>docker run</code> 的超时秒数。 例如：<code>120</code>；默认：<code>120</code> 秒</td>
+</tr>
+<tr>
+<td><code>args</code></td>
+<td>额外的 <code>docker run</code> 参数列表，放在镜像名前。 例如：<code>["--hostname", "desktop"]</code>；默认：<code>[]</code></td>
+</tr>
+</tbody>
+</table>
+</details>
+<details>
+<summary>QEMU config</summary>
+<pre><code class="language-python">ref = runtime.create(
+    backend=&quot;qemu&quot;,
+    image=&quot;/images/windows.qcow2&quot;,
+    config={
+        &quot;disk_dir&quot;: &quot;/data/envweaver/disks&quot;,
+        &quot;save_mode&quot;: &quot;incremental&quot;,
+        &quot;memory&quot;: 8192,
+        &quot;cpus&quot;: 4,
+    },
+)
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>用法与默认值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>disk_dir</code></td>
+<td><strong>必填</strong>。启动虚拟机的服务器上的绝对目录，保存运行中的磁盘、控制文件和已保存的差分磁盘。例如：<code>"/data/envweaver/disks"</code></td>
+</tr>
+<tr>
+<td><code>save_mode</code></td>
+<td>保存方式：<code>"incremental"</code> 保留差分链（默认）；<code>"consolidated"</code> 合并中间差分层。</td>
+</tr>
+<tr>
+<td><code>remote_python</code></td>
+<td>远端已安装 EnvWeaver 的 Python 解释器，本地运行时忽略。 例如：<code>"/opt/envweaver/.venv/bin/python"</code>；默认：<code>"python3"</code></td>
+</tr>
+<tr>
+<td><code>memory</code></td>
+<td>虚拟机内存（MiB）。 例如：<code>8192</code>；默认：<code>4096</code> MiB</td>
+</tr>
+<tr>
+<td><code>cpus</code></td>
+<td>虚拟 CPU 数量。 例如：<code>4</code>；默认：<code>2</code></td>
+</tr>
+<tr>
+<td><code>startup_timeout</code></td>
+<td>等待 SSH 就绪的最长时间。 例如：<code>180</code>；默认：<code>180</code> 秒</td>
+</tr>
+<tr>
+<td><code>shutdown_timeout</code></td>
+<td>保存前等待虚拟机正常关机的最长时间。 例如：<code>120</code>；默认：<code>120</code> 秒</td>
+</tr>
+<tr>
+<td><code>disk_interface</code></td>
+<td>磁盘接口，镜像内需要相应驱动。 例如：<code>"virtio"</code>；默认：<code>"virtio"</code></td>
+</tr>
+<tr>
+<td><code>network_device</code></td>
+<td>虚拟网卡型号，镜像内需要相应驱动。 例如：<code>"virtio-net-pci"</code>；默认：<code>"virtio-net-pci"</code></td>
+</tr>
+<tr>
+<td><code>format</code></td>
+<td><code>image</code> 所指基础磁盘的格式。 例如：<code>"raw"</code>；默认：<code>"qcow2"</code></td>
+</tr>
+<tr>
+<td><code>machine</code></td>
+<td>QEMU 机器类型。 例如：<code>"q35"</code>；默认：<code>"q35"</code></td>
+</tr>
+<tr>
+<td><code>accel</code></td>
+<td>QEMU 加速方式。 例如：<code>"kvm"</code>；默认：<code>"kvm"</code></td>
+</tr>
+<tr>
+<td><code>firmware</code></td>
+<td>只读 UEFI 固件文件路径。 例如：<code>"/images/OVMF_CODE.fd"</code>；默认：不额外配置</td>
+</tr>
+<tr>
+<td><code>nvram</code></td>
+<td>UEFI 设置文件的模板路径。 例如：<code>"/images/OVMF_VARS.fd"</code>；默认：不额外配置</td>
+</tr>
+<tr>
+<td><code>binary</code></td>
+<td>QEMU 可执行程序。 例如：<code>"/usr/bin/qemu-system-x86_64"</code>；默认：<code>"qemu-system-x86_64"</code></td>
+</tr>
+<tr>
+<td><code>image_binary</code></td>
+<td>磁盘处理程序。 例如：<code>"/usr/bin/qemu-img"</code>；默认：<code>"qemu-img"</code></td>
+</tr>
+<tr>
+<td><code>args</code></td>
+<td>额外 QEMU 启动参数，不能覆盖磁盘、进程和 QMP 控制配置。 例如：<code>["-vga", "std"]</code>；默认：<code>[]</code></td>
+</tr>
+</tbody>
+</table>
+</details>
+<h2 id="_1">扩展与连接<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<details id="register-backend">
+<summary>Runtime.register：添加后端</summary>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="envweaver.Runtime.register"></a>
+    <div class="doc doc-contents first">
+
+        <p>添加自定义后端。</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>name</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>后端名称，之后填入 create 的 backend 参数。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>backend</code>
+            </td>
+            <td>
+                  <code><span title="type">type</span>[<a class="autorefs autorefs-internal" title="envweaver.runtime.base.RuntimeBackend" href="#envweaver.runtime.base.RuntimeBackend">RuntimeBackend</a>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>自定义后端类，构造函数接受 root、host；配置了 ssh 时还需接受 ssh。方法见下方 RuntimeBackend。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>None。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="TypeError">TypeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>后端类不接受 root、host 或 ssh 参数。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+        <p>同名注册会替换原后端，仅对当前 Runtime 对象生效。
+后端构造函数抛出的异常会直接传给调用者。</p>
+
+
+    </div>
+
+</div><pre><code class="language-python">runtime.register(name=&quot;my_vm&quot;, backend=MyVMBackend)
+</code></pre>
+<p><code>MyVMBackend</code> 是你编写的后端类，需要实现以下方法。将注册后的同一个 Runtime 传给 TaskPool 和 Verifier：</p>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<a id="envweaver.runtime.base.RuntimeBackend"></a>
+    <div class="doc doc-contents first">
+
+
+
+        <p>Runtime 后端需要提供的方法，无需继承。</p>
+<ul>
+<li>构造函数接收 <code>root</code>、<code>host</code> 和可选的 <code>ssh</code> 配置。
+  返回的 <code>Instance</code> 填入对应的 <code>root</code> 和 <code>host</code>，后续操作使用 <code>Instance.host</code>。
+  <code>host</code> 的地址格式和远程连接方式由后端决定。</li>
+<li><code>Instance.backend</code> 和 <code>RuntimeRef.backend</code> 填 <code>register</code> 注册的名称。
+  <code>RuntimeRef</code> 保存镜像、启动配置和可随环境保存的连接设置。
+  Runtime 在调用 start 前合并 ref.connection 与本次 connection。
+  后端的 save 将实际使用的用户名、Python 路径等写入 RuntimeRef.connection，
+  不保存密码、私钥路径或服务器地址。</li>
+<li><code>exec</code> 的字符串通过 Shell 执行，列表按程序和参数直接执行。
+  Verifier 使用 <code>Instance.data["python"]</code> 指定的解释器，省略时为 <code>python3</code>。</li>
+<li><code>root</code> 保存环境记录，支持本地目录或 SSH 目录地址；镜像和磁盘由后端存储。</li>
+<li>操作失败抛异常；<code>exec</code> 返回退出码、stdout、stderr，超时抛 <code>TimeoutError</code>。</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="envweaver.runtime.base.RuntimeBackend.__init__" class="doc doc-heading">
+            <code class="highlight language-python">__init__(root: str | Path | None = None, *, host: str | None = None, ssh: dict | None = None)</code>
+
+<a href="#envweaver.runtime.base.RuntimeBackend.__init__" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="envweaver.runtime.base.RuntimeBackend.create" class="doc doc-heading">
+            <code class="highlight language-python">create(image: str, config: dict | None = None, connection: dict | None = None) -&gt; RuntimeRef</code>
+
+<a href="#envweaver.runtime.base.RuntimeBackend.create" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>检查目标服务器上的镜像，返回 RuntimeRef，不启动环境。</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="envweaver.runtime.base.RuntimeBackend.start" class="doc doc-heading">
+            <code class="highlight language-python">start(ref: RuntimeRef, connection: dict | None = None) -&gt; Instance</code>
+
+<a href="#envweaver.runtime.base.RuntimeBackend.start" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>启动独立实例，返回 Instance；不修改基础镜像。</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="envweaver.runtime.base.RuntimeBackend.connect" class="doc doc-heading">
+            <code class="highlight language-python">connect(record: dict) -&gt; Instance</code>
+
+<a href="#envweaver.runtime.base.RuntimeBackend.connect" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>读取 describe 生成的记录，连接已有实例。字段与 describe 的输出一致。</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="envweaver.runtime.base.RuntimeBackend.describe" class="doc doc-heading">
+            <code class="highlight language-python">describe(instance: Instance) -&gt; dict</code>
+
+<a href="#envweaver.runtime.base.RuntimeBackend.describe" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>返回 connect 所需的 JSON 字段；version、backend、host 由 Runtime 填写。</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="envweaver.runtime.base.RuntimeBackend.screenshot" class="doc doc-heading">
+            <code class="highlight language-python">screenshot(instance: Instance) -&gt; bytes</code>
+
+<a href="#envweaver.runtime.base.RuntimeBackend.screenshot" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>返回 PNG 图片字节；不支持截图时抛 NotImplementedError。</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="envweaver.runtime.base.RuntimeBackend.exec" class="doc doc-heading">
+            <code class="highlight language-python">exec(instance: Instance, command: str | list[str], cwd: str | None = None, timeout: float | None = 300) -&gt; tuple[int, str, str]</code>
+
+<a href="#envweaver.runtime.base.RuntimeBackend.exec" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>返回退出码、stdout、stderr；超时抛 TimeoutError，timeout=None 表示不限时。</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="envweaver.runtime.base.RuntimeBackend.upload" class="doc doc-heading">
+            <code class="highlight language-python">upload(instance: Instance, source: str | Path, target: str) -&gt; None</code>
+
+<a href="#envweaver.runtime.base.RuntimeBackend.upload" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>source 是本地路径，target 是实例内路径；目录合并、同名覆盖。</p>
+<p>Runtime 会先将 SSH 来源下载到本地，后端无需处理 SSH 文件地址。</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="envweaver.runtime.base.RuntimeBackend.download" class="doc doc-heading">
+            <code class="highlight language-python">download(instance: Instance, source: str, target: str | Path) -&gt; None</code>
+
+<a href="#envweaver.runtime.base.RuntimeBackend.download" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>source 是实例内路径，target 是本地路径；目录合并、同名覆盖。</p>
+<p>Runtime 会将下载结果传到 SSH 目的地，后端无需处理 SSH 文件地址。</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="envweaver.runtime.base.RuntimeBackend.save" class="doc doc-heading">
+            <code class="highlight language-python">save(instance: Instance) -&gt; RuntimeRef</code>
+
+<a href="#envweaver.runtime.base.RuntimeBackend.save" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>保存环境，返回 RuntimeRef。</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="envweaver.runtime.base.RuntimeBackend.close" class="doc doc-heading">
+            <code class="highlight language-python">close(instance: Instance) -&gt; None</code>
+
+<a href="#envweaver.runtime.base.RuntimeBackend.close" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>关闭并删除实例，保留已保存环境。</p>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div></details>
+<details id="describe">
+<summary>Runtime.describe：记录实例连接</summary>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="envweaver.Runtime.describe"></a>
+    <div class="doc doc-contents first">
+
+        <p>保存实例的连接记录。</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>instance</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="envweaver.models.Instance" href="#envweaver.models.Instance">Instance</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>要记录的 Instance。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | <span title="pathlib.Path">Path</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>JSON 文件的本地路径或 ssh://服务器/绝对路径。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>None。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="OSError">OSError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>文件无法写入。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>文件地址无效、后端未注册或记录包含无效的 JSON 值。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="TypeError">TypeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>记录包含不能保存为 JSON 的对象。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="envweaver.errors.RuntimeError">RuntimeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>SSH 文件传输失败。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="TimeoutError">TimeoutError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>SSH 文件传输超时。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div><pre><code class="language-python">runtime.describe(instance=instance, path=&quot;ssh://server/data/instance.json&quot;)
+</code></pre>
+</details>
+<details id="connect">
+<summary>Runtime.connect：连接已有实例</summary>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="envweaver.Runtime.connect"></a>
+    <div class="doc doc-contents first">
+
+        <p>连接已经运行的环境。</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | <span title="pathlib.Path">Path</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>instance.json 的本地路径或 ssh://服务器/绝对路径。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="envweaver.models.Instance" href="#envweaver.models.Instance">Instance</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>连接到的 Instance，不能用于 save。验证程序收到的连接支持 exec、upload、download 和 screenshot。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="OSError">OSError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>文件无法读取，或缺少连接程序。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>文件地址、记录格式无效或环境配置不受支持。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="envweaver.errors.RuntimeError">RuntimeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>SSH 文件传输失败，或环境不存在、已退出或无法连接。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="TimeoutError">TimeoutError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>文件传输或连接超时。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div><pre><code class="language-python">runtime = Runtime()
+instance = runtime.connect(path=&quot;ssh://server/data/instance.json&quot;)
+</code></pre>
+</details></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+  
+        <script src="../js/bootstrap.bundle.min.js"></script>
+        <script>
+            var base_url = "..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../js/base.js"></script>
+        <script src="../javascripts/search.js"></script>
+  
+    <script id="docs-version-script" data-version="dev" src="../javascripts/versions.js"></script>
+  
+
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title" id="searchModalLabel">搜索</h4>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+      </div>
+      <div class="modal-body">
+        <form>
+          <input type="search" class="form-control" id="mkdocs-search-query" placeholder="请输入搜索内容" aria-label="请输入搜索内容">
+        </form>
+        <div id="mkdocs-search-results" aria-live="polite"></div>
+      </div>
+    </div>
+  </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>
