@@ -43,10 +43,16 @@
                                 <a href="../runtime/" class="nav-link">Runtime</a>
                             </li>
                             <li class="nav-item">
+                                <a href="./" class="nav-link active" aria-current="page">Task</a>
+                            </li>
+                            <li class="nav-item">
                                 <a href="../verifier/" class="nav-link">Verifier</a>
                             </li>
                             <li class="nav-item">
-                                <a href="./" class="nav-link active" aria-current="page">Task</a>
+                                <a href="../agent/" class="nav-link">Agent</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../evaluation/" class="nav-link">Eval</a>
                             </li>
                         </ul>
 
@@ -146,8 +152,7 @@
 <p>Task 将各种任务场景的任务组织成统一的任务包，通过 TaskPool 保存、读取和检索，供 Data Pipeline 交付任务、Training 和 Evaluation 使用。</p>
 <h2 id="package">Task 的组成<a class="headerlink" href="#package" title="Permanent link">&para;</a></h2>
 <p>Task 是一个材料包，<code>task.json</code> 保存 Task 的元信息。</p>
-<p><code>format="directory"</code> 保存到 <code>TaskPool.root/tasks/&lt;name&gt;/</code>；<code>format="zip"</code> 保存到 <code>TaskPool.root/archives/&lt;name&gt;.zip</code>。每次只保存一种形式，材料内容相同。</p>
-<pre><code class="language-text">&lt;TaskPool.root&gt;/tasks/&lt;name&gt;/
+<pre><code class="language-text">&lt;TaskPool.root&gt;/&lt;name&gt;/
 ├── task.json                 # 必需：Task 元信息
 ├── goal/                     # 按需：任务说明中的图片
 ├── context/                  # 按需：任务输入文件或目录
@@ -156,6 +161,7 @@
     └── &lt;其他文件或目录&gt;       # 按需：测试、标准答案、辅助文件等
 </code></pre>
 <h2 id="manifest">task.json<a class="headerlink" href="#manifest" title="Permanent link">&para;</a></h2>
+<div class="table-responsive" id="task-fields">
 <table>
 <thead>
 <tr>
@@ -201,14 +207,24 @@
 <td>否，<code>{}</code></td>
 </tr>
 <tr>
+<td>&emsp;↳ <code>tags[]</code></td>
+<td>标签字符串列表；每项去除首尾空白后为 1–100 个字符，与管理页面共用</td>
+<td>否，<code>[]</code></td>
+</tr>
+<tr>
 <td>&emsp;↳ <code>&lt;自定义字段&gt;</code></td>
-<td>可保存为 JSON 的值，字段名由 Pipeline 决定</td>
+<td>其他可保存为 JSON 的值，字段名由 Pipeline 决定</td>
 <td>按需</td>
 </tr>
 <tr>
 <td><code>task_runtime_ref</code></td>
 <td>任务环境的镜像引用</td>
 <td>是</td>
+</tr>
+<tr>
+<td>&emsp;↳ <code>name</code></td>
+<td>环境名称</td>
+<td>否，使用 <code>image</code></td>
 </tr>
 <tr>
 <td>&emsp;↳ <code>backend</code></td>
@@ -221,6 +237,11 @@
 <td>是</td>
 </tr>
 <tr>
+<td>&emsp;↳ <code>metadata</code></td>
+<td>环境自定义 JSON 字典；<code>tags</code> 为环境标签字符串列表</td>
+<td>否，<code>{}</code></td>
+</tr>
+<tr>
 <td>&emsp;↳ <code>config</code></td>
 <td>后端启动配置</td>
 <td>否，<code>{}</code></td>
@@ -229,6 +250,11 @@
 <td>&emsp;&emsp;↳ <code>python</code></td>
 <td>Docker：容器内的 Python 程序</td>
 <td>否，<code>python3</code></td>
+</tr>
+<tr>
+<td>&emsp;&emsp;↳ <code>python_install_command</code></td>
+<td>Docker：缺少默认 Python 时执行的 shell 安装命令</td>
+<td>否，内置安装流程，上限 300 秒</td>
 </tr>
 <tr>
 <td>&emsp;&emsp;↳ <code>command[]</code></td>
@@ -351,6 +377,11 @@
 <td>是</td>
 </tr>
 <tr>
+<td><code>cwd</code></td>
+<td>启动 Agent 时所在的目录，填写沙箱内的绝对路径，如 <code>/workspace/project</code>。目录可由 context 上传或 setup 创建，但启动 Agent 前必须存在</td>
+<td>是</td>
+</tr>
+<tr>
 <td><code>setup</code></td>
 <td>复制 context 后执行的准备操作</td>
 <td>否，省略时不执行</td>
@@ -393,10 +424,11 @@
 <tr>
 <td>&emsp;↳ <code>requires_task_instance</code></td>
 <td>验证程序是否需要任务沙箱</td>
-<td>否，<code>false</code></td>
+<td>否，<code>true</code></td>
 </tr>
 </tbody>
 </table>
+</div>
 <details>
 <summary>Docker 完整示例</summary>
 <pre><code class="language-json">{
@@ -459,6 +491,7 @@
       &quot;target&quot;: &quot;/work/setup.py&quot;
     }
   ],
+  &quot;cwd&quot;: &quot;/work&quot;,
   &quot;setup&quot;: {
     &quot;command&quot;: [
       &quot;python3&quot;,
@@ -558,6 +591,7 @@
       &quot;target&quot;: &quot;C:\\Tasks\\setup.py&quot;
     }
   ],
+  &quot;cwd&quot;: &quot;C:\\Tasks&quot;,
   &quot;setup&quot;: {
     &quot;command&quot;: [
       &quot;python&quot;,
@@ -628,7 +662,7 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>任务存储目录，填写本地路径或 ssh://服务器/绝对路径。</p>
+                <p>任务存储路径。</p>
               </div>
             </td>
             <td>
@@ -682,9 +716,10 @@
     </div>
 
 </div><pre><code class="language-python">from envweaver import TaskPool
-pool = TaskPool(root=&quot;ssh://server/data/tasks&quot;, runtime=runtime)
+pool = TaskPool(root=&quot;./tasks&quot;, runtime=runtime)
 </code></pre>
 <h2 id="task_1">Task：任务<a class="headerlink" href="#task_1" title="Permanent link">&para;</a></h2>
+<div class="table-responsive">
 
 
 <div class="doc doc-object doc-class">
@@ -696,7 +731,6 @@ pool = TaskPool(root=&quot;ssh://server/data/tasks&quot;, runtime=runtime)
 
 
 
-        <p>TaskPool.load 返回的任务。</p>
 
 
 <p><span class="doc-section-title">Attributes:</span></p>
@@ -727,7 +761,7 @@ pool = TaskPool(root=&quot;ssh://server/data/tasks&quot;, runtime=runtime)
             </td>
             <td>
               <div class="doc-md-description">
-                <p>task.json 或 ZIP 的本地路径或 SSH 地址。</p>
+                <p>task.json 路径。</p>
               </div>
             </td>
           </tr>
@@ -749,7 +783,7 @@ pool = TaskPool(root=&quot;ssh://server/data/tasks&quot;, runtime=runtime)
             </td>
             <td>
               <div class="doc-md-description">
-                <p>自定义任务信息，如来源、标签、软件名称。</p>
+                <p>自定义任务信息；tags 为标签字符串列表，与管理页面的 Task 标签共用。</p>
               </div>
             </td>
           </tr>
@@ -783,6 +817,17 @@ pool = TaskPool(root=&quot;ssh://server/data/tasks&quot;, runtime=runtime)
             <td>
               <div class="doc-md-description">
                 <p>复制 context 后执行的准备命令和超时；可传给 Runtime.start。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.models.Task.cwd">cwd</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>启动 Agent 时所在的目录，必填，填写沙箱内的绝对路径，如 /workspace/project。目录可由 context 上传或 setup 创建，但启动 Agent 前必须存在。</p>
               </div>
             </td>
           </tr>
@@ -838,7 +883,9 @@ pool = TaskPool(root=&quot;ssh://server/data/tasks&quot;, runtime=runtime)
 
     </div>
 
-</div><h2 id="save">TaskPool.save：保存任务<a class="headerlink" href="#save" title="Permanent link">&para;</a></h2>
+</div></div>
+<h2 id="save">TaskPool.save：保存任务<a class="headerlink" href="#save" title="Permanent link">&para;</a></h2>
+<div class="table-responsive">
 
 
 <div class="doc doc-object doc-function">
@@ -870,8 +917,7 @@ pool = TaskPool(root=&quot;ssh://server/data/tasks&quot;, runtime=runtime)
             </td>
             <td>
               <div class="doc-md-description">
-                <p>任务名称，用作目录名，不能为空，同一 TaskPool 内唯一。支持中文；不能以点开头、以点结尾，
-不能包含首尾空白、控制字符、/ \ &lt; &gt; : " | ? * 或使用 Windows 保留名；最多 249 个 UTF-8 字节。</p>
+                <p>任务名称，要求同一 TaskPool 内唯一。</p>
               </div>
             </td>
             <td>
@@ -888,7 +934,7 @@ pool = TaskPool(root=&quot;ssh://server/data/tasks&quot;, runtime=runtime)
             <td>
               <div class="doc-md-description">
                 <p>任务要求，按顺序填写文字和图片。文字格式为 {"type": "text", "text": ...}，图片为
-{"type": "image", "path": ...}。图片路径支持本地路径或 ssh://服务器/绝对路径。</p>
+{"type": "image", "path": ...}，path 填写图片路径。</p>
               </div>
             </td>
             <td>
@@ -904,7 +950,7 @@ pool = TaskPool(root=&quot;ssh://server/data/tasks&quot;, runtime=runtime)
             </td>
             <td>
               <div class="doc-md-description">
-                <p>自定义任务信息，如来源、标签、软件名称，填写可保存为 JSON 的字典。</p>
+                <p>自定义任务信息，填写可保存为 JSON 的字典。tags 填标签字符串列表，默认无标签；每项去除首尾空白后须为 1–100 个字符。</p>
               </div>
             </td>
             <td>
@@ -936,7 +982,7 @@ pool = TaskPool(root=&quot;ssh://server/data/tasks&quot;, runtime=runtime)
             </td>
             <td>
               <div class="doc-md-description">
-                <p>任务输入文件列表。source 填本地路径或 ssh://服务器/绝对路径，
+                <p>任务输入文件列表。source 填文件或目录路径；
 target 填容器或虚拟机内的目标路径。</p>
               </div>
             </td>
@@ -953,11 +999,27 @@ target 填容器或虚拟机内的目标路径。</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>准备命令和超时，格式同 <a href="../#start">Runtime.start</a> 的 setup。</p>
+                <p>准备命令和超时，格式同 <a href="../runtime/#start">Runtime.start</a> 的 setup。</p>
               </div>
             </td>
             <td>
                   <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>cwd</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>启动 Agent 时所在的目录，必填，填写沙箱内的绝对路径，如 /workspace/project。目录可由 context 上传或 setup 创建，但启动 Agent 前必须存在。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -969,7 +1031,7 @@ target 填容器或虚拟机内的目标路径。</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>验证环境的 <a href="../#runtimeref">RuntimeRef</a>。</p>
+                <p>验证环境的 <a href="../runtime/#runtimeref">RuntimeRef</a>。</p>
               </div>
             </td>
             <td>
@@ -992,22 +1054,6 @@ target 填容器或虚拟机内的目标路径。</p>
                 <em>required</em>
             </td>
           </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>format</code>
-            </td>
-            <td>
-                  <code><span title="str">str</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>directory 保存任务目录；zip 保存 ZIP 文件。</p>
-              </div>
-            </td>
-            <td>
-                  <code>&#39;directory&#39;</code>
-            </td>
-          </tr>
       </tbody>
     </table>
 
@@ -1027,90 +1073,7 @@ target 填容器或虚拟机内的目标路径。</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>task_ref，可传给 load。directory 返回 root/tasks/<name>/task.json，</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="str">str</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>zip 返回 root/archives/<name>.zip；支持本地路径和 SSH 地址。</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<p><span class="doc-section-title">Raises:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="envweaver.errors.TaskExistsError">TaskExistsError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>同名任务已存在或正在保存。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="ValueError">ValueError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>format 不是 directory 或 zip，或任务名称、验证入口、setup、连接配置无效。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="TypeError">TypeError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>verifier 或 verifier_runtime_ref 类型不符、metadata、连接配置不是字典，或任务信息不能保存为 JSON。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="OSError">OSError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>验证器、图片或输入文件无法读取，或存储目录无法写入。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="envweaver.errors.RuntimeError">RuntimeError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>SSH 文件传输失败。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="TimeoutError">TimeoutError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>SSH 文件传输超时。</p>
+                <p>保存后的 <code>&lt;root&gt;/&lt;name&gt;/task.json</code> 路径，可传给 <code>load(task_ref=...)</code>。</p>
               </div>
             </td>
           </tr>
@@ -1120,22 +1083,23 @@ target 填容器或虚拟机内的目标路径。</p>
 
     </div>
 
-</div><pre><code class="language-python">task_ref = pool.save(
+</div></div>
+<pre><code class="language-python">task_ref = pool.save(
     name=&quot;sales-summary&quot;,
     goal=[
         {&quot;type&quot;: &quot;text&quot;, &quot;text&quot;: &quot;修改表格，按图中的样式完成销售额汇总。&quot;},
-        {&quot;type&quot;: &quot;image&quot;, &quot;path&quot;: &quot;ssh://server/data/reference.png&quot;},
+        {&quot;type&quot;: &quot;image&quot;, &quot;path&quot;: &quot;./reference.png&quot;},
     ],
-    metadata={&quot;software&quot;: &quot;LibreOffice&quot;},
+    metadata={&quot;software&quot;: &quot;LibreOffice&quot;, &quot;tags&quot;: [&quot;office&quot;, &quot;spreadsheet&quot;]},
     instance=instance,
     context=[
         {&quot;source&quot;: &quot;./sales.xlsx&quot;, &quot;target&quot;: &quot;/work/sales.xlsx&quot;},
         {&quot;source&quot;: &quot;./setup.py&quot;, &quot;target&quot;: &quot;/work/setup.py&quot;},
     ],
     setup={&quot;command&quot;: [&quot;python3&quot;, &quot;/work/setup.py&quot;], &quot;timeout&quot;: 120},
+    cwd=&quot;/work&quot;,
     verifier_runtime_ref=verifier_runtime_ref,
     verifier=checker,
-    format=&quot;zip&quot;,
 )
 </code></pre>
 <h2 id="load">TaskPool.load：读取任务<a class="headerlink" href="#load" title="Permanent link">&para;</a></h2>
@@ -1170,7 +1134,7 @@ target 填容器或虚拟机内的目标路径。</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>当前 Task Pool 内的 task.json，或打包后的 ZIP；支持本地路径和 SSH 地址。</p>
+                <p>当前 Task Pool 内的 task.json 路径。</p>
               </div>
             </td>
             <td>
@@ -1197,89 +1161,6 @@ target 填容器或虚拟机内的目标路径。</p>
             <td>
               <div class="doc-md-description">
                 <p>Task 对象；材料路径已转换为可直接使用的本地路径。</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<p><span class="doc-section-title">Raises:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="OSError">OSError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>任务文件或必要材料不存在、无法读取。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="ValueError">ValueError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>JSON、setup 或连接配置无效、任务不属于当前 Pool、格式版本不支持或路径越界。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="KeyError">KeyError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>任务文件缺少必要字段。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="TypeError">TypeError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>保存的 RuntimeRef 字段不匹配，或连接配置不是字典。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="envweaver.errors.RuntimeError">RuntimeError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>SSH 连接失败。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="TimeoutError">TimeoutError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>SSH 操作超时。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="zipfile.BadZipFile">BadZipFile</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>ZIP 文件损坏或格式无效。</p>
               </div>
             </td>
           </tr>
@@ -1397,90 +1278,7 @@ task_instance = runtime.start(
             </td>
             <td>
               <div class="doc-md-description">
-                <p>匹配任务的 task_ref 列表，包含 task.json 或 ZIP 的本地路径或 SSH 地址，可传给 load。</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<p><span class="doc-section-title">Raises:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="TypeError">TypeError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>filters 不是字典。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="OSError">OSError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>任务文件无法读取。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="ValueError">ValueError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>任务文件不是有效 JSON。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="KeyError">KeyError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>任务文件缺少必要字段。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="envweaver.errors.RuntimeError">RuntimeError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>SSH 连接失败。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="TimeoutError">TimeoutError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>SSH 操作超时。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="zipfile.BadZipFile">BadZipFile</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>ZIP 文件损坏或格式无效。</p>
+                <p>匹配任务的 task_ref 列表，可传给 load。</p>
               </div>
             </td>
           </tr>

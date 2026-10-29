@@ -43,10 +43,16 @@
                                 <a href="./" class="nav-link active" aria-current="page">Runtime</a>
                             </li>
                             <li class="nav-item">
+                                <a href="../task/" class="nav-link">Task</a>
+                            </li>
+                            <li class="nav-item">
                                 <a href="../verifier/" class="nav-link">Verifier</a>
                             </li>
                             <li class="nav-item">
-                                <a href="../task/" class="nav-link">Task</a>
+                                <a href="../agent/" class="nav-link">Agent</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../evaluation/" class="nav-link">Eval</a>
                             </li>
                         </ul>
 
@@ -159,6 +165,10 @@
               <ul class="nav flex-column">
               </ul>
             </li>
+            <li class="nav-item" data-bs-level="2"><a href="#download-cache" class="nav-link">DownloadCache：下载缓存</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
               </ul>
             </li>
         </ul>
@@ -203,7 +213,7 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>可选的环境记录目录；支持本地路径或 ssh://服务器/绝对目录。省略时不写记录。</p>
+                <p>环境记录存储目录；省略时不写记录。</p>
               </div>
             </td>
             <td>
@@ -235,44 +245,11 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>连接服务器使用的 SSH 配置，字段见<a href="../#ssh-config">SSH 配置</a>。不填则使用 OpenSSH 配置。</p>
+                <p>沙箱服务器的 SSH 配置，字段见<a href="./#ssh-config">SSH 配置</a>。新建环境时不填则使用系统默认配置；connect 时不填沿用连接记录，{} 使用系统默认配置，非空字典与记录递归合并。</p>
               </div>
             </td>
             <td>
                   <code>None</code>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<p><span class="doc-section-title">Raises:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="ValueError">ValueError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>root 或 host 为空，或 root 地址格式有误。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="TypeError">TypeError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>ssh 不是字典。</p>
-              </div>
             </td>
           </tr>
       </tbody>
@@ -311,7 +288,9 @@ runtime = Runtime(root=&quot;./storage/runtimes&quot;)
 </code></pre>
 <details id="ssh-config">
 <summary>SSH 配置</summary>
-<p><code>Runtime(ssh=...)</code> 配置服务器连接。</p>
+<p><code>Runtime(ssh=...)</code> 配置沙箱服务器连接。SSH 文件地址统一使用系统默认配置。</p>
+<p>短暂连接故障最多尝试 3 次，重试间隔为 0.5 秒、1 秒；认证和主机密钥错误不重试。执行命令时，仅确认尚未连接到目标才自动重连；命令可能已执行但回复丢失时，不重复执行。</p>
+<p>重新连接实例时，<code>ssh=None</code> 沿用连接记录，<code>ssh={}</code> 使用系统默认配置，非空字典与记录递归合并，同名值以本次为准。</p>
 <table>
 <thead>
 <tr>
@@ -375,6 +354,17 @@ runtime = Runtime(root=&quot;./storage/runtimes&quot;)
       </thead>
       <tbody>
           <tr class="doc-section-item">
+            <td><code><span title="envweaver.models.RuntimeRef.name">name</span></code></td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>环境名称；不填时使用 image。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
             <td><code><span title="envweaver.models.RuntimeRef.backend">backend</span></code></td>
             <td>
                   <code><span title="str">str</span></code>
@@ -403,7 +393,7 @@ runtime = Runtime(root=&quot;./storage/runtimes&quot;)
             </td>
             <td>
               <div class="doc-md-description">
-                <p>后端配置，见<a href="../#backend-config">后端配置</a>。</p>
+                <p>后端配置，见<a href="./#backend-config">后端配置</a>。</p>
               </div>
             </td>
           </tr>
@@ -414,7 +404,18 @@ runtime = Runtime(root=&quot;./storage/runtimes&quot;)
             </td>
             <td>
               <div class="doc-md-description">
-                <p>SSH 用户名、Python 路径或 VNC 密码环境变量名，见<a href="../#connection-config">连接配置</a>。</p>
+                <p>SSH 用户名、Python 路径或 VNC 密码环境变量名，见<a href="./#connection-config">连接配置</a>。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.models.RuntimeRef.metadata">metadata</span></code></td>
+            <td>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>自定义 JSON 字典，默认 {}。</p>
               </div>
             </td>
           </tr>
@@ -584,6 +585,22 @@ runtime = Runtime(root=&quot;./storage/runtimes&quot;)
       <tbody>
           <tr class="doc-section-item">
             <td>
+                <code>name</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>环境名称；不填时使用传入的 image。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
                 <code>backend</code>
             </td>
             <td>
@@ -623,7 +640,7 @@ runtime = Runtime(root=&quot;./storage/runtimes&quot;)
             </td>
             <td>
               <div class="doc-md-description">
-                <p>后端配置，默认 {}，字段见<a href="../#backend-config">后端配置</a>。</p>
+                <p>后端配置，默认 {}，字段见<a href="./#backend-config">后端配置</a>。</p>
               </div>
             </td>
             <td>
@@ -639,7 +656,23 @@ runtime = Runtime(root=&quot;./storage/runtimes&quot;)
             </td>
             <td>
               <div class="doc-md-description">
-                <p>SSH 用户名、Python 路径或 VNC 密码环境变量名，见<a href="../#connection-config">连接配置</a>。</p>
+                <p>SSH 用户名、Python 路径或 VNC 密码环境变量名，见<a href="./#connection-config">连接配置</a>。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>metadata</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>自定义 JSON 字典，默认 {}。</p>
               </div>
             </td>
             <td>
@@ -673,85 +706,14 @@ runtime = Runtime(root=&quot;./storage/runtimes&quot;)
     </table>
 
 
-<p><span class="doc-section-title">Raises:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="ValueError">ValueError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>镜像为空、后端未注册或配置有误。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="TypeError">TypeError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>config 或 connection 不是字典。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="OSError">OSError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>镜像文件不存在、不可读，或缺少所需程序。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="envweaver.errors.RuntimeError">RuntimeError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Docker 镜像不存在或后端检查失败。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="TimeoutError">TimeoutError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>SSH 操作超时。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="subprocess.TimeoutExpired">TimeoutExpired</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Docker 命令超时。</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
     </div>
 
 </div><pre><code class="language-python">ref = runtime.create(
+    name=&quot;python-workspace&quot;,
     backend=&quot;docker&quot;,
     image=&quot;python:3.11-slim-bookworm&quot;,
     config={&quot;command&quot;: [&quot;sleep&quot;, &quot;infinity&quot;]},
+    metadata={&quot;tags&quot;: [&quot;python&quot;], &quot;source&quot;: &quot;my-pipeline&quot;},
 )
 </code></pre>
 <h2 id="start">Runtime.start：启动环境<a class="headerlink" href="#start" title="Permanent link">&para;</a></h2>
@@ -765,6 +727,7 @@ runtime = Runtime(root=&quot;./storage/runtimes&quot;)
     <div class="doc doc-contents first">
 
         <p>启动容器或虚拟机。</p>
+<p>Docker 镜像缺少默认 python3 时自动安装；安装需能访问软件源，并具备容器内 root 或免密 sudo 权限。</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -804,7 +767,7 @@ runtime = Runtime(root=&quot;./storage/runtimes&quot;)
             <td>
               <div class="doc-md-description">
                 <p>启动后要复制进去的文件列表，不填则不复制。<br>
-每项的 source 填本地路径或 ssh://服务器/绝对路径，
+每项的 source 填文件或目录路径；
 target 填容器或虚拟机内的目标路径。</p>
               </div>
             </td>
@@ -839,7 +802,7 @@ timeout 为最长执行秒数，须大于 0。命令准备完成后以退出码 
             <td>
               <div class="doc-md-description">
                 <p>本次连接设置；重新填写的覆盖 ref.connection 中的值，没填的保留原值。
-字段见<a href="../#connection-config">连接配置</a>。</p>
+字段见<a href="./#connection-config">连接配置</a>。</p>
               </div>
             </td>
             <td>
@@ -866,79 +829,6 @@ timeout 为最长执行秒数，须大于 0。命令准备完成后以退出码 
             <td>
               <div class="doc-md-description">
                 <p>完成文件复制和准备操作后的 Instance。</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<p><span class="doc-section-title">Raises:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="TypeError">TypeError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>ref 不是 RuntimeRef 对象，或 connection 不是字典。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="ValueError">ValueError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>后端名称、配置或 setup 有误。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="OSError">OSError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>无法访问镜像、输入文件或存储目录，或缺少所需程序。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="envweaver.errors.RuntimeError">RuntimeError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>环境启动、初始化文件传输失败，或准备命令返回非零退出码。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="TimeoutError">TimeoutError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>初始化命令或 SSH 操作超时。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="subprocess.TimeoutExpired">TimeoutExpired</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Docker 或 QEMU 命令超时。</p>
               </div>
             </td>
           </tr>
@@ -1124,69 +1014,6 @@ instance = runtime.start(
     </table>
 
 
-<p><span class="doc-section-title">Raises:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="TimeoutError">TimeoutError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>目标命令或 SSH 操作超时。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="ValueError">ValueError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>后端未注册，或连接配置、访问密钥有误。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="envweaver.errors.RuntimeError">RuntimeError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>无法执行后端操作或目标连接服务报错。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="OSError">OSError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>无法启动所需程序。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="subprocess.TimeoutExpired">TimeoutExpired</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Docker 命令超时。</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
     </div>
 
 </div><pre><code class="language-python">code, stdout, stderr = runtime.exec(
@@ -1244,7 +1071,7 @@ instance = runtime.start(
             </td>
             <td>
               <div class="doc-md-description">
-                <p>文件或目录的本地路径，或 ssh://服务器/绝对路径。</p>
+                <p>要上传的文件或目录路径。</p>
               </div>
             </td>
             <td>
@@ -1292,70 +1119,6 @@ instance = runtime.start(
           </tr>
       </tbody>
     </table>
-
-
-<p><span class="doc-section-title">Raises:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="OSError">OSError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>文件无法读取、路径类型冲突，或缺少所需程序。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="ValueError">ValueError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>文件地址、后端或连接配置有误，或待传目录含不支持的符号链接。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="envweaver.errors.RuntimeError">RuntimeError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>上传失败，例如目标路径不可写或连接服务报错。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="TimeoutError">TimeoutError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>目标准备命令或 SSH 操作超时。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="subprocess.TimeoutExpired">TimeoutExpired</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Docker 命令超时。</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-        <p>同名文件覆盖，目录合并。</p>
 
 
     </div>
@@ -1431,7 +1194,7 @@ instance = runtime.start(
             </td>
             <td>
               <div class="doc-md-description">
-                <p>完整目标路径，包含文件名或目录名；支持本地路径或 ssh://服务器/绝对路径。</p>
+                <p>下载保存路径，包含文件名或目录名。</p>
               </div>
             </td>
             <td>
@@ -1463,70 +1226,6 @@ instance = runtime.start(
           </tr>
       </tbody>
     </table>
-
-
-<p><span class="doc-section-title">Raises:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="OSError">OSError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>目标无法写入、路径类型冲突，或缺少所需程序。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="ValueError">ValueError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>文件地址、后端或连接配置有误，或返回的文件包路径不合法。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="envweaver.errors.RuntimeError">RuntimeError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>下载失败，例如远端文件不存在或连接服务报错。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="TimeoutError">TimeoutError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>目标检查命令或 SSH 操作超时。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="subprocess.TimeoutExpired">TimeoutExpired</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Docker 命令超时。</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-        <p>同名文件覆盖，目录合并。</p>
 
 
     </div>
@@ -1605,59 +1304,6 @@ instance = runtime.start(
     </table>
 
 
-<p><span class="doc-section-title">Raises:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="ValueError">ValueError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>实例未配置桌面连接。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="OSError">OSError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>截图程序不可用。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="envweaver.errors.RuntimeError">RuntimeError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>截图失败。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="TimeoutError">TimeoutError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>截图超时。</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
     </div>
 
 </div><pre><code class="language-python">from pathlib import Path
@@ -1724,70 +1370,7 @@ Path(&quot;screen.png&quot;).write_bytes(image)
             </td>
             <td>
               <div class="doc-md-description">
-                <p>包含镜像、启动配置和<a href="../#connection-config">连接配置</a>的 RuntimeRef。</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<p><span class="doc-section-title">Raises:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="ValueError">ValueError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>实例来自 connect，或后端、配置、保存模式有误。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="OSError">OSError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>无法读写环境资产，或缺少所需程序。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="envweaver.errors.RuntimeError">RuntimeError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>保存失败，或虚拟机无法正常关机、重启。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="TimeoutError">TimeoutError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>同步文件、连接虚拟机或 SSH 操作超时。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="subprocess.TimeoutExpired">TimeoutExpired</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Docker 或 QEMU 命令超时。</p>
+                <p>包含镜像、启动配置、<a href="./#connection-config">连接配置</a>和原引用 name、metadata 的 RuntimeRef。</p>
               </div>
             </td>
           </tr>
@@ -1866,69 +1449,6 @@ Path(&quot;screen.png&quot;).write_bytes(image)
     </table>
 
 
-<p><span class="doc-section-title">Raises:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="ValueError">ValueError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>后端或连接配置有误。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="OSError">OSError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>无法删除实例文件，或缺少所需程序。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="envweaver.errors.RuntimeError">RuntimeError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>容器或虚拟机关闭失败。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="TimeoutError">TimeoutError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>连接虚拟机或 SSH 操作超时。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="subprocess.TimeoutExpired">TimeoutExpired</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Docker 命令超时。</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
     </div>
 
 </div><pre><code class="language-python">runtime.close(instance=instance)
@@ -1978,7 +1498,19 @@ Path(&quot;screen.png&quot;).write_bytes(image)
 </tr>
 <tr>
 <td><code>python</code></td>
-<td>容器内执行命令所用的 Python。 例如：<code>"/usr/bin/python3"</code>；默认：<code>"python3"</code></td>
+<td>容器内执行命令所用的 Python。默认 <code>"python3"</code>，缺少时自动安装 Python 和 CA 证书；自定义路径如 <code>"/opt/venv/bin/python"</code> 须已存在</td>
+</tr>
+<tr>
+<td><code>python_prepare_command</code></td>
+<td>缺少默认 <code>python3</code> 时，在安装前执行一次的 shell 命令，例如配置软件源；默认不执行。例如：<code>"sh /opt/configure-mirrors.sh"</code>；命令引用的文件须已在镜像中</td>
+</tr>
+<tr>
+<td><code>python_install_command</code></td>
+<td>缺少默认 <code>python3</code> 时执行的 shell 安装命令；默认使用内置安装流程。自定义安装不自动接入缓存。例如：<code>"sh /opt/install-python.sh"</code>；命令引用的文件须已在镜像中</td>
+</tr>
+<tr>
+<td><code>python_install_timeout</code></td>
+<td>Python 准备与安装的总时间上限，包含索引更新、下载和安装；有限正数，单位秒，默认 <code>300</code>，例如 <code>1200</code></td>
 </tr>
 <tr>
 <td><code>startup_timeout</code></td>
@@ -2134,7 +1666,7 @@ Path(&quot;screen.png&quot;).write_bytes(image)
             </td>
             <td>
               <div class="doc-md-description">
-                <p>自定义后端类，构造函数接受 root、host；配置了 ssh 时还需接受 ssh。方法见下方 RuntimeBackend。</p>
+                <p>自定义后端类，构造函数接受 root、host、ssh。方法见下方 RuntimeBackend。</p>
               </div>
             </td>
             <td>
@@ -2166,29 +1698,6 @@ Path(&quot;screen.png&quot;).write_bytes(image)
           </tr>
       </tbody>
     </table>
-
-
-<p><span class="doc-section-title">Raises:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="TypeError">TypeError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>后端类不接受 root、host 或 ssh 参数。</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
         <p>同名注册会替换原后端，仅对当前 Runtime 对象生效。
 后端构造函数抛出的异常会直接传给调用者。</p>
 
@@ -2211,7 +1720,7 @@ Path(&quot;screen.png&quot;).write_bytes(image)
 
         <p>Runtime 后端需要提供的方法，无需继承。</p>
 <ul>
-<li>构造函数接收 <code>root</code>、<code>host</code> 和可选的 <code>ssh</code> 配置。
+<li>构造函数须接受 <code>root</code>、<code>host</code>、<code>ssh</code> 参数；未配置 SSH 时传入 None。
   返回的 <code>Instance</code> 填入对应的 <code>root</code> 和 <code>host</code>，后续操作使用 <code>Instance.host</code>。
   <code>host</code> 的地址格式和远程连接方式由后端决定。</li>
 <li><code>Instance.backend</code> 和 <code>RuntimeRef.backend</code> 填 <code>register</code> 注册的名称。
@@ -2292,6 +1801,7 @@ Path(&quot;screen.png&quot;).write_bytes(image)
     <div class="doc doc-contents ">
 
         <p>启动独立实例，返回 Instance；不修改基础镜像。</p>
+<p>connection 接收 Runtime 合并后的配置；None 使用 ref.connection。</p>
 
 
     </div>
@@ -2419,7 +1929,7 @@ Path(&quot;screen.png&quot;).write_bytes(image)
 
     <div class="doc doc-contents ">
 
-        <p>保存环境，返回 RuntimeRef。</p>
+        <p>保存环境，返回 RuntimeRef，保留启动引用的 metadata。</p>
 
 
     </div>
@@ -2501,7 +2011,7 @@ Path(&quot;screen.png&quot;).write_bytes(image)
             </td>
             <td>
               <div class="doc-md-description">
-                <p>JSON 文件的本地路径或 ssh://服务器/绝对路径。</p>
+                <p>JSON 文件的保存路径。</p>
               </div>
             </td>
             <td>
@@ -2535,72 +2045,9 @@ Path(&quot;screen.png&quot;).write_bytes(image)
     </table>
 
 
-<p><span class="doc-section-title">Raises:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="OSError">OSError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>文件无法写入。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="ValueError">ValueError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>文件地址无效、后端未注册或记录包含无效的 JSON 值。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="TypeError">TypeError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>记录包含不能保存为 JSON 的对象。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="envweaver.errors.RuntimeError">RuntimeError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>SSH 文件传输失败。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="TimeoutError">TimeoutError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>SSH 文件传输超时。</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
     </div>
 
-</div><pre><code class="language-python">runtime.describe(instance=instance, path=&quot;ssh://server/data/instance.json&quot;)
+</div><pre><code class="language-python">runtime.describe(instance=instance, path=&quot;./instance.json&quot;)
 </code></pre>
 </details>
 <details id="connect">
@@ -2637,7 +2084,7 @@ Path(&quot;screen.png&quot;).write_bytes(image)
             </td>
             <td>
               <div class="doc-md-description">
-                <p>instance.json 的本地路径或 ssh://服务器/绝对路径。</p>
+                <p>instance.json 文件路径。</p>
               </div>
             </td>
             <td>
@@ -2671,7 +2118,196 @@ Path(&quot;screen.png&quot;).write_bytes(image)
     </table>
 
 
-<p><span class="doc-section-title">Raises:</span></p>
+    </div>
+
+</div><pre><code class="language-python">runtime = Runtime()
+instance = runtime.connect(path=&quot;./instance.json&quot;)
+</code></pre>
+</details>
+<h2 id="download-cache">DownloadCache：下载缓存<a class="headerlink" href="#download-cache" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<a id="envweaver.DownloadCache"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>root</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | <span title="pathlib.Path">Path</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>当前机器上的缓存目录；默认 ENVWEAVER_CACHE_DIR，未设置时为 ~/.cache/envweaver/downloads。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>max_bytes</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>缓存容量上限，默认 30 GiB；超限时清理最近未使用的文件。</p>
+              </div>
+            </td>
+            <td>
+                  <code>30 * 1024 ** 3</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div><pre><code class="language-python">from envweaver import DownloadCache
+
+cache = DownloadCache(root=&quot;./download-cache&quot;)
+</code></pre>
+<details id="cached-download">
+<summary>DownloadCache.download：下载文件</summary>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="envweaver.DownloadCache.download"></a>
+    <div class="doc doc-contents first">
+
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>url</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>HTTP 或 HTTPS 文件地址，不接受包含用户名或密码的地址。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>checksum</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>文件校验值，格式为 sha256:十六进制值或 sha512:十六进制值。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>target</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | <span title="pathlib.Path">Path</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>当前机器上的目标文件；成功后原子覆盖，不与缓存共享可写文件。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>proxies</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="str">str</span>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>HTTP、HTTPS 代理地址字典；默认 None，读取当前进程的代理配置。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
     <table>
       <thead>
         <tr>
@@ -2682,41 +2318,11 @@ Path(&quot;screen.png&quot;).write_bytes(image)
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="OSError">OSError</span></code>
+                  <code>None</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>文件无法读取，或缺少连接程序。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="ValueError">ValueError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>文件地址、记录格式无效或环境配置不受支持。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="envweaver.errors.RuntimeError">RuntimeError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>SSH 文件传输失败，或环境不存在、已退出或无法连接。</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="TimeoutError">TimeoutError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>文件传输或连接超时。</p>
+                <p>None。</p>
               </div>
             </td>
           </tr>
@@ -2726,8 +2332,7 @@ Path(&quot;screen.png&quot;).write_bytes(image)
 
     </div>
 
-</div><pre><code class="language-python">runtime = Runtime()
-instance = runtime.connect(path=&quot;ssh://server/data/instance.json&quot;)
+</div><pre><code class="language-python">cache.download(url=package_url, checksum=package_checksum, target=&quot;./materials/package.whl&quot;)
 </code></pre>
 </details></div>
             </div>
