@@ -1,0 +1,1343 @@
+{
+  "scope": "公开接口的功能点验收；automated 表示有自动化测试，不等同于全部真实环境已通过。pending 项需补充执行证据。",
+  "rows": [
+    {
+      "interface": "Runtime.register",
+      "feature": "自定义后端注册",
+      "tests": [
+        "runtime/test_custom_backend.py",
+        "runtime/test_runtime.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Runtime.register",
+      "feature": "自定义后端参数传递与重连",
+      "tests": [
+        "runtime/test_custom_backend.py",
+        "runtime/test_runtime.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Runtime.create",
+      "feature": "Docker 镜像解析",
+      "tests": [
+        "runtime/test_runtime.py",
+        "runtime/test_docker_integration.py",
+        "runtime/test_qemu_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Runtime.create",
+      "feature": "QEMU 本地和远端镜像检查",
+      "tests": [
+        "runtime/test_runtime.py",
+        "runtime/test_docker_integration.py",
+        "runtime/test_qemu_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Runtime.create",
+      "feature": "固定连接字段和非法输入",
+      "tests": [
+        "runtime/test_runtime.py",
+        "runtime/test_docker_integration.py",
+        "runtime/test_qemu_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Runtime.start",
+      "feature": "context 先于 setup",
+      "tests": [
+        "task/test_setup.py",
+        "evaluation/test_eval_integration.py",
+        "runtime/test_docker_integration.py",
+        "runtime/test_qemu.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Runtime.start",
+      "feature": "setup 命令失败和超时",
+      "tests": [
+        "task/test_setup.py",
+        "evaluation/test_eval_integration.py",
+        "runtime/test_docker_integration.py",
+        "runtime/test_qemu.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Runtime.start",
+      "feature": "启动失败回收",
+      "tests": [
+        "task/test_setup.py",
+        "evaluation/test_eval_integration.py",
+        "runtime/test_docker_integration.py",
+        "runtime/test_qemu.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Runtime.start",
+      "feature": "连接递归合并",
+      "tests": [
+        "task/test_setup.py",
+        "evaluation/test_eval_integration.py",
+        "runtime/test_docker_integration.py",
+        "runtime/test_qemu.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Runtime.start",
+      "feature": "Docker 启动资源配置",
+      "tests": [
+        "task/test_setup.py",
+        "evaluation/test_eval_integration.py",
+        "runtime/test_docker_integration.py",
+        "runtime/test_qemu.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Runtime.start",
+      "feature": "QEMU 磁盘与固件配置",
+      "tests": [
+        "task/test_setup.py",
+        "evaluation/test_eval_integration.py",
+        "runtime/test_docker_integration.py",
+        "runtime/test_qemu.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Runtime.exec",
+      "feature": "字符串和参数列表",
+      "tests": [
+        "runtime/test_python_execution.py",
+        "runtime/test_docker_integration.py",
+        "evaluation/test_eval_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Runtime.exec",
+      "feature": "cwd",
+      "tests": [
+        "runtime/test_python_execution.py",
+        "runtime/test_docker_integration.py",
+        "evaluation/test_eval_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Runtime.exec",
+      "feature": "退出码和标准输出错误",
+      "tests": [
+        "runtime/test_python_execution.py",
+        "runtime/test_docker_integration.py",
+        "evaluation/test_eval_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Runtime.exec",
+      "feature": "命令超时与子进程回收",
+      "tests": [
+        "runtime/test_python_execution.py",
+        "runtime/test_docker_integration.py",
+        "evaluation/test_eval_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Runtime.upload / download",
+      "feature": "文件目录与二进制",
+      "tests": [
+        "io/test_paths.py",
+        "io/test_file_addresses_integration.py",
+        "runtime/test_docker_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Runtime.upload / download",
+      "feature": "空目录和目录合并",
+      "tests": [
+        "io/test_paths.py",
+        "io/test_file_addresses_integration.py",
+        "runtime/test_docker_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Runtime.upload / download",
+      "feature": "中文空格路径",
+      "tests": [
+        "io/test_paths.py",
+        "io/test_file_addresses_integration.py",
+        "runtime/test_docker_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Runtime.upload / download",
+      "feature": "SSH 文件地址",
+      "tests": [
+        "io/test_paths.py",
+        "io/test_file_addresses_integration.py",
+        "runtime/test_docker_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Runtime.upload / download",
+      "feature": "拒绝路径穿越与链接",
+      "tests": [
+        "io/test_paths.py",
+        "io/test_file_addresses_integration.py",
+        "runtime/test_docker_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Runtime.upload / download",
+      "feature": "非 root 可写",
+      "tests": [
+        "io/test_paths.py",
+        "io/test_file_addresses_integration.py",
+        "runtime/test_docker_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Runtime.save",
+      "feature": "Docker 镜像层共享",
+      "tests": [
+        "runtime/test_qemu_disk_integration.py",
+        "runtime/test_qemu_integration.py",
+        "runtime/test_docker_integration.py",
+        "runtime/test_connect.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Runtime.save",
+      "feature": "QEMU incremental/consolidated",
+      "tests": [
+        "runtime/test_qemu_disk_integration.py",
+        "runtime/test_qemu_integration.py",
+        "runtime/test_docker_integration.py",
+        "runtime/test_connect.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Runtime.save",
+      "feature": "快照隔离与恢复",
+      "tests": [
+        "runtime/test_qemu_disk_integration.py",
+        "runtime/test_qemu_integration.py",
+        "runtime/test_docker_integration.py",
+        "runtime/test_connect.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Runtime.save",
+      "feature": "拒绝外部实例及挂载快照",
+      "tests": [
+        "runtime/test_qemu_disk_integration.py",
+        "runtime/test_qemu_integration.py",
+        "runtime/test_docker_integration.py",
+        "runtime/test_connect.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Runtime.save",
+      "feature": "失败重启和清理",
+      "tests": [
+        "runtime/test_qemu_disk_integration.py",
+        "runtime/test_qemu_integration.py",
+        "runtime/test_docker_integration.py",
+        "runtime/test_connect.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Runtime.describe / connect",
+      "feature": "描述文件和权限",
+      "tests": [
+        "runtime/test_connect.py",
+        "io/test_ssh_config.py",
+        "io/test_file_addresses_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Runtime.describe / connect",
+      "feature": "本地与 SSH 连接文件",
+      "tests": [
+        "runtime/test_connect.py",
+        "io/test_ssh_config.py",
+        "io/test_file_addresses_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Runtime.describe / connect",
+      "feature": "SSH 配置继承重置覆盖",
+      "tests": [
+        "runtime/test_connect.py",
+        "io/test_ssh_config.py",
+        "io/test_file_addresses_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Runtime.describe / connect",
+      "feature": "外部实例与原文件保留",
+      "tests": [
+        "runtime/test_connect.py",
+        "io/test_ssh_config.py",
+        "io/test_file_addresses_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Runtime.close",
+      "feature": "删除自有实例与记录",
+      "tests": [
+        "runtime/test_runtime.py",
+        "runtime/test_qemu.py",
+        "evaluation/test_eval_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Runtime.close",
+      "feature": "保留快照与外部磁盘",
+      "tests": [
+        "runtime/test_runtime.py",
+        "runtime/test_qemu.py",
+        "evaluation/test_eval_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Runtime.close",
+      "feature": "失败和超时明确回报",
+      "tests": [
+        "runtime/test_runtime.py",
+        "runtime/test_qemu.py",
+        "evaluation/test_eval_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Runtime.screenshot",
+      "feature": "QEMU PNG 像素与临时文件回收",
+      "tests": [
+        "runtime/test_qemu.py",
+        "runtime/test_qemu_screenshot_integration.py",
+        "runtime/test_vnc.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Runtime.screenshot",
+      "feature": "QEMU 6.2 KVM/TCG",
+      "tests": [
+        "runtime/test_qemu.py",
+        "runtime/test_qemu_screenshot_integration.py",
+        "runtime/test_vnc.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Runtime.screenshot",
+      "feature": "VNC 原生协议",
+      "tests": [
+        "runtime/test_qemu.py",
+        "runtime/test_qemu_screenshot_integration.py",
+        "runtime/test_vnc.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Runtime.screenshot",
+      "feature": "真实 Docker 桌面与 VNC 密码",
+      "tests": [
+        "runtime/test_desktop_integration.py"
+      ],
+      "evidence": "verified",
+      "remaining": null,
+      "execution": "test_desktop_integration.py: 2 passed；Xvfb + x11vnc，含密码、错误密码、未设环境变量及 Verifier 截图转发。"
+    },
+    {
+      "interface": "Runtime (SSH QEMU)",
+      "feature": "远端生命周期与本地记录分离",
+      "tests": [
+        "runtime/test_remote.py",
+        "runtime/test_qemu_integration.py"
+      ],
+      "evidence": "verified",
+      "remaining": null,
+      "execution": "test_qemu_integration.py: 1 passed in 84.51s；独立 OpenSSH 服务连接当前物理机，QEMU 6.2/KVM；远端 QMP 截图另行实测。不是另一台物理服务器。"
+    },
+    {
+      "interface": "Runtime (SSH QEMU)",
+      "feature": "跳板 SSH 和独立认证",
+      "tests": [
+        "runtime/test_remote.py",
+        "runtime/test_qemu_integration.py"
+      ],
+      "evidence": "verified",
+      "remaining": null,
+      "execution": "test_qemu_integration.py: 1 passed in 84.51s；独立 OpenSSH 服务连接当前物理机，QEMU 6.2/KVM；远端 QMP 截图另行实测。不是另一台物理服务器。"
+    },
+    {
+      "interface": "Runtime (SSH QEMU)",
+      "feature": "远端截图与快照恢复",
+      "tests": [
+        "runtime/test_remote.py",
+        "runtime/test_qemu_integration.py"
+      ],
+      "evidence": "verified",
+      "remaining": null,
+      "execution": "test_qemu_integration.py: 1 passed in 84.51s；独立 OpenSSH 服务连接当前物理机，QEMU 6.2/KVM；远端 QMP 截图另行实测。不是另一台物理服务器。"
+    },
+    {
+      "interface": "Runtime (Windows QEMU)",
+      "feature": "Windows 命令与参数引用",
+      "tests": [
+        "runtime/test_python_execution.py",
+        "verifier/test_verifier_instance.py",
+        "runtime/test_windows_integration.py",
+        "runtime/test_qemu_integration.py"
+      ],
+      "evidence": "verified",
+      "remaining": null,
+      "execution": "test_windows_integration.py: 2 passed in 515.51s；Windows Server 2022、Python 3.12.10、QEMU 6.2/KVM；命令与参数、中文路径、截图、超时进程树回收、跨 Windows/Linux Verifier 和 Windows Eval。"
+    },
+    {
+      "interface": "Runtime (Windows QEMU)",
+      "feature": "盘符与中文路径传输",
+      "tests": [
+        "runtime/test_python_execution.py",
+        "verifier/test_verifier_instance.py",
+        "runtime/test_windows_integration.py",
+        "runtime/test_qemu_integration.py"
+      ],
+      "evidence": "verified",
+      "remaining": null,
+      "execution": "test_windows_integration.py: 2 passed in 515.51s；Windows Server 2022、Python 3.12.10、QEMU 6.2/KVM；命令与参数、中文路径、截图、超时进程树回收、跨 Windows/Linux Verifier 和 Windows Eval。"
+    },
+    {
+      "interface": "Runtime (Windows QEMU)",
+      "feature": "超时和清理",
+      "tests": [
+        "runtime/test_python_execution.py",
+        "verifier/test_verifier_instance.py",
+        "runtime/test_windows_integration.py",
+        "runtime/test_qemu_integration.py"
+      ],
+      "evidence": "verified",
+      "remaining": null,
+      "execution": "test_windows_integration.py: 2 passed in 515.51s；Windows Server 2022、Python 3.12.10、QEMU 6.2/KVM；命令与参数、中文路径、截图、超时进程树回收、跨 Windows/Linux Verifier 和 Windows Eval。"
+    },
+    {
+      "interface": "Runtime (Windows QEMU)",
+      "feature": "PNG 截图",
+      "tests": [
+        "runtime/test_python_execution.py",
+        "verifier/test_verifier_instance.py",
+        "runtime/test_windows_integration.py",
+        "runtime/test_qemu_integration.py"
+      ],
+      "evidence": "verified",
+      "remaining": null,
+      "execution": "test_windows_integration.py: 2 passed in 515.51s；Windows Server 2022、Python 3.12.10、QEMU 6.2/KVM；命令与参数、中文路径、截图、超时进程树回收、跨 Windows/Linux Verifier 和 Windows Eval。"
+    },
+    {
+      "interface": "Runtime (Windows QEMU)",
+      "feature": "Windows 验证沙箱",
+      "tests": [
+        "runtime/test_python_execution.py",
+        "verifier/test_verifier_instance.py",
+        "runtime/test_windows_integration.py",
+        "runtime/test_qemu_integration.py"
+      ],
+      "evidence": "verified",
+      "remaining": null,
+      "execution": "test_windows_integration.py: 2 passed in 515.51s；Windows Server 2022、Python 3.12.10、QEMU 6.2/KVM；命令与参数、中文路径、截图、超时进程树回收、跨 Windows/Linux Verifier 和 Windows Eval。"
+    },
+    {
+      "interface": "TaskPool.save / load",
+      "feature": "根目录下的任务文件夹",
+      "tests": [
+        "task/test_task.py",
+        "task/test_task_ssh.py",
+        "integration/test_downstream_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "TaskPool.save / load",
+      "feature": "文字图片 context 和 verifier 归档",
+      "tests": [
+        "task/test_task.py",
+        "task/test_task_ssh.py",
+        "integration/test_downstream_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "TaskPool.save / load",
+      "feature": "metadata setup cwd 和连接字段",
+      "tests": [
+        "task/test_task.py",
+        "task/test_task_ssh.py",
+        "integration/test_downstream_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "TaskPool.save / load",
+      "feature": "材料移动后仍可加载",
+      "tests": [
+        "task/test_task.py",
+        "task/test_task_ssh.py",
+        "integration/test_downstream_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "TaskPool.save / load",
+      "feature": "格式版本与非法字段",
+      "tests": [
+        "task/test_task.py",
+        "task/test_task_ssh.py",
+        "integration/test_downstream_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "TaskPool.save / load",
+      "feature": "名称预留并发冲突",
+      "tests": [
+        "task/test_task.py",
+        "task/test_task_ssh.py",
+        "integration/test_downstream_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "TaskPool.save / load",
+      "feature": "保存失败回滚",
+      "tests": [
+        "task/test_task.py",
+        "task/test_task_ssh.py",
+        "integration/test_downstream_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "TaskPool.search",
+      "feature": "空池和混合格式",
+      "tests": [
+        "task/test_task.py",
+        "task/test_task_ssh.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "TaskPool.search",
+      "feature": "metadata 精确匹配",
+      "tests": [
+        "task/test_task.py",
+        "task/test_task_ssh.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "TaskPool.search",
+      "feature": "非法过滤条件",
+      "tests": [
+        "task/test_task.py",
+        "task/test_task_ssh.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "TaskPool (SSH)",
+      "feature": "真实 SSH 的目录交付与并发名称冲突",
+      "tests": [
+        "task/test_task_ssh.py",
+        "io/test_ssh_output_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Verifier.run",
+      "feature": "访问做题实例",
+      "tests": [
+        "verifier/test_verifier.py",
+        "verifier/test_verifier_instance.py",
+        "integration/test_downstream_integration.py",
+        "evaluation/test_eval_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Verifier.run",
+      "feature": "可选 files 输入与 patch",
+      "tests": [
+        "verifier/test_verifier.py",
+        "verifier/test_verifier_instance.py",
+        "integration/test_downstream_integration.py",
+        "evaluation/test_eval_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Verifier.run",
+      "feature": "required_env 与额外变量",
+      "tests": [
+        "verifier/test_verifier.py",
+        "verifier/test_verifier_instance.py",
+        "integration/test_downstream_integration.py",
+        "evaluation/test_eval_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Verifier.run",
+      "feature": "0/部分/1 分与嵌套 JSON",
+      "tests": [
+        "verifier/test_verifier.py",
+        "verifier/test_verifier_instance.py",
+        "integration/test_downstream_integration.py",
+        "evaluation/test_eval_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Verifier.run",
+      "feature": "非法 JSON/score 和执行失败",
+      "tests": [
+        "verifier/test_verifier.py",
+        "verifier/test_verifier_instance.py",
+        "integration/test_downstream_integration.py",
+        "evaluation/test_eval_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Verifier.run",
+      "feature": "超时与材料清理",
+      "tests": [
+        "verifier/test_verifier.py",
+        "verifier/test_verifier_instance.py",
+        "integration/test_downstream_integration.py",
+        "evaluation/test_eval_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Verifier.run",
+      "feature": "实例隔离",
+      "tests": [
+        "verifier/test_verifier.py",
+        "verifier/test_verifier_instance.py",
+        "integration/test_downstream_integration.py",
+        "evaluation/test_eval_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Agent.prepare / run / stop",
+      "feature": "独立对象和生命周期",
+      "tests": [
+        "agents/test_agent.py",
+        "agents/test_cli_agents.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Agent.prepare / run / stop",
+      "feature": "实时轨迹与结果快照",
+      "tests": [
+        "agents/test_agent.py",
+        "agents/test_cli_agents.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Agent.prepare / run / stop",
+      "feature": "文字图片输入与附件",
+      "tests": [
+        "agents/test_agent.py",
+        "agents/test_cli_agents.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Agent.prepare / run / stop",
+      "feature": "配置与 cwd",
+      "tests": [
+        "agents/test_agent.py",
+        "agents/test_cli_agents.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Agent.prepare / run / stop",
+      "feature": "停止 CLI，保留任务后台服务",
+      "tests": [
+        "agents/test_agent.py",
+        "agents/test_cli_agents.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Agent.prepare / run / stop",
+      "feature": "失败中断保留产物",
+      "tests": [
+        "agents/test_agent.py",
+        "agents/test_cli_agents.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "Agent / eval (SSH output)",
+      "feature": "真实 SSH 产物实时同步",
+      "tests": [
+        "io/test_output_addresses.py",
+        "io/test_ssh_output_integration.py"
+      ],
+      "evidence": "verified",
+      "remaining": null,
+      "execution": "test_ssh_output_integration.py: 7 passed；真实 Linux QEMU + 独立 OpenSSH 服务，实时图片/附件、失败/停止、写入失败缓存、并发结果和目录冲突。"
+    },
+    {
+      "interface": "Agent / eval (SSH output)",
+      "feature": "失败停止保留结果",
+      "tests": [
+        "io/test_output_addresses.py",
+        "io/test_ssh_output_integration.py"
+      ],
+      "evidence": "verified",
+      "remaining": null,
+      "execution": "test_ssh_output_integration.py: 7 passed；真实 Linux QEMU + 独立 OpenSSH 服务，实时图片/附件、失败/停止、写入失败缓存、并发结果和目录冲突。"
+    },
+    {
+      "interface": "Agent / eval (SSH output)",
+      "feature": "发布失败保留本地缓存",
+      "tests": [
+        "io/test_output_addresses.py",
+        "io/test_ssh_output_integration.py"
+      ],
+      "evidence": "verified",
+      "remaining": null,
+      "execution": "test_ssh_output_integration.py: 7 passed；真实 Linux QEMU + 独立 OpenSSH 服务，实时图片/附件、失败/停止、写入失败缓存、并发结果和目录冲突。"
+    },
+    {
+      "interface": "Agent / eval (SSH output)",
+      "feature": "远端目录冲突与并发结果",
+      "tests": [
+        "io/test_output_addresses.py",
+        "io/test_ssh_output_integration.py"
+      ],
+      "evidence": "verified",
+      "remaining": null,
+      "execution": "test_ssh_output_integration.py: 7 passed；真实 Linux QEMU + 独立 OpenSSH 服务，实时图片/附件、失败/停止、写入失败缓存、并发结果和目录冲突。"
+    },
+    {
+      "interface": "CodexAgent / PiAgent / MiniSweAgent",
+      "feature": "CLI 安装和版本检查",
+      "tests": [
+        "agents/test_agent_dependencies.py",
+        "agents/test_cli_agents.py"
+      ],
+      "evidence": "verified",
+      "remaining": null,
+      "execution": "实际 prepare 安装检查：Codex CLI 0.163、Pi 1.3、mini-swe-agent 2.4.6；未调用模型。mini 使用预下载的官方发行包。"
+    },
+    {
+      "interface": "CodexAgent / PiAgent / MiniSweAgent",
+      "feature": "真实模型推理和工具闭环",
+      "tests": [
+        "agents/test_model_integration.py::test_real_agent_repairs_code"
+      ],
+      "evidence": "verified",
+      "remaining": null,
+      "execution": "Codex CLI 0.163.0、Pi 1.3.0、mini-swe-agent 2.4.6 在 Linux Docker 中调用本机 Qwen3.8-27B，完成文件修改、工具执行、独立 Verifier 评分与产物保存，三者均得 1 分。"
+    },
+    {
+      "interface": "eval / EvalConfig",
+      "feature": "单题多题与生成器",
+      "tests": [
+        "evaluation/test_eval.py",
+        "evaluation/test_eval_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "eval / EvalConfig",
+      "feature": "并发限制和顺序",
+      "tests": [
+        "evaluation/test_eval.py",
+        "evaluation/test_eval_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "eval / EvalConfig",
+      "feature": "Agent 工厂与对象独占",
+      "tests": [
+        "evaluation/test_eval.py",
+        "evaluation/test_eval_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "eval / EvalConfig",
+      "feature": "运行配置合并不改 Task",
+      "tests": [
+        "evaluation/test_eval.py",
+        "evaluation/test_eval_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "eval / EvalConfig",
+      "feature": "各阶段超时",
+      "tests": [
+        "evaluation/test_eval.py",
+        "evaluation/test_eval_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "eval / EvalConfig",
+      "feature": "延迟启动回收",
+      "tests": [
+        "evaluation/test_eval.py",
+        "evaluation/test_eval_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "eval / EvalConfig",
+      "feature": "失败不记零分",
+      "tests": [
+        "evaluation/test_eval.py",
+        "evaluation/test_eval_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "eval / EvalConfig",
+      "feature": "结果快照和日志",
+      "tests": [
+        "evaluation/test_eval.py",
+        "evaluation/test_eval_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "eval / EvalConfig",
+      "feature": "异常清理与批次中断",
+      "tests": [
+        "evaluation/test_eval.py",
+        "evaluation/test_eval_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "eval / EvalConfig",
+      "feature": "Rich 面板",
+      "tests": [
+        "evaluation/test_eval.py",
+        "evaluation/test_eval_integration.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "eval",
+      "feature": "长批次重复运行与资源稳定性",
+      "tests": [
+        "evaluation/test_eval_integration.py"
+      ],
+      "evidence": "verified",
+      "remaining": null,
+      "execution": "两轮各 6 道题，并发 3，共 12 次真实 QEMU 评测通过；每轮结果、顺序、分数和资源回收均检查。2 vCPU，2 GiB，验证时限 180 秒。先前 1 vCPU/CPU host、30 秒验证时限的 12 次中有 1 次验证超时，来宾出现 soft lockup；未把该次计为通过。"
+    },
+    {
+      "interface": "RuntimeRef / Instance / Task",
+      "feature": "序列化与恢复",
+      "tests": [
+        "runtime/test_runtime.py",
+        "task/test_task.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "RuntimeRef / Instance / Task",
+      "feature": "字段默认值和 cwd 校验",
+      "tests": [
+        "runtime/test_runtime.py",
+        "task/test_task.py"
+      ],
+      "evidence": "automated",
+      "remaining": null
+    },
+    {
+      "interface": "eval (Windows QEMU)",
+      "feature": "图片 goal、cwd、结果轨迹和关闭实例",
+      "tests": [
+        "runtime/test_windows_integration.py::test_windows_eval_with_image_and_cwd"
+      ],
+      "evidence": "verified",
+      "remaining": null,
+      "execution": "Windows 做题和验证实例、确定性自定义 Agent，无模型 API；分数 1，产物存在，无 cleanup_errors。"
+    },
+    {
+      "interface": "Runtime.save (Windows QEMU)",
+      "feature": "保存重启、快照隔离和恢复",
+      "tests": [
+        "runtime/test_qemu_integration.py::test_qemu_save_restore_and_verifier"
+      ],
+      "evidence": "verified",
+      "remaining": null,
+      "execution": "test_qemu_integration.py: 1 passed in 81.16s；Windows 保存后重启、恢复文件内容、后续写入隔离及原生下游 Verifier。"
+    },
+    {
+      "interface": "CodexAgent / PiAgent",
+      "feature": "真实模型图片 goal",
+      "tests": [
+        "agents/test_model_integration.py::test_real_agent_reads_goal_image"
+      ],
+      "evidence": "verified",
+      "remaining": null,
+      "execution": "两种 Agent 均从 goal 图片读取数字，在沙箱写入答案并通过 Verifier。"
+    },
+    {
+      "interface": "Agent.stop",
+      "feature": "真实 CLI 工具执行中停止",
+      "tests": [
+        "agents/test_model_integration.py::test_real_agent_stop_preserves_sandbox",
+        "agents/test_native_lifecycle_integration.py::test_native_lifecycle"
+      ],
+      "evidence": "verified",
+      "remaining": "本轮使用本地模拟 API；QEMU 未重测。",
+      "execution": "2026-10-21：Codex CLI 0.154.0 npm 包、Pi 1.3.0、mini-swe-agent 2.4.6 在请求等待中和工具执行中停止，通过重复 stop、控制进程退出、后台 TCP 服务仍可访问的检查。未调用真实模型。"
+    },
+    {
+      "interface": "eval",
+      "feature": "真实模型并发与产物",
+      "tests": [
+        "agents/test_model_integration.py::test_real_batch"
+      ],
+      "evidence": "verified",
+      "remaining": null,
+      "execution": "4 道题、并发 2；独立 Agent、沙箱和产物目录，结果顺序正确，全部得 1 分，轨迹序号连续。"
+    },
+    {
+      "interface": "eval",
+      "feature": "真实模型认证失败",
+      "tests": [
+        "agents/test_model_integration.py::test_real_auth_failure_is_not_zero_score"
+      ],
+      "evidence": "verified",
+      "remaining": null,
+      "execution": "错误 API Key 产生 Agent 执行错误，verification_result 为 None，保留快照并关闭实例。"
+    },
+    {
+      "interface": "eval",
+      "feature": "真实模型运行超时",
+      "tests": [
+        "agents/test_model_integration.py::test_real_eval_timeout_preserves_partial_artifacts"
+      ],
+      "evidence": "verified",
+      "remaining": null,
+      "execution": "模型已发起工具调用后触发 30 秒 Agent 时限；保留轨迹与结果快照，关闭实例，无 cleanup_errors。"
+    },
+    {
+      "interface": "Verifier.run",
+      "feature": "真实模型 JSON 评分",
+      "tests": [
+        "agents/test_model_integration.py::test_real_model_verifier"
+      ],
+      "evidence": "verified",
+      "remaining": null,
+      "execution": "验证沙箱调用统一模型 API，读取 files 输入和 required_env；正确、错误答案分别得到 1、0 分。"
+    },
+    {
+      "interface": "Agent.run / Agent.stop / eval",
+      "feature": "保留 Agent 启动的服务直到验证结束，关闭 Instance 后统一回收",
+      "tests": [
+        "agents/test_process.py",
+        "agents/test_service_integration.py",
+        "agents/test_native_lifecycle_integration.py",
+        "agents/test_native_eval_integration.py"
+      ],
+      "evidence": "verified",
+      "remaining": "本轮未重新实测 QEMU 服务生命周期，原生 CLI 新测试使用本地模拟 API。",
+      "execution": "2026-10-21：16 项真实 Docker 测试通过，其中 6 项使用原生 Codex CLI 0.154.0 npm 包、Pi 1.3.0、mini-swe-agent 2.4.6，分别正常结束或外层超时后通过独立 Verifier 检查 HTTP/TCP 服务，均得 1 分。另 10 项故障注入覆盖普通/独立会话服务、持续日志、上下文限制、执行失败、停止无响应、验证失败和容器回收。首次复跑旧用例发现镜像 PATH 遮住测试 CLI，固定测试环境 PATH 后 16 项全部通过。上一轮 1 项真实模型测试通过：本地 Shadow、gpt-6.1-sol、Codex CLI 0.154.0，score=1；本轮未追加付费模型调用。"
+    },
+    {
+      "interface": "CodexAgent / PiAgent / MiniSweAgent",
+      "feature": "原生 CLI 退出、故障分类与恢复",
+      "tests": [
+        "agents/test_native_lifecycle_integration.py",
+        "agents/test_cli_retry_integration.py",
+        "agents/test_process.py",
+        "agents/test_agent_stop_reason.py"
+      ],
+      "evidence": "verified",
+      "remaining": "mini 错误测试将原生重试次数设为 2。mini 2.4.6 / LiteLLM 1.106.1 可能先重试部分认证和上下文错误，待退出后 EnvWeaver 再分类。未修改第三方重试策略。",
+      "execution": "2026-10-21：三个原生 CLI 共 18 项本地模拟 API 测试通过，覆盖正常完成、请求和工具执行中停止、认证失败、上下文限制、503 重试恢复；另有 4 项 Codex 流中断、429、503、401 测试通过。修复监督器启动失败缺少终止状态，以及 mini 从错误字段读取异常详情；新增回归覆盖启动失败、请求凭据删除、终止事件详情和普通回复不参与错误分类。"
+    },
+    {
+      "interface": "CodexAgent / PiAgent / MiniSweAgent",
+      "feature": "工具执行后请求失败恢复，已完成工具不重放",
+      "tests": [
+        "agents/test_native_lifecycle_integration.py::test_native_lifecycle"
+      ],
+      "evidence": "verified",
+      "remaining": "使用本地模拟 API；不代表所有模型和 CLI 版本。",
+      "execution": "2026-10-21：Codex CLI 0.154.0、Pi 1.3.0、mini-swe-agent 2.4.6，工具已执行后分别注入 503 和 HTTP 200 响应体中途断开，共 6 项通过。检查实际工具启动次数为 1、恢复后的最终结果，以及任务 TCP 服务存活。"
+    },
+    {
+      "interface": "Agent adapters / Eval failure policy",
+      "feature": "各适配器解释原生错误，公共层只处理统一异常",
+      "tests": [
+        "agents/test_error_parsing.py",
+        "agents/test_agent_stop_reason.py",
+        "evaluation/test_failure.py",
+        "agents/test_native_lifecycle_integration.py",
+        "agents/test_cli_retry_integration.py"
+      ],
+      "evidence": "verified",
+      "remaining": "Codex/Pi 部分事件只有错误文字，由各自适配器解释；未知格式归 UNKNOWN。当前实测版本和范围见 comprehensive_validation；不代表所有供应商和 CLI 版本。",
+      "execution": "删除 agents/_errors.py。Codex 解码自身错误消息及 JSON 错误码，Pi 读取 stopReason 与 errorMessage，mini 优先映射 exit_status。测试覆盖类型优先、格式隔离、未知错误、普通回复不分类，以及 Eval 不根据错误文字改变处理策略。"
+    },
+    {
+      "interface": "PiAgent / eval",
+      "feature": "HTTP 400 无标准错误码的上下文超限仍进入 Verifier；认证、限流和服务错误优先",
+      "tests": [
+        "agents/test_error_parsing.py",
+        "agents/test_native_lifecycle_integration.py",
+        "agents/test_native_eval_integration.py"
+      ],
+      "evidence": "real CLI + Docker + scripted API",
+      "remaining": null
+    }
+  ],
+  "validation": {
+    "date": "2026-10-19",
+    "non_integration": "567 passed; UV_FROZEN=true uv run pytest -m \"not integration\" -q（本次模型专项前复测）",
+    "docs": "UV_FROZEN=true uv run --group docs mkdocs build --strict: passed（补充真实模型验证记录后复测）",
+    "scope_note": "已补测 Linux Docker 中的真实模型推理、工具闭环和模型 Verifier；不代表所有模型、操作系统、镜像、硬件和参数组合均已验证。真实模型 CUA 和复杂生产 Pipeline 未覆盖。",
+    "windows": "test_windows_integration.py: 2 passed in 515.51s; test_qemu_integration.py (Windows): 1 passed in 81.16s",
+    "real_model": "test_model_integration.py：13 个用例分组执行通过；CLI 配置、评分提示词和停止测试等待条件修正后，对相关用例复测。"
+  },
+  "windows_sources": [
+    "https://www.microsoft.com/en-us/evalcenter/download-windows-server-2025",
+    "https://www.microsoft.com/en-us/evalcenter/download-windows-server-2022"
+  ],
+  "fixes": [
+    {
+      "interface": "Runtime.save (Docker)",
+      "problem": "保存前执行全局 sync，在本机触发不可中断的 I/O 等待，阻碍保存和容器回收。",
+      "change": "删除全局 sync，直接使用 Docker 默认暂停的 commit；应用需先完成文件写入。",
+      "validation": "test_docker_integration.py: 5 passed，包含禁用 sync 后新写入文件保存恢复的回归。"
+    }
+  ],
+  "windows_environment": {
+    "system": "Windows Server 2022 Standard Evaluation (Desktop Experience)",
+    "source": "https://www.microsoft.com/en-us/evalcenter/download-windows-server-2022",
+    "python": "3.12.10",
+    "qemu": "6.2",
+    "config": {
+      "machine": "pc",
+      "disk_interface": "ide",
+      "network_device": "e1000",
+      "memory": 4096,
+      "cpus": 1,
+      "startup_timeout": 300,
+      "shutdown_timeout": 300,
+      "args": [
+        "-vga",
+        "std",
+        "-cpu",
+        "qemu64,hv_relaxed,hv_vapic,hv_spinlocks=0x1fff,hv_time"
+      ]
+    },
+    "limits": "默认 CPU 配置曾出现启动/重启超时；以上配置通过功能测试，不代表任意 Windows 镜像或硬件配置均已验证。"
+  },
+  "cleanup": {
+    "status": "complete",
+    "removed": [
+      "本轮 Docker 容器和专用镜像",
+      "QEMU 虚拟机、差分盘、快照和 Windows/Linux 测试镜像",
+      "临时 OpenSSH 服务、测试密钥和生成的密码",
+      "下载的安装介质与临时测试目录",
+      "补查发现的探测容器 ew-accept-82znc1go-probe、Agent 冒烟测试依赖与产物、pytest/ruff/Python 缓存及测试日志"
+    ],
+    "preserved": "测试代码与本验收记录；用户原有资源。测试日志、缓存和临时依赖已删除。"
+  },
+  "model_validation": {
+    "date": "2026-10-19",
+    "environment": "35；Linux Docker；GPU6 和 GPU7 的 Qwen3.8-27B，通过有 Bearer 认证的 Nginx 统一接口访问。",
+    "agents": {
+      "codex": "0.163.0",
+      "pi": "1.3.0",
+      "mini-swe-agent": "2.4.6"
+    },
+    "passed_cases": [
+      "test_real_agent_reads_goal_image[codex]",
+      "test_real_agent_reads_goal_image[pi]",
+      "test_real_agent_repairs_code[codex]",
+      "test_real_agent_repairs_code[mini]",
+      "test_real_agent_repairs_code[pi]",
+      "test_real_agent_stop_preserves_sandbox[codex]",
+      "test_real_agent_stop_preserves_sandbox[mini]",
+      "test_real_agent_stop_preserves_sandbox[pi]",
+      "test_real_auth_failure_is_not_zero_score",
+      "test_real_batch",
+      "test_real_eval_timeout_preserves_partial_artifacts",
+      "test_real_model_verifier[4-1]",
+      "test_real_model_verifier[5-0]"
+    ],
+    "gateway": {
+      "authentication": "passed",
+      "discovery": "passed",
+      "streaming_requests": 8,
+      "backends": [
+        "gpu7",
+        "gpu6",
+        "gpu6",
+        "gpu7",
+        "gpu6",
+        "gpu6",
+        "gpu7",
+        "gpu7"
+      ]
+    },
+    "deployment_fix": "SGLang v0.5.22-cu130 在单卡 grammar 生成时执行多余的 all_reduce，触发 scheduler 段错误。仅在同步组大小大于 1 时同步；两个服务使用 qwen38-sglang:tp1-guard，并启用 qwen3_coder 工具解析器和 qwen3 推理解析器。强制工具调用、JSON schema、真实 Agent 调用复测通过。上下文 262144，KV token 容量 263168。",
+    "observations": [
+      "首次模型评分提示未明确要求 JSON 输出，模型将错误答案判为 1；补充输出要求后，两种答案通过。格式约束不能保证评分语义正确。",
+      "mini-swe-agent 首次停止用例因模型先检查目录，在发起目标工具前耗尽 90 秒等待；改为要求立即执行、最多等待 180 秒发起工具后复测。stop 本身仍限制 30 秒。",
+      "真实模型专项使用 Linux Docker；此前 Windows/QEMU 验证仍使用确定性 Agent。"
+    ],
+    "cleanup": {
+      "status": "complete",
+      "remaining_test_containers": 0,
+      "remaining_test_images": 0,
+      "removed": [
+        "两个专用测试镜像及其构建层",
+        "失败构建的临时容器与未使用镜像层",
+        "测试沙箱（各用例结束时关闭）",
+        "下载的 CLI/Python 依赖、测试结果、轨迹、日志、临时目录",
+        "本次 pytest 临时目录及仓库 pytest/ruff/Python 缓存"
+      ],
+      "preserved": [
+        "GPU6 与 GPU7 模型服务及其部署配置、缓存",
+        "统一 API 服务、认证配置及重启脚本",
+        "SGLang 单卡同步修复镜像及构建源码",
+        "测试代码与本验收记录"
+      ]
+    }
+  },
+  "lifecycle_validation": {
+    "date": "2026-10-21",
+    "non_integration": "702 passed, 110 deselected in 120.92s",
+    "native_cli": "18 passed in 65.96s; 4 Codex recovery tests passed in 18.19s",
+    "docker": "16 passed, 1 paid-model test deselected in 141.48s",
+    "quality": "ruff check src tests、git diff --check、mkdocs build --strict 通过",
+    "scope": "真实 Linux CLI、真实 Docker/Verifier、本地模拟模型 API；本轮未重测 QEMU、Windows 或付费模型。",
+    "cleanup": "本轮测试容器均已回收，专用镜像及其构建层、隔离 CLI 安装目录、15 个临时测试目录已删除；未发现测试进程残留。现有服务未改动。"
+  },
+  "boundary_validation": {
+    "date": "2026-10-21",
+    "fix": "监督器原子写入失败时删除临时文件；覆盖部分写入失败与重命名失败，防止启动请求残留。",
+    "non_integration": "704 passed, 116 deselected in 120.41s",
+    "native_cli": "24 passed in 90.50s；Codex CLI 0.154.0 npm 包、Pi 1.3.0、mini-swe-agent 2.4.6",
+    "quality": "ruff check src tests、git diff --check、mkdocs build --strict 通过",
+    "scope": "真实 CLI、本地进程与模拟 API；新增工具执行后 503 / HTTP 200 中途断开，验证恢复且不重放已执行工具。本轮未重跑 Docker/QEMU 或付费模型。",
+    "cleanup": "隔离 CLI 安装目录及本轮指定的测试目录已删除；未发现测试进程残留。未创建容器或镜像。"
+  },
+  "adapter_error_validation": {
+    "date": "2026-10-21",
+    "non_integration": "753 passed, 116 deselected in 120.76s；随后新增 3 项普通回复检查，test_error_parsing.py 全部 51 项通过（含此前已跑的 48 项）",
+    "native_cli": "24 passed in 95.55s；4 Codex recovery tests passed in 23.28s",
+    "versions": "Codex CLI 0.154.0 npm 包、Pi 1.3.0、mini-swe-agent 2.4.6 / LiteLLM 1.106.1",
+    "scope": "真实 Linux CLI + 本地模拟 API；认证、上下文限制、正常完成、停止、503 和响应中断恢复、已执行工具不重放。",
+    "quality": "Ruff、git diff --check、MkDocs strict 通过",
+    "cleanup": "隔离 CLI 安装目录及 6 个指定测试目录已删除；未发现测试进程残留。本轮未创建容器或镜像。"
+  },
+  "comprehensive_validation": {
+    "date": "2026-10-21",
+    "fix": "Pi 的 HTTP 400 错误缺少标准错误码、消息为 prompt is too long 时，原先归 CONFIGURATION 并跳过验证；现在归 CONTEXT_LIMIT。仅检查提供方 message，认证和临时故障优先，不扫描附加字段。真实 Pi CLI 复现后，分类、Docker Eval 和 Verifier 回归通过。",
+    "non_integration": "764 passed, 118 deselected in 122.56s",
+    "native_cli": "28 passed in 152.86s；新增 Pi context_text 用例另通过。共 29 项真实 CLI 检查；Codex 0.154.0、Pi 1.3.0、mini-swe-agent 2.4.6 / LiteLLM 1.106.1。",
+    "docker": "27 passed, 11 deselected in 186.44s（Eval、服务生命周期、三种真实 CLI）；另 5 passed, 2 skipped in 113.56s（Runtime、TaskPool、独立下游 Verifier）。合计 32 项。",
+    "ssh": "11 passed in 45.86s；临时本地 OpenSSH 服务，真实 SSH 传输、图片、实时产物、取消快照、目录锁、续跑。",
+    "qemu": "真实 qemu-img/qemu-io 磁盘及 TCG 截图 5 项通过；KVM 截图 1 项通过；Debian 12 / QEMU 6.2 / KVM 保存恢复与独立 Verifier 1 项通过（23.15s）；QEMU Eval 10 项通过。合计 17 项检查。",
+    "coverage": [
+      "三种原生 CLI 正常退出、请求/工具执行中停止、后台服务保留、认证错误和上下文限制",
+      "503 和 HTTP 200 响应中断恢复；已经执行的工具不重放；普通回复中的错误词不参与分类",
+      "Eval 新沙箱重试、耗尽、续跑、输入一致性、取消、并发顺序、有效分数和错误保留",
+      "Setup、Agent、Verifier 的失败和超时；无法停止时跳过验证；关闭和写盘失败",
+      "日志结束位置、UTF-8 分块、原子快照、非有限 JSON、秘密脱敏和启动请求残留清理",
+      "TaskPool 保存/加载、context/setup、Runtime 文件传输、外部容器连接、镜像隔离、QEMU 磁盘链"
+    ],
+    "test_environment_corrections": [
+      "两项测试要求无 EnvWeaver 的纯 Python 镜像，首次误传完整 Agent 镜像导致断言失败；换成 python:3.12-slim-bookworm 后两项均通过。",
+      "QEMU 保存恢复测试首次 disk_dir 过长，按已有路径限制正确报错；改用短临时目录后通过。"
+    ],
+    "scope": "本轮三种原生 CLI 使用模拟模型 API，在当前机器和 Linux Docker 中运行；QEMU Eval 使用确定性 Agent。未调用付费模型，未重测 Windows、真实桌面 VNC 或原生 CLI 在 QEMU 内执行。",
+    "quality": "Ruff、MkDocs strict、git diff --check 通过；未修改公开签名或版本。",
+    "cleanup": "已确认本轮测试容器、QEMU 实例和服务进程无残留；专用 Docker 镜像及构建层、临时磁盘和镜像、隔离 CLI 依赖、SSH 密钥、日志与产物目录均已删除；原有服务未改动。"
+  },
+  "cleanup_validation": {
+    "date": "2026-10-21",
+    "changes": [
+      "CLI 仅在版本查询时收集 stdout 返回值；安装和依赖准备只持续写日志，不再积存无人使用的完整输出。",
+      "删除 mini-swe-agent 重复执行 _poll_native 的 _finish 覆盖；终态轮询已经读取并保存最终快照。"
+    ],
+    "tests": "Agent 161 passed, 61 deselected in 91.18s；Eval 118 passed, 29 deselected in 3.97s。包含真实本地子进程、分块 UTF-8、安装/复用版本和 mini 最终快照；本轮未重新安装第三方 CLI 或运行外部沙箱。",
+    "quality": "Ruff、Vulture（80% 置信度）、MkDocs strict、git diff --check 通过。未修改公开接口或版本。",
+    "cleanup": "本轮指定的两组测试临时目录和日志已删除；未创建 Docker/QEMU 资源或调用模型。"
+  },
+  "runtime_cleanup_validation": {
+    "date": "2026-10-21",
+    "changes": [
+      "Docker connect 不再构造多余的 RuntimeRef；命令执行、上传和连接描述统一使用 Instance 中的 Python 路径。",
+      "Docker 操作直接使用 Instance 保存的 SSH 配置，删除回退到另一个 Runtime 配置的冗余分支。"
+    ],
+    "tests": "Runtime、Task、Verifier、IO 回归 487 passed, 27 deselected in 25.19s；真实 Docker 5 passed, 1 skipped in 13.55s。包含外部容器连接、默认和带空格的 Python 路径、上传下载、保存恢复、不同 Runtime 的 SSH 配置隔离。",
+    "scope": "SSH 存储集成测试因未配置 ENVWEAVER_TEST_FILE_HOST 跳过。本轮未调用模型或运行 QEMU。",
+    "quality": "Ruff、MkDocs strict、git diff --check 通过；公开签名和版本不变。",
+    "cleanup": "本轮测试记录中的容器及快照镜像确认已删除；指定测试临时目录和日志已清理。"
+  },
+  "agent_instance_eval_validation": {
+    "date": "2026-10-27",
+    "changes": [
+      "eval 统一接收 Agent 对象，按每道题及每次重试调用 Agent.new()；删除 callable 入口、单题限制及对象不重试分支。",
+      "Agent.new() 重新构造对象，保留配置而不复制运行状态；三个内置 CLI 保留模型、版本、环境变量和参数。自定义额外构造参数由 new() 实现。",
+      "拒绝返回模板自身、非 Agent、配置变化或重复执行对象；模板可跨批次使用，续跑指纹只读取配置。"
+    ],
+    "tests": "777 passed, 119 deselected in 124.07s；真实 Docker Eval 10 passed, 10 deselected in 63.65s；真实 Docker CLI 监督/服务生命周期 10 passed, 1 deselected in 64.52s。",
+    "coverage": [
+      "单题、多题、可迭代任务及并发顺序",
+      "默认重试、耗尽、创建失败、续跑和配置变化",
+      "三个内置 Agent 的配置及可变状态隔离，自定义客户端显式共享",
+      "重复对象、返回自身、返回错误类型、输入为空",
+      "真实 Docker 沙箱、Verifier、超时、后台 HTTP/TCP 服务保留及回收"
+    ],
+    "scope": "Docker 服务测试使用确定性 CLI，未调用模型 API；本轮未运行 QEMU 或重新安装第三方 CLI。",
+    "quality": "Ruff、MkDocs strict、git diff --check 通过。浏览器检查 Agent 和 Eval 文档，包含展开伪代码及 1280px/480px 宽度；版本不变。",
+    "cleanup": "测试容器确认无残留；专用 Docker 镜像、构建目录、测试目录、日志和截图已删除，原有服务与镜像未改动。"
+  },
+  "resume_configuration_validation": {
+    "date": "2026-10-27",
+    "changes": [
+      "resume 仅校验任务内容、顺序和输入；Agent 和 EvalConfig 可修改。已完成任务在创建 Agent 前跳过，原结果及尝试记录保留。",
+      "新尝试在启动前记录 configuration.values.agent、configuration.values.eval 和 fingerprint；环境变量值、原生 CLI 参数及敏感字段脱敏。",
+      "删除批次级 EvalConfig 和任务级 Agent 配置一致性限制，简化创建失败及重试流程。旧记录不补写未知历史配置。"
+    ],
+    "tests": "139 passed, 31 deselected in 11.70s（Eval 与 SSH 输出模拟）；真实 Docker 11 passed, 11 deselected in 69.63s。",
+    "coverage": [
+      "混合已完成与未完成任务，更换 Agent 类、模型、超时、沙箱设置及重试次数后继续",
+      "已完成任务不检查新 Agent 配置、不创建对象、不修改历史结果",
+      "未完成任务创建失败后保存当前配置，之后可再次续跑",
+      "每次重试保存相同配置，跨续跑保留各自配置；密钥轮换改变指纹但不保存密钥原文",
+      "旧 manifest 仅有配置指纹时仍可续跑并保留旧尝试",
+      "真实 Docker 并发、重试、续跑、异常与超时回收"
+    ],
+    "quality": "Ruff、MkDocs strict、git diff --check 通过；浏览器检查 Eval 文档，包含展开伪代码和 1280px/480px 宽度。公开说明已同步，包版本和 Task 格式版本不变。",
+    "scope": "真实 Docker 使用确定性 Agent；本轮未调用模型 API，未运行 QEMU 或真实 SSH 服务。",
+    "cleanup": "测试容器确认无残留；专用镜像、构建目录、测试目录、日志和文档检查截图已删除。"
+  }
+}

@@ -1,7 +1,8 @@
 """Merge connection settings and select portable fields for built-in backends."""
 
 import json
-from copy import deepcopy
+
+from .._util import merge_dicts
 
 
 def merge_connection(defaults, overrides):
@@ -9,14 +10,7 @@ def merge_connection(defaults, overrides):
         overrides is not None and not isinstance(overrides, dict)
     ):
         raise TypeError("connection must be a dictionary")
-    result = deepcopy(defaults)
-    for key, value in (overrides or {}).items():
-        result[key] = (
-            merge_connection(result[key], value)
-            if isinstance(result.get(key), dict) and isinstance(value, dict)
-            else deepcopy(value)
-        )
-    return result
+    return merge_dicts(defaults, overrides or {})
 
 
 def fixed_connection(backend, connection, *, strict=True):

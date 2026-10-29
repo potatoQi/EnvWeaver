@@ -6,10 +6,8 @@ Task 将各种任务场景的任务组织成统一的任务包，通过 TaskPool
 
 Task 是一个材料包，`task.json` 保存 Task 的元信息。
 
-`format="directory"` 保存到 `TaskPool.root/tasks/<name>/`；`format="zip"` 保存到 `TaskPool.root/archives/<name>.zip`。每次只保存一种形式，材料内容相同。
-
 ```text
-<TaskPool.root>/tasks/<name>/
+<TaskPool.root>/<name>/
 ├── task.json                 # 必需：Task 元信息
 ├── goal/                     # 按需：任务说明中的图片
 ├── context/                  # 按需：任务输入文件或目录
@@ -20,6 +18,8 @@ Task 是一个材料包，`task.json` 保存 Task 的元信息。
 
 ## task.json {#manifest}
 
+<div id="task-fields" class="table-responsive" markdown="1">
+
 | 字段 | 含义 | 必填 / 默认值 |
 | --- | --- | --- |
 | `version` | Task 格式版本 | EnvWeaver 自动填写，当前为 `1` |
@@ -29,12 +29,16 @@ Task 是一个材料包，`task.json` 保存 Task 的元信息。
 | &emsp;↳ `text` | 任务文字 | `type=text` 时必填 |
 | &emsp;↳ `path` | 图片路径，相对于 `task.json` | `type=image` 时必填 |
 | `metadata` | 来源、标签等自定义信息 | 否，`{}` |
-| &emsp;↳ `<自定义字段>` | 可保存为 JSON 的值，字段名由 Pipeline 决定 | 按需 |
+| &emsp;↳ `tags[]` | 标签字符串列表；每项去除首尾空白后为 1–100 个字符，与管理页面共用 | 否，`[]` |
+| &emsp;↳ `<自定义字段>` | 其他可保存为 JSON 的值，字段名由 Pipeline 决定 | 按需 |
 | `task_runtime_ref` | 任务环境的镜像引用 | 是 |
+| &emsp;↳ `name` | 环境名称 | 否，使用 `image` |
 | &emsp;↳ `backend` | 后端名称，如 `docker`、`qemu` | 是 |
 | &emsp;↳ `image` | Docker 镜像名或 ID；QEMU 服务器上的磁盘路径 | 是 |
+| &emsp;↳ `metadata` | 环境自定义 JSON 字典；`tags` 为环境标签字符串列表 | 否，`{}` |
 | &emsp;↳ `config` | 后端启动配置 | 否，`{}` |
 | &emsp;&emsp;↳ `python` | Docker：容器内的 Python 程序 | 否，`python3` |
+| &emsp;&emsp;↳ `python_install_command` | Docker：缺少默认 Python 时执行的 shell 安装命令 | 否，内置安装流程，上限 300 秒 |
 | &emsp;&emsp;↳ `command[]` | Docker：容器启动命令 | 否，使用镜像默认命令 |
 | &emsp;&emsp;↳ `env` | Docker：传入容器的环境变量 | 否，`{}` |
 | &emsp;&emsp;&emsp;↳ `<变量名>` | 环境变量的值，不填写真实密钥 | 按需 |
@@ -59,6 +63,7 @@ Task 是一个材料包，`task.json` 保存 Task 的元信息。
 | `context[]` | 做题需要的输入文件或目录 | 否，`[]` |
 | &emsp;↳ `source` | 材料路径，相对于 `task.json` | 是 |
 | &emsp;↳ `target` | 材料在做题环境内的目标路径 | 是 |
+| `cwd` | 启动 Agent 时所在的目录，填写沙箱内的绝对路径，如 `/workspace/project`。目录可由 context 上传或 setup 创建，但启动 Agent 前必须存在 | 是 |
 | `setup` | 复制 context 后执行的准备操作 | 否，省略时不执行 |
 | &emsp;↳ `command` | 沙箱内执行的命令字符串或参数列表；准备完成后以退出码 0 结束 | 是 |
 | &emsp;↳ `timeout` | 准备命令最长运行秒数，大于 0 | 是 |
@@ -67,7 +72,9 @@ Task 是一个材料包，`task.json` 保存 Task 的元信息。
 | &emsp;↳ `entry` | 验证程序的路径，相对于 `task.json` | 是 |
 | &emsp;↳ `timeout` | 验证程序最长运行秒数，大于 0 | 是 |
 | &emsp;↳ `required_env[]` | 下游需提供的环境变量名称 | 否，`[]` |
-| &emsp;↳ `requires_task_instance` | 验证程序是否需要任务沙箱 | 否，`false` |
+| &emsp;↳ `requires_task_instance` | 验证程序是否需要任务沙箱 | 否，`true` |
+
+</div>
 
 <details markdown="1">
 <summary>Docker 完整示例</summary>
@@ -133,6 +140,7 @@ Task 是一个材料包，`task.json` 保存 Task 的元信息。
       "target": "/work/setup.py"
     }
   ],
+  "cwd": "/work",
   "setup": {
     "command": [
       "python3",
@@ -236,6 +244,7 @@ Task 是一个材料包，`task.json` 保存 Task 的元信息。
       "target": "C:\\Tasks\\setup.py"
     }
   ],
+  "cwd": "C:\\Tasks",
   "setup": {
     "command": [
       "python",
@@ -283,39 +292,47 @@ Task 是一个材料包，`task.json` 保存 Task 的元信息。
 
 ```python
 from envweaver import TaskPool
-pool = TaskPool(root="ssh://server/data/tasks", runtime=runtime)
+pool = TaskPool(root="./tasks", runtime=runtime)
 ```
 
 ## Task：任务 {#task_1}
+
+<div class="table-responsive" markdown="1">
 
 ::: envweaver.models.Task
     options:
       show_root_heading: false
       members: []
 
+</div>
+
 ## TaskPool.save：保存任务 {#save}
+
+<div class="table-responsive" markdown="1">
 
 ::: envweaver.TaskPool.save
     options:
       show_root_heading: false
+
+</div>
 
 ```python
 task_ref = pool.save(
     name="sales-summary",
     goal=[
         {"type": "text", "text": "修改表格，按图中的样式完成销售额汇总。"},
-        {"type": "image", "path": "ssh://server/data/reference.png"},
+        {"type": "image", "path": "./reference.png"},
     ],
-    metadata={"software": "LibreOffice"},
+    metadata={"software": "LibreOffice", "tags": ["office", "spreadsheet"]},
     instance=instance,
     context=[
         {"source": "./sales.xlsx", "target": "/work/sales.xlsx"},
         {"source": "./setup.py", "target": "/work/setup.py"},
     ],
     setup={"command": ["python3", "/work/setup.py"], "timeout": 120},
+    cwd="/work",
     verifier_runtime_ref=verifier_runtime_ref,
     verifier=checker,
-    format="zip",
 )
 ```
 

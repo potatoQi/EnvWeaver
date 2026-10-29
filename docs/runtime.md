@@ -20,7 +20,11 @@ runtime = Runtime(root="./storage/runtimes")
 <details markdown="1" id="ssh-config">
 <summary>SSH 配置</summary>
 
-`Runtime(ssh=...)` 配置服务器连接。
+`Runtime(ssh=...)` 配置沙箱服务器连接。SSH 文件地址统一使用系统默认配置。
+
+短暂连接故障最多尝试 3 次，重试间隔为 0.5 秒、1 秒；认证和主机密钥错误不重试。执行命令时，仅确认尚未连接到目标才自动重连；命令可能已执行但回复丢失时，不重复执行。
+
+重新连接实例时，`ssh=None` 沿用连接记录，`ssh={}` 使用系统默认配置，非空字典与记录递归合并，同名值以本次为准。
 
 | 字段 | 用法与默认值 |
 | --- | --- |
@@ -65,9 +69,11 @@ runtime = Runtime(
 
 ```python
 ref = runtime.create(
+    name="python-workspace",
     backend="docker",
     image="python:3.11-slim-bookworm",
     config={"command": ["sleep", "infinity"]},
+    metadata={"tags": ["python"], "source": "my-pipeline"},
 )
 ```
 
@@ -212,7 +218,10 @@ runtime.close(instance=instance)
 | `network` | 网络模式或网络名称。 例如：`"bridge"`；默认：Docker 默认网络 |
 | `shm_size` | 共享内存大小。 例如：`"1g"`；默认：Docker 默认值 |
 | `gpus` | 允许使用的 GPU。 例如：`"all"`；默认：不请求 GPU |
-| `python` | 容器内执行命令所用的 Python。 例如：`"/usr/bin/python3"`；默认：`"python3"` |
+| `python` | 容器内执行命令所用的 Python。默认 `"python3"`，缺少时自动安装 Python 和 CA 证书；自定义路径如 `"/opt/venv/bin/python"` 须已存在 |
+| `python_prepare_command` | 缺少默认 `python3` 时，在安装前执行一次的 shell 命令，例如配置软件源；默认不执行。例如：`"sh /opt/configure-mirrors.sh"`；命令引用的文件须已在镜像中 |
+| `python_install_command` | 缺少默认 `python3` 时执行的 shell 安装命令；默认使用内置安装流程。自定义安装不自动接入缓存。例如：`"sh /opt/install-python.sh"`；命令引用的文件须已在镜像中 |
+| `python_install_timeout` | Python 准备与安装的总时间上限，包含索引更新、下载和安装；有限正数，单位秒，默认 `300`，例如 `1200` |
 | `startup_timeout` | `docker run` 的超时秒数。 例如：`120`；默认：`120` 秒 |
 | `args` | 额外的 `docker run` 参数列表，放在镜像名前。 例如：`["--hostname", "desktop"]`；默认：`[]` |
 
@@ -290,7 +299,7 @@ runtime.register(name="my_vm", backend=MyVMBackend)
       show_root_heading: false
 
 ```python
-runtime.describe(instance=instance, path="ssh://server/data/instance.json")
+runtime.describe(instance=instance, path="./instance.json")
 ```
 
 </details>
@@ -304,7 +313,35 @@ runtime.describe(instance=instance, path="ssh://server/data/instance.json")
 
 ```python
 runtime = Runtime()
-instance = runtime.connect(path="ssh://server/data/instance.json")
+instance = runtime.connect(path="./instance.json")
+```
+
+</details>
+
+
+## DownloadCache：下载缓存 {#download-cache}
+
+::: envweaver.DownloadCache
+    options:
+      show_root_heading: false
+      members: []
+      show_bases: false
+
+```python
+from envweaver import DownloadCache
+
+cache = DownloadCache(root="./download-cache")
+```
+
+<details markdown="1" id="cached-download">
+<summary>DownloadCache.download：下载文件</summary>
+
+::: envweaver.DownloadCache.download
+    options:
+      show_root_heading: false
+
+```python
+cache.download(url=package_url, checksum=package_checksum, target="./materials/package.whl")
 ```
 
 </details>

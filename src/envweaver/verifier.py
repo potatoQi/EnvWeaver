@@ -1,6 +1,5 @@
 import base64
 import json
-import math
 import re
 import subprocess
 import tempfile
@@ -10,9 +9,9 @@ from contextlib import contextmanager
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from urllib.parse import quote
 
-from ._paths import _location, normalize_address
-from ._storage import local_source
-from ._util import run_python, write_json
+from ._io.paths import _location, normalize_address
+from ._io.storage import local_source
+from ._util import positive, run_python, write_json
 from .errors import VerifierError
 from .models import Instance
 from .runtime import Runtime
@@ -28,12 +27,11 @@ def _result(code, stdout, stderr):
         if (
             isinstance(score, bool)
             or not isinstance(score, (int, float))
-            or not math.isfinite(score)
             or not 0 <= score <= 1
         ):
             raise ValueError("score must be a finite number in [0, 1]")
         json.dumps(output, allow_nan=False)
-    except (ValueError, TypeError, KeyError, OverflowError) as error:
+    except (ValueError, TypeError, KeyError) as error:
         raise VerifierError(f"Invalid verifier result: {error}; stderr: {stderr}") from error
     return output
 
@@ -55,11 +53,11 @@ def _entry_directory(entry):
 class Verifier:
     """
     Args:
-        entry: run.py 的本地路径或 ssh://服务器/绝对路径。run.py 所在目录是验证材料包，保存 Task 和执行 Verify 时会复制整个目录。
+        entry: run.py 的路径。run.py 所在目录是验证材料包，保存 Task 和执行 Verify 时会复制整个目录。
         runtime: 用于操作验证沙箱和任务沙箱的沙箱管理器。
         timeout: run.py 的最长运行秒数，须大于 0。
         required_env: 验证程序需要的环境变量名称。
-        requires_task_instance: 是否需要任务沙箱。
+        requires_task_instance: 是否需要任务沙箱，默认 True；不需要时显式设为 False。
 
     Raises:
         ValueError: entry 地址无效或文件名不是 run.py、timeout 不是正数、required_env 中的名称无效或重复，或 requires_task_instance 不是布尔值。
@@ -72,16 +70,10 @@ class Verifier:
         runtime: Runtime,
         timeout: float,
         required_env: list[str] | None = None,
-        requires_task_instance: bool = False,
+        requires_task_instance: bool = True,
     ):
         _entry_directory(entry)
-        if (
-            isinstance(timeout, bool)
-            or not isinstance(timeout, (int, float))
-            or not math.isfinite(timeout)
-            or timeout <= 0
-        ):
-            raise ValueError("Verifier timeout must be a positive finite number")
+        positive(timeout, "Verifier timeout")
         if required_env is None:
             required_env = []
         if not isinstance(required_env, list) or any(
@@ -101,7 +93,7 @@ class Verifier:
 
     @contextmanager
     def _local_entry(self):
-        with local_source(_entry_directory(self.entry), ssh_options=self.runtime.ssh) as directory:
+        with local_source(_entry_directory(self.entry)) as directory:
             entry = (directory / "run.py").resolve(strict=True)
             if not entry.is_file():
                 raise IsADirectoryError(f"Verifier entry is not a file: {entry}")
@@ -119,7 +111,7 @@ class Verifier:
         Args:
             verifier_instance: 验证沙箱。
             task_instance: 任务沙箱；requires_task_instance 为 True 时必填，为 False 时不能传入。
-            files: 要复制的文件或目录列表。source 是当前机器上的路径或 ssh://服务器/绝对路径；target 是验证沙箱内的路径，相对路径以 run.py 所在目录为基准。
+            files: 要复制的文件或目录列表。source 填来源路径；target 是验证沙箱内的路径，相对路径以 run.py 所在目录为基准。
             env: 传给验证程序的环境变量，须包含 required_env 中的全部变量。
 
         Returns:

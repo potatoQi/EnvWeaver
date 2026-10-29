@@ -17,8 +17,10 @@ extra:
 nav:
   - 项目简介: index.md
   - Runtime: runtime.md
-  - Verifier: verifier.md
   - Task: task.md
+  - Verifier: verifier.md
+  - Agent: agent.md
+  - Eval: evaluation.md
 exclude_docs: |
   design.md
   overrides/
@@ -40,6 +42,7 @@ plugins:
             show_root_full_path: false
             show_labels: false
             docstring_section_style: table
+            show_docstring_raises: false
             members_order: source
 markdown_extensions:
   - admonition

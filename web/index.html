@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>EnvWeaver · 资产管理</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="/">EnvWeaver</a>
+      <nav aria-label="资产类型">
+        <button data-kind="task" class="tab active">Task Pool</button
+        ><button data-kind="runtime" class="tab">Runtime Pool</button><button data-kind="trajectory" class="tab">Traj Pool</button>
+      </nav>
+      <div class="header-actions">
+        <button id="jobs-open" class="quiet">
+          操作记录 <span id="job-dot"></span>
+        </button>
+      </div>
+    </header>
+    <div id="workspace">
+      <aside>
+        <div class="aside-title">
+          标签
+          <button
+            id="add-tag"
+            class="icon-button"
+            aria-label="新增标签"
+            title="新增标签"
+          >
+            ＋
+          </button>
+        </div>
+        <input id="tag-search" placeholder="查找标签" aria-label="查找标签" />
+        <div id="tag-list"></div>
+      </aside>
+      <main>
+        <div class="page-heading">
+          <div class="pool-heading">
+            <h1 id="page-title">Task Pool</h1>
+            <span id="pool-path" aria-label="当前 Pool 路径" hidden></span>
+            <button id="choose-pool">切换目录</button>
+          </div>
+          <div>
+            <button id="refresh" class="quiet">↻ 刷新</button>
+          </div>
+        </div>
+        <section id="pool-empty" class="pool-empty">
+          <h2 id="pool-empty-title">选择 Task Pool 目录</h2>
+          <button id="open-pool" class="primary">切换目录</button>
+        </section>
+        <section class="filterbar" hidden>
+          <div class="search-wrap">
+            <input
+              id="query"
+              placeholder="搜索任务名称…"
+              aria-label="搜索名称"
+            />
+          </div>
+          <button
+            id="creator-filter"
+            aria-label="创建者筛选"
+            aria-haspopup="true"
+          >
+            全部创建者 ▾
+          </button>
+          <button
+            id="backend-filter"
+            aria-label="后端筛选"
+            aria-haspopup="true"
+          >
+            全部后端 ▾
+          </button>
+          <button id="agent-filter" hidden>全部 Agent ▾</button>
+          <button id="model-filter" hidden>全部模型 ▾</button>
+          <button id="sort" aria-label="排序" aria-haspopup="true">
+            最近修改 ▾
+          </button>
+          <button id="more-filters">更多筛选</button>
+        </section>
+        <section id="advanced" hidden>
+          <label class="traj-filter" hidden>分数下限<input id="score-min" type="number" min="0" max="1" step="any"></label>
+          <label class="traj-filter" hidden>分数上限<input id="score-max" type="number" min="0" max="1" step="any"></label>
+          <label class="traj-filter" hidden>完成情况<select id="completed-filter"><option value="">全部</option><option value="true">成品</option><option value="false">非成品</option></select></label>
+          <label class="traj-filter" hidden>退出原因<select id="stop-reason"><option value="">全部</option><option>completed</option><option>timeout</option><option>context_limit</option><option>step_limit</option><option>token_limit</option><option>cost_limit</option><option>other_limit</option><option>cancelled</option><option>error</option></select></label>
+          <label
+            >创建时间起<input id="created-after-filter" type="date" /></label
+          ><label
+            >创建时间终<input id="created-before-filter" type="date" /></label
+          ><label
+            >最后修改时间起<input
+              id="updated-after-filter"
+              type="date" /></label
+          ><label
+            >最后修改时间终<input
+              id="updated-before-filter"
+              type="date" /></label
+          ><label
+            >metadata 精确筛选<input
+              id="metadata-filter"
+              placeholder='{"benchmark":"Terminal-Bench 2.1"}' /></label
+          ><button id="apply-filters">应用筛选</button>
+        </section>
+        <section class="selectionbar">
+          <div>
+            <strong id="count">—</strong><span id="selected-label"></span
+            ><button id="clear-selection" class="text-button" hidden>
+              取消选择
+            </button>
+          </div>
+          <div class="batch">
+            <button id="operations" disabled aria-haspopup="true">
+              操作 ▾
+            </button>
+          </div>
+        </section>
+        <div id="list-error" class="error" hidden></div>
+        <section class="table-wrap">
+          <table>
+            <colgroup>
+              <col data-column="check" data-width="34" data-min="34" />
+              <col data-column="name" data-width="300" data-min="140" />
+              <col data-column="tags" data-width="320" data-min="120" />
+              <col data-column="backend" data-width="100" data-min="80" />
+              <col data-column="created_by" data-width="140" data-min="100" />
+              <col data-column="created_at" data-width="180" data-min="140" />
+              <col data-column="updated_by" data-width="140" data-min="110" />
+              <col data-column="updated_at" data-width="180" data-min="140" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th class="check">
+                  <input
+                    type="checkbox"
+                    id="check-all"
+                    aria-label="选择全部筛选结果"
+                  />
+                </th>
+                <th><span>名称</span></th>
+                <th><span>标签</span></th>
+                <th><span>后端</span></th>
+                <th><span>创建者</span></th>
+                <th><span>创建时间</span></th>
+                <th><span>最后修改者</span></th>
+                <th><span>最后修改时间</span></th>
+              </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+          <div id="empty" hidden>
+            <h2>还没有资产</h2>
+          </div>
+        </section>
+        <footer class="pagination">
+          <span id="page-info"></span>
+          <div>
+            <select id="page-size" aria-label="每页数量">
+              <option>30</option>
+              <option>60</option>
+              <option>100</option>
+            </select>
+            <div id="page-links" role="navigation" aria-label="分页"></div>
+          </div>
+        </footer>
+      </main>
+    </div>
+    <div id="toast" role="status" hidden></div>
+    <dialog id="modal"></dialog>
+    <dialog id="detail" class="detail-panel"></dialog>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

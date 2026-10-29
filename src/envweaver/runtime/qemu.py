@@ -4,17 +4,19 @@ import socket
 import subprocess
 import time
 import uuid
+from copy import deepcopy
 from dataclasses import replace
 from pathlib import Path, PurePosixPath
 
-from .._paths import normalize_address
-from .._ssh_config import normalize as normalize_ssh
-from .._ssh_transport import _validate_host
-from .._storage import remove_records, write_records
+from .._io.paths import normalize_address
+from .._io.ssh_config import normalize as normalize_ssh
+from .._io.ssh_config import reconnect_options
+from .._io.ssh_transport import _validate_host
+from .._io.storage import remove_records, write_records
 from ..errors import RuntimeError
 from ..models import Instance, RuntimeRef
 from . import _remote, _ssh
-from ._connection import fixed_connection, merge_connection
+from ._connection import fixed_connection
 
 
 class QMP:
@@ -69,10 +71,11 @@ class QemuBackend:
         self.root = normalize_address(root) if root is not None else None
         self.host = _validate_host(host)
         self.ssh = normalize_ssh(ssh)
+        self._ssh_explicit = ssh is not None
         self._check_ssh = True
 
-    def _call_remote(self, action, host, config, *, root, **payload):
-        payload.update(action=action, root=str(root) if root is not None else None)
+    def _call_remote(self, action, host, config, **payload):
+        payload["action"] = action
         timeout = (
             config.get("startup_timeout", 180) + config.get("shutdown_timeout", 120) + 630
             if action != "close"
@@ -80,13 +83,13 @@ class QemuBackend:
         )
         options = payload.get("instance", {}).get("data", {}).get("host_ssh", self.ssh)
         if action == "connect":
-            options = self.ssh or payload["record"].get("host_ssh", {})
+            options = payload["record"].get("host_ssh", {})
         return _remote.call(
             host,
             config.get("remote_python", "python3"),
             payload,
             timeout=timeout,
-            **({"ssh_options": options} if options else {}),
+            ssh_options=options,
         )
 
     def _run(self, args):
@@ -121,7 +124,7 @@ class QemuBackend:
             "-display",
             "none",
             "-netdev",
-            f"user,id=net0,hostfwd=tcp:127.0.0.1:{data['port']}-:22",
+            f"user,id=net0,hostfwd=tcp:127.0.0.1:{data['ssh']['port']}-:22",
             "-device",
             f"{config.get('network_device', 'virtio-net-pci')},netdev=net0",
         ]
@@ -179,7 +182,6 @@ class QemuBackend:
                 "create",
                 self.host,
                 config,
-                root=self.root,
                 ref=RuntimeRef("qemu", image, config, connection).to_dict(),
             )
             return RuntimeRef.from_dict(result)
@@ -204,7 +206,7 @@ class QemuBackend:
     def start(self, ref: RuntimeRef, connection: dict | None = None) -> Instance:
         self._save_mode(ref.config)
         self._disk_dir(ref.config)
-        connection = merge_connection(ref.connection, connection)
+        connection = deepcopy(ref.connection if connection is None else connection)
         connection["ssh"] = normalize_ssh(connection.get("ssh"))
         if self.host is not None:
             self._check_remote_paths(ref.image, ref.config)
@@ -212,11 +214,13 @@ class QemuBackend:
                 "start",
                 self.host,
                 ref.config,
-                root=self.root,
                 ref=ref.to_dict(),
                 connection=connection,
             )
-            instance = replace(Instance.from_dict(result), host=self.host)
+            instance = replace(
+                Instance.from_dict(result), host=self.host,
+                root=str(self.root) if self.root is not None else None,
+            )
             instance.data["ssh"]["via"] = self.host
             if self.ssh:
                 instance.data["ssh"]["via_ssh"] = self.ssh
@@ -241,7 +245,6 @@ class QemuBackend:
                     }
                 },
                 private=True,
-                ssh_options=self.ssh,
             )
         except BaseException as error:
             try:
@@ -294,24 +297,7 @@ class QemuBackend:
         ssh = dict((connection or {}).get("ssh", {}))
         if not ssh.get("user"):
             raise ValueError("connection.ssh.user is required")
-        if set(config) & {"guest_port", "token_env"}:
-            raise ValueError("Use connection.ssh instead of guest_port/token_env")
-        directory.mkdir(parents=True)
-        (directory / ".envweaver-owned").write_text(directory.name)
         disk = directory / "disk.qcow2"
-        self._run(
-            [
-                config.get("image_binary", "qemu-img"),
-                "create",
-                "-f",
-                "qcow2",
-                "-F",
-                config.get("format", "qcow2"),
-                "-b",
-                ref.image,
-                str(disk),
-            ]
-        )
         with socket.socket() as port_socket:
             port_socket.bind(("127.0.0.1", 0))
             port = port_socket.getsockname()[1]
@@ -319,25 +305,40 @@ class QemuBackend:
             "python": ssh.get("python", "python3"),
             "ref": ref.to_dict(),
             "disk": str(disk),
-            "port": port,
             "qmp": str(directory / "qmp.sock"),
             "pidfile": str(directory / "qemu.pid"),
             "ssh": {**ssh, "host": "127.0.0.1", "port": port},
             "owned_directory": str(directory),
         }
-        if config.get("nvram"):
-            data["nvram"] = str(directory / "nvram.fd")
-            shutil.copy2(config["nvram"], data["nvram"])
         instance = Instance(directory.name, "qemu", str(self.root) if self.root else None, data)
+        directory.mkdir(parents=True)
         try:
+            (directory / ".envweaver-owned").write_text(directory.name)
+            self._run(
+                [
+                    config.get("image_binary", "qemu-img"),
+                    "create",
+                    "-f",
+                    "qcow2",
+                    "-F",
+                    config.get("format", "qcow2"),
+                    "-b",
+                    ref.image,
+                    str(disk),
+                ]
+            )
+            if config.get("nvram"):
+                data["nvram"] = str(directory / "nvram.fd")
+                shutil.copy2(config["nvram"], data["nvram"])
             self._launch(instance)
-        except BaseException:
-            if Path(data["qmp"]).exists():
-                try:
-                    with QMP(data["qmp"]) as qmp:
-                        qmp.execute("quit")
-                except Exception:
-                    pass
+        except BaseException as error:
+            try:
+                if Path(data["pidfile"]).exists() or Path(data["qmp"]).exists():
+                    self._close(instance)
+                else:
+                    shutil.rmtree(directory)
+            except Exception as cleanup_error:
+                error.add_note(f"Instance cleanup also failed: {cleanup_error}")
             raise
         return instance
 
@@ -363,17 +364,21 @@ class QemuBackend:
 
     def connect(self, record):
         host = _validate_host(record.get("host"))
-        host_ssh = normalize_ssh(self.ssh or record.get("host_ssh"))
+        host_ssh = reconnect_options(
+            record.get("host_ssh"), self.ssh if self._ssh_explicit or self.ssh else None,
+        )
         record = {**record, "host_ssh": host_ssh, "ssh": normalize_ssh(record.get("ssh"))}
         startup = record.get("startup")
         if not isinstance(startup, dict):
             raise ValueError("QEMU startup configuration is required")
         if host:
-            result = self._call_remote("connect", host, startup, root=self.root, record=record)
-            instance = replace(Instance.from_dict(result), host=host)
+            result = self._call_remote("connect", host, startup, record=record)
+            instance = replace(
+                Instance.from_dict(result), host=host,
+                root=str(self.root) if self.root is not None else None,
+            )
             instance.data["ssh"]["via"] = host
-            if host_ssh:
-                instance.data["ssh"]["via_ssh"] = host_ssh
+            instance.data["ssh"]["via_ssh"] = host_ssh
             instance.data["host_ssh"] = host_ssh
             _ssh.request(instance.data["ssh"], "health", timeout=15)
             return instance
@@ -428,19 +433,16 @@ class QemuBackend:
             ):
                 raise ValueError("Additional disks or inserted media are not supported")
             disk = disks[0]["file"]
-            cpus = monitor.execute("query-cpus-fast")
             memory = monitor.execute("query-memory-size-summary")
             identity = monitor.execute("query-name").get("name") or Path(qmp).parent.name
         if memory.get("plugged-memory", 0):
             raise ValueError("Hotplug memory is not supported")
-        config.update(cpus=len(cpus), memory=memory["base-memory"] // (1024 * 1024))
         data = {
             "python": ssh.get("python", "python3"),
             "ref": RuntimeRef("qemu", disk, config).to_dict(),
             "disk": disk,
             "qmp": qmp,
             "ssh": ssh,
-            "port": ssh["port"],
         }
         directory = Path(qmp).parent
         marker = directory / ".envweaver-owned"
@@ -460,18 +462,23 @@ class QemuBackend:
 
     def screenshot(self, instance):
         import base64
+        import io
         import tempfile
+
+        from PIL import Image
 
         if instance.host:
             result = self._call_remote(
-                "screenshot", instance.host, {}, root=None, instance=instance.to_dict()
+                "screenshot", instance.host, {}, instance=instance.to_dict()
             )
             return base64.b64decode(result)
         with tempfile.TemporaryDirectory(prefix="envweaver-screen-") as directory:
-            path = Path(directory) / "screen.png"
+            path = Path(directory) / "screen.ppm"
             with QMP(instance.data["qmp"]) as monitor:
-                monitor.execute("screendump", {"filename": str(path), "format": "png"})
-            return path.read_bytes()
+                monitor.execute("screendump", {"filename": str(path)})
+            with Image.open(path) as image, io.BytesIO() as output:
+                image.save(output, format="PNG")
+                return output.getvalue()
 
     def exec(
         self,
@@ -481,6 +488,11 @@ class QemuBackend:
         timeout: float | None = 300,
     ) -> tuple[int, str, str]:
         return _ssh.execute(instance.data["ssh"], command, cwd, timeout)
+
+    def _open_pipe(self, instance, command):
+        from .._io.process import open_pipe
+
+        return open_pipe(_ssh.command_args(instance.data["ssh"], command))
 
     def upload(self, instance: Instance, source: str | Path, target: str) -> None:
         return _ssh.upload(instance.data["ssh"], source, target)
@@ -520,7 +532,6 @@ class QemuBackend:
                 "save",
                 instance.host,
                 config,
-                root=self.root,
                 instance=instance.to_dict(),
             )
             ref = RuntimeRef.from_dict(result)
@@ -532,7 +543,6 @@ class QemuBackend:
                 self.root,
                 f"runtimes/{uuid.uuid4().hex}",
                 {"runtime.json": ref.to_dict(), "metadata.json": {"host": instance.host}},
-                ssh_options=self.ssh,
             )
         return ref
 
@@ -594,7 +604,10 @@ class QemuBackend:
             connection = fixed_connection(
                 "qemu", {"ssh": instance.data.get("ssh", {})}, strict=False
             )
-            ref = RuntimeRef("qemu", str(asset / "disk.qcow2"), config, connection)
+            ref = replace(
+                RuntimeRef.from_dict(instance.data["ref"]),
+                image=str(asset / "disk.qcow2"), config=config, connection=connection,
+            )
         except BaseException:
             shutil.rmtree(asset, ignore_errors=True)
             raise
@@ -606,7 +619,7 @@ class QemuBackend:
         if instance.host is not None:
             config = instance.data["ref"]["config"]
             self._call_remote(
-                "close", instance.host, config, root=self.root, instance=instance.to_dict()
+                "close", instance.host, config, instance=instance.to_dict()
             )
         else:
             self._close(instance)
@@ -614,7 +627,6 @@ class QemuBackend:
             remove_records(
                 instance.root,
                 f"instances/{instance.id}",
-                ssh_options=instance.data.get("host_ssh", self.ssh),
             )
 
     def _close(self, instance: Instance) -> None:

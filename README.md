@@ -1,6 +1,6 @@
 # EnvWeaver
 
-提供 Runtime、Verifier 和 Task Pool 接口，让 Agent 根据真实数据源编写可复用的任务生产 Pipeline。
+提供 Runtime、Verifier、Task Pool、Agent 和 Eval 接口，让 Agent 根据真实数据源编写可复用的任务生产 Pipeline。
 
 Python 3.11+，尚未发布到 PyPI。开发期间安装到运行 Pipeline 的环境中：
 
@@ -9,8 +9,9 @@ pip install -e /path/to/EnvWeaver
 ```
 
 - [项目简介](docs/index.md)：在 Data Pipeline、评测和训练中使用 EnvWeaver。
-- 接口手册：[Runtime](docs/runtime.md) · [Verifier](docs/verifier.md) · [Task](docs/task.md)
+- 接口手册：[Runtime](docs/runtime.md) · [Verifier](docs/verifier.md) · [Task](docs/task.md) · [Agent](docs/agent.md) · [Eval](docs/evaluation.md)
 - [设计说明](docs/design.md)：职责边界、任务与资产约定、验证范围。
+- [资产管理](web/README.md)：Task Pool、Runtime Pool 的网页管理与 HTTP API。
 
 项目开发使用 uv：
 

@@ -4,18 +4,19 @@ import json
 import sys
 from dataclasses import replace
 
-from .. import _ssh_transport
+from .._io import ssh_transport as _ssh_transport
+from .._io.retry import retry
 from ..errors import RuntimeError
 
 
 def call(host, python, payload, *, timeout, ssh_options=None):
-    output = _ssh_transport.ssh(
+    output = retry(lambda: _ssh_transport.ssh(
         host,
         [python, "-c", "from envweaver.runtime._remote import main; main()"],
         payload,
         timeout=timeout,
-        **({"ssh_options": ssh_options} if ssh_options else {}),
-    )
+        ssh_options=ssh_options,
+    ), replay=payload.get("action") in {"connect", "screenshot"})
     try:
         response = json.loads(output)
     except ValueError as error:
@@ -36,8 +37,7 @@ def dispatch(payload):
     from ..models import Instance, RuntimeRef
     from .qemu import QemuBackend
 
-    # root locates records independently of this worker; worker methods never write there.
-    backend = QemuBackend(payload["root"])
+    backend = QemuBackend()
     backend._check_ssh = False
     if payload["action"] == "create":
         ref = RuntimeRef.from_dict(payload["ref"])

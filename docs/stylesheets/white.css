@@ -10,6 +10,17 @@ body::before {
   --bs-table-hover-bg: var(--bs-body-bg);
 }
 
+#error-type p:has(> .doc-section-title),
+#agent-stop-reasons p:has(> .doc-section-title) {
+  display: none;
+}
+
+#error-fields thead,
+#error-type thead,
+#agent-stop-reasons thead {
+  display: none;
+}
+
 /* Let short tables fit their content instead of stretching across the page. */
 [role="main"] .table {
   width: auto;
@@ -18,6 +29,10 @@ body::before {
 
 [role="main"] .table td {
   vertical-align: middle;
+}
+
+#task-fields :is(th, td):nth-child(2) {
+  max-width: 40rem;
 }
 
 /* Distinguish code examples from the white parameter tables. */
@@ -55,6 +70,13 @@ body::before {
 [role="main"] > h3 {
   font-size: 1.125rem;
   font-weight: 500;
+}
+
+/* Adapter reference sections sit inside the custom Agent disclosure. */
+#custom-agent > h3 {
+  margin: 1.5rem 0 0.75rem;
+  font-size: 1.125rem;
+  font-weight: 600;
 }
 
 /* Backend methods are details within register, not top-level API sections. */

@@ -15,7 +15,7 @@ from envweaver import Instance, Runtime, RuntimeRef
 class FilesystemBackend:
     """A test double, deliberately not a shipped/local 'sandbox' backend."""
 
-    def __init__(self, root, *, host=None):
+    def __init__(self, root, *, host=None, ssh=None):
         self.root = root
         self.fail_save = False
 

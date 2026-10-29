@@ -6,7 +6,7 @@ import time
 import uuid
 from pathlib import Path
 
-from .._files import pack, unpack
+from .._io.files import pack, unpack
 from .._util import write_json
 from ..errors import RuntimeError
 from ..models import Instance

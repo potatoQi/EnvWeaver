@@ -7,7 +7,7 @@ from ..models import Instance, RuntimeRef
 class RuntimeBackend(Protocol):
     """Runtime 后端需要提供的方法，无需继承。
 
-    - 构造函数接收 `root`、`host` 和可选的 `ssh` 配置。
+    - 构造函数须接受 `root`、`host`、`ssh` 参数；未配置 SSH 时传入 None。
       返回的 `Instance` 填入对应的 `root` 和 `host`，后续操作使用 `Instance.host`。
       `host` 的地址格式和远程连接方式由后端决定。
     - `Instance.backend` 和 `RuntimeRef.backend` 填 `register` 注册的名称。
@@ -32,7 +32,10 @@ class RuntimeBackend(Protocol):
         ...
 
     def start(self, ref: RuntimeRef, connection: dict | None = None) -> Instance:
-        """启动独立实例，返回 Instance；不修改基础镜像。"""
+        """启动独立实例，返回 Instance；不修改基础镜像。
+
+        connection 接收 Runtime 合并后的配置；None 使用 ref.connection。
+        """
         ...
 
     def connect(self, record: dict) -> Instance:
@@ -72,7 +75,7 @@ class RuntimeBackend(Protocol):
         ...
 
     def save(self, instance: Instance) -> RuntimeRef:
-        """保存环境，返回 RuntimeRef。"""
+        """保存环境，返回 RuntimeRef，保留启动引用的 metadata。"""
         ...
 
     def close(self, instance: Instance) -> None:

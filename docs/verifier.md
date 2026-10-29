@@ -13,7 +13,7 @@ Verifier 在验证沙箱中执行 Verify，评估任务完成情况并返回得�
 from envweaver import Verifier
 
 checker = Verifier(
-    entry="ssh://server/data/verify/run.py",
+    entry="./verify/run.py",
     runtime=runtime,
     timeout=300,
     required_env=["LLM_BASE_URL", "LLM_API_KEY"],
@@ -33,7 +33,7 @@ result = checker.run(
     task_instance=task_instance,
     files=[
         {"source": "./answer.json", "target": "answer.json"},
-        {"source": "ssh://server/data/screenshots", "target": "/data/screenshots"},
+        {"source": "./screenshots", "target": "/data/screenshots"},
     ],
     env={"LLM_BASE_URL": base_url, "LLM_API_KEY": api_key},
 )
@@ -49,7 +49,7 @@ result = checker.run(
 
 **示例：在任务沙箱中运行测试**
 
-设置 `requires_task_instance=True`。`tests/` 与 `run.py` 放在一起，测试在任务沙箱的 `/work/repo` 中运行。
+`requires_task_instance` 默认为 `True`。`tests/` 与 `run.py` 放在一起，测试在任务沙箱的 `/work/repo` 中运行。
 
 ```python
 import argparse

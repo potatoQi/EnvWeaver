@@ -8,11 +8,11 @@ from contextlib import contextmanager
 from pathlib import Path, PurePosixPath
 from urllib.parse import quote
 
-from ._files import pack, unpack
-from ._paths import _location, normalize_address
-from ._storage import local_source
-from ._task_store import list_tasks, operate, publish, validate_name
-from ._util import read_json, validate_setup, write_json
+from ._io.files import pack, unpack
+from ._io.paths import _location, normalize_address
+from ._io.storage import local_source
+from ._task_store import list_tasks, operate, publish, resolve_task_path, validate_name
+from ._util import metadata_tags, read_json, validate_cwd, validate_goal, validate_setup, write_json
 from .errors import TaskExistsError
 from .models import Instance, RuntimeRef, Task
 from .runtime import Runtime
@@ -55,13 +55,13 @@ def _copy(source, destination):
         shutil.copy2(source, destination)
 
 
-def _archive_assets(stage, goal, entry, context, *, ssh_options=None):
+def _archive_assets(stage, goal, entry, context):
     """Copy producer-owned inputs, recording only task-relative paths."""
     saved_goal = []
     for index, block in enumerate(goal):
         block = dict(block)
         if block["type"] == "image":
-            with local_source(block["path"], ssh_options=ssh_options) as source:
+            with local_source(block["path"]) as source:
                 relative = Path("goal") / f"{index}{source.suffix}"
                 _copy(source, stage / relative)
             block["path"] = relative.as_posix()
@@ -71,7 +71,7 @@ def _archive_assets(stage, goal, entry, context, *, ssh_options=None):
     for index, item in enumerate(context):
         if not isinstance(item.get("target"), str) or not item["target"]:
             raise ValueError("Context target must be a nonempty string")
-        with local_source(item["source"], ssh_options=ssh_options) as source:
+        with local_source(item["source"]) as source:
             relative = Path("context") / str(index) / source.name
             _copy(source, stage / relative)
         saved_context.append({"source": relative.as_posix(), "target": item["target"]})
@@ -81,7 +81,7 @@ def _archive_assets(stage, goal, entry, context, *, ssh_options=None):
 class TaskPool:
     """
     Args:
-        root: 任务存储目录，填写本地路径或 ssh://服务器/绝对路径。
+        root: 任务存储路径。
         runtime: 保存任务沙箱和执行 Verify 使用的沙箱管理器。
     """
 
@@ -92,11 +92,11 @@ class TaskPool:
         self.runtime = runtime
 
     def _remote(self, action, **payload):
-        from ._ssh_transport import ssh
+        from ._io.ssh_transport import ssh
 
         host, path = _location(self.root)
         source = (
-            Path(__file__).with_name("_files.py").read_text()
+            (Path(__file__).parent / "_io" / "files.py").read_text()
             + "\n"
             + Path(__file__).with_name("_task_store.py").read_text()
         )
@@ -105,7 +105,6 @@ class TaskPool:
                 host,
                 ["python3", "-c", source],
                 {"root": path, "action": action, **payload},
-                **({"ssh_options": self.runtime.ssh} if self.runtime.ssh else {}),
             )
         )
         if error := response.get("error"):
@@ -133,7 +132,7 @@ class TaskPool:
 
         operation("reserve")
         try:
-            yield self.root / "tasks" / name if isinstance(self.root, Path) else name
+            yield self.root / name if isinstance(self.root, Path) else name
         except BaseException as error:
             try:
                 operation("release")
@@ -153,32 +152,30 @@ class TaskPool:
         context: list[dict[str, str]] | None = None,
         metadata: dict | None = None,
         *,
+        cwd: str,
         setup: dict | None = None,
-        format: str = "directory",
     ) -> str:
         """
 
         Args:
-            name: 任务名称，用作目录名，不能为空，同一 TaskPool 内唯一。支持中文；不能以点开头、以点结尾，
-                不能包含首尾空白、控制字符、/ \\ < > : " | ? * 或使用 Windows 保留名；最多 249 个 UTF-8 字节。
+            name: 任务名称，要求同一 TaskPool 内唯一。
             goal: 任务要求，按顺序填写文字和图片。文字格式为 {"type": "text", "text": ...}，图片为
-                {"type": "image", "path": ...}。图片路径支持本地路径或 ssh://服务器/绝对路径。
-            metadata: 自定义任务信息，如来源、标签、软件名称，填写可保存为 JSON 的字典。
+                {"type": "image", "path": ...}，path 填写图片路径。
+            metadata: 自定义任务信息，填写可保存为 JSON 的字典。tags 填标签字符串列表，默认无标签；每项去除首尾空白后须为 1–100 个字符。
             instance: 要保存为任务初始环境的沙箱，须由 Runtime.start 创建。
-            context: 任务输入文件列表。source 填本地路径或 ssh://服务器/绝对路径，
+            context: 任务输入文件列表。source 填文件或目录路径；
                 target 填容器或虚拟机内的目标路径。
-            setup: 准备命令和超时，格式同 [Runtime.start](index.md#start) 的 setup。
-            verifier_runtime_ref: 验证环境的 [RuntimeRef](index.md#runtimeref)。
+            setup: 准备命令和超时，格式同 [Runtime.start](runtime.md#start) 的 setup。
+            cwd: 启动 Agent 时所在的目录，必填，填写沙箱内的绝对路径，如 /workspace/project。目录可由 context 上传或 setup 创建，但启动 Agent 前必须存在。
+            verifier_runtime_ref: 验证环境的 [RuntimeRef](runtime.md#runtimeref)。
             verifier: 任务的[验证器](verifier.md)。
-            format: directory 保存任务目录；zip 保存 ZIP 文件。
 
         Returns:
-            task_ref，可传给 load。directory 返回 root/tasks/<name>/task.json，
-            zip 返回 root/archives/<name>.zip；支持本地路径和 SSH 地址。
+            保存后的 `<root>/<name>/task.json` 路径，可传给 `load(task_ref=...)`。
 
         Raises:
             envweaver.errors.TaskExistsError: 同名任务已存在或正在保存。
-            ValueError: format 不是 directory 或 zip，或任务名称、验证入口、setup、连接配置无效。
+            ValueError: 任务名称、goal、metadata.tags、验证入口、setup、cwd、连接配置无效。
             TypeError: verifier 或 verifier_runtime_ref 类型不符、metadata、连接配置不是字典，或任务信息不能保存为 JSON。
             OSError: 验证器、图片或输入文件无法读取，或存储目录无法写入。
             envweaver.errors.RuntimeError: SSH 文件传输失败。
@@ -186,20 +183,13 @@ class TaskPool:
 
         """
         validate_name(name)
-        if format not in ("directory", "zip"):
-            raise ValueError("format must be directory or zip")
         setup = validate_setup(setup)
+        cwd = validate_cwd(cwd)
         if metadata is not None and not isinstance(metadata, dict):
             raise TypeError("metadata must be a dictionary")
         metadata = json.loads(json.dumps(metadata or {}, allow_nan=False))
-        if not isinstance(goal, list) or not goal:
-            raise ValueError("Goal must be a nonempty ordered list")
-        for block in goal:
-            if block.get("type") == "text" and isinstance(block.get("text"), str):
-                continue
-            if block.get("type") == "image" and isinstance(block.get("path"), str):
-                continue
-            raise ValueError("Goal entries must be text/text or image/path objects")
+        metadata_tags(metadata)
+        validate_goal(goal)
         if not isinstance(verifier, Verifier):
             raise TypeError("verifier must be a Verifier")
         if not isinstance(verifier_runtime_ref, RuntimeRef):
@@ -223,7 +213,10 @@ class TaskPool:
                 stage.mkdir()
                 with verifier._local_entry() as entry:
                     assets = _archive_assets(
-                        stage, goal, entry, context or [], ssh_options=self.runtime.ssh
+                        stage,
+                        goal,
+                        entry,
+                        context or [],
                     )
                 ref = self.runtime.save(instance)
                 write_json(
@@ -236,17 +229,16 @@ class TaskPool:
                         "task_runtime_ref": _task_runtime(ref),
                         "context": assets["context"],
                         **({"setup": setup} if setup is not None else {}),
+                        "cwd": cwd,
                         "verifier_runtime_ref": verifier_runtime_data,
                         "verifier": verification,
                     },
                 )
                 # Publish atomically on the storage machine.
                 if isinstance(target, Path):
-                    return publish(stage, self.root, name, format=format)
+                    return publish(stage, self.root, name)
                 _, body = pack(stage)
-                path = self._remote(
-                    "publish", name=target, body=base64.b64encode(body).decode(), format=format
-                )
+                path = self._remote("publish", name=target, body=base64.b64encode(body).decode())
                 host, _ = _location(self.root)
                 return host + quote(path, safe="/")
 
@@ -254,44 +246,38 @@ class TaskPool:
         """
 
         Args:
-            task_ref: 当前 Task Pool 内的 task.json，或打包后的 ZIP；支持本地路径和 SSH 地址。
+            task_ref: 当前 Task Pool 内的 task.json 路径。
 
         Returns:
             Task 对象；材料路径已转换为可直接使用的本地路径。
 
         Raises:
             OSError: 任务文件或必要材料不存在、无法读取。
-            ValueError: JSON、setup 或连接配置无效、任务不属于当前 Pool、格式版本不支持或路径越界。
+            ValueError: cwd 缺失，或 JSON、metadata.tags、setup、cwd、连接配置无效、任务不属于当前 Pool、格式版本不支持或路径越界。
             KeyError: 任务文件缺少必要字段。
-            TypeError: 保存的 RuntimeRef 字段不匹配，或连接配置不是字典。
+            TypeError: 保存的 RuntimeRef 字段不匹配，或 metadata、连接配置不是字典。
             envweaver.errors.RuntimeError: SSH 连接失败。
             TimeoutError: SSH 操作超时。
-            zipfile.BadZipFile: ZIP 文件损坏或格式无效。
         """
         address = normalize_address(task_ref)
-        filename = address if isinstance(address, Path) else PurePosixPath(_location(address)[1])
-        if filename.suffix.lower() == ".zip":
-            with local_source(address, ssh_options=self.runtime.ssh) as source:
-                return self._load_archive(source.read_bytes(), str(address))
         if isinstance(self.root, Path):
             if not isinstance(address, Path):
                 raise ValueError("Task reference belongs to a different Pool")
-            path = address.resolve(strict=True)
-            if not path.is_relative_to(self.root / "tasks"):
-                raise ValueError("Task reference belongs to a different Pool")
+            path = resolve_task_path(self.root, address)
             return self._load(path, str(path))
         if not isinstance(address, str):
             raise ValueError("Task reference belongs to a different Pool")
         host, path = _location(address)
         pool_host, pool_path = _location(self.root)
-        if host != pool_host or not PurePosixPath(path).is_relative_to(
-            PurePosixPath(pool_path) / "tasks"
+        if host != pool_host or (
+            PurePosixPath(path).name != "task.json"
+            or PurePosixPath(path).parent.parent != PurePosixPath(pool_path)
         ):
             raise ValueError("Task reference belongs to a different Pool")
         result = self._remote("read", path=path)
-        return self._load_archive(base64.b64decode(result["body"]), address)
+        return self._load_materials(base64.b64decode(result["body"]), address)
 
-    def _load_archive(self, body, task_ref):
+    def _load_materials(self, body, task_ref):
         materials = tempfile.TemporaryDirectory(prefix="envweaver-task-")
         try:
             local = Path(materials.name)
@@ -309,7 +295,9 @@ class TaskPool:
         data = read_json(path)
         if type(data.get("version")) is not int or data["version"] != 1:
             raise ValueError("Unsupported task format version; expected 1")
+        metadata_tags(data.get("metadata", {}))
         setup = validate_setup(data.get("setup"))
+        cwd = validate_cwd(data.get("cwd"))
         for key in ("task_runtime_ref", "verifier_runtime_ref"):
             ref = data[key]
             ref["connection"] = fixed_connection(ref["backend"], ref.get("connection"))
@@ -337,6 +325,7 @@ class TaskPool:
             task_runtime_ref=RuntimeRef.from_dict(data["task_runtime_ref"]),
             context=context,
             setup=setup,
+            cwd=cwd,
             verifier_runtime_ref=RuntimeRef.from_dict(data["verifier_runtime_ref"]),
             verifier=Verifier(**verification, runtime=self.runtime),
         )
@@ -349,7 +338,7 @@ class TaskPool:
                 多个条件需同时满足；不填或传 {} 返回全部任务。
 
         Returns:
-            匹配任务的 task_ref 列表，包含 task.json 或 ZIP 的本地路径或 SSH 地址，可传给 load。
+            匹配任务的 task_ref 列表，可传给 load。
 
         Raises:
             TypeError: filters 不是字典。
@@ -358,7 +347,6 @@ class TaskPool:
             KeyError: 任务文件缺少必要字段。
             envweaver.errors.RuntimeError: SSH 连接失败。
             TimeoutError: SSH 操作超时。
-            zipfile.BadZipFile: ZIP 文件损坏或格式无效。
         """
         if filters is not None and not isinstance(filters, dict):
             raise TypeError("filters must be a dictionary")

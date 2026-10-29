@@ -19,6 +19,8 @@ site/
 *.egg-info/
 
 # Generated data and local work
+/.cache/
+/download-cache/
 outputs/
 work/
 tmp/

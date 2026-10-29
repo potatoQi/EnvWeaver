@@ -50,7 +50,7 @@ local_path：当前机器上的文件或目录。
 
 ## 文档组织与样式
 
-- 顶层导航依次为项目简介、Runtime、Verifier、Task，分别对应 `docs/index.md`、`docs/runtime.md`、`docs/verifier.md`、`docs/task.md`。项目简介作为文档首页。项目简介用简洁的段落说明项目用途，以及 Data Pipeline、评测和训练的使用流程，不堆代码、技术细节或列表。接口扩展说明放在对应页；`docs/design.md` 保留必要设计约定，不列入接口导航。不增加独立首页、快速开始或概念教程。
+- 顶层导航依次为项目简介、Runtime、Task、Verifier、Agent、Eval，分别对应 `docs/index.md`、`docs/runtime.md`、`docs/task.md`、`docs/verifier.md`、`docs/agent.md`、`docs/evaluation.md`。项目简介作为文档首页。项目简介用简洁的段落说明项目用途，以及 Data Pipeline、评测和训练的使用流程，不堆代码、技术细节或列表。接口扩展说明放在对应页；`docs/design.md` 保留必要设计约定，不列入接口导航。不增加独立首页、快速开始或概念教程。
 - 参数与返回值优先通过 MkDocs / mkdocstrings 从 docstring 生成，不重复手写。README 仅保留简介、安装、文档入口和开发命令。
 - 保留 MkDocs 默认主题。浅色模式正文和表格为纯白，去掉网格、隔行灰底和悬停灰底，保留默认布局和细分隔线。不为普通接口改动新增样式。
 - 维护 Markdown、docstring 和生成配置，生成的 `site/` 不提交到源码分支。CI 检查构建，并用 mike 将开发版或标签对应的正式版文档归档到 `gh-pages` 分支；网站托管单独配置。实时预览用 `uv run --group docs mkdocs serve`，多版本预览用 `uv run --group docs mike serve`；普通 pip 安装不包含文档工具。

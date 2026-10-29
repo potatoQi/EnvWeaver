@@ -10,7 +10,7 @@ import zipfile
 from pathlib import Path
 
 if __package__:
-    from ._files import pack, unpack
+    from ._io.files import pack, unpack
 
 
 def validate_name(name):
@@ -32,77 +32,62 @@ def validate_name(name):
         raise ValueError("Task name must not exceed 249 UTF-8 bytes")
 
 
-def publish(stage, root, name, *, format="directory", body=None):
-    """Publish one task representation and return its reference."""
-    target = root / "tasks" / name
-    zipped = root / "archives" / f"{name}.zip"
-    if target.exists() or target.is_symlink() or zipped.exists() or zipped.is_symlink():
+def publish(stage, root, name):
+    """Publish a task directory atomically and return its reference."""
+    target = root / name
+    if target.exists() or target.is_symlink():
         raise FileExistsError("Task already exists")
-    if format == "zip":
-        try:
-            zipped.parent.mkdir(parents=True, exist_ok=True)
-        except FileExistsError as error:
-            raise NotADirectoryError(str(zipped.parent)) from error
-        with tempfile.TemporaryDirectory(prefix=".save-", dir=zipped.parent) as temporary:
-            packed = Path(temporary) / "task.zip"
-            packed.write_bytes(body if body is not None else pack(stage)[1])
-            packed.rename(zipped)
-        return str(zipped)
     stage.rename(target)
     return str(target / "task.json")
 
 
+def resolve_task_path(root, path):
+    path = Path(path).resolve(strict=True)
+    if path.name != "task.json" or path.parent.parent != root.resolve():
+        raise ValueError("Task reference belongs to a different Pool")
+    return path
+
+
 def list_tasks(root):
-    """Read only metadata when searching directories and ZIPs."""
-    for folder, pattern in (("tasks", "*/task.json"), ("archives", "*.zip")):
-        directory = root / folder
-        for path in sorted(directory.glob(pattern)):
-            name = path.parent.name if folder == "tasks" else path.name
-            if name.startswith(".") or not path.resolve().is_relative_to(directory.resolve()):
-                continue
-            if folder == "tasks":
-                data = json.loads(path.read_text(encoding="utf-8"))
-            else:
-                with zipfile.ZipFile(path) as archive:
-                    data = json.loads(archive.read("task.json"))
-            yield {"path": str(path), "data": data}
+    """Read metadata from the Pool's task directories."""
+    for path in sorted(root.glob("*/task.json")):
+        if path.parent.name.startswith("."):
+            continue
+        try:
+            resolve_task_path(root, path)
+        except ValueError:
+            continue
+        yield {"path": str(path), "data": json.loads(path.read_text(encoding="utf-8"))}
 
 
 def operate(payload):
-    tasks = Path(payload["root"]) / "tasks"
+    root = Path(payload["root"])
     action = payload["action"]
     if action == "list":
-        return list(list_tasks(tasks.parent))
+        return list(list_tasks(root))
     if action == "read":
-        path = Path(payload["path"]).resolve(strict=True)
-        if (
-            path.name != "task.json"
-            or path.parent == tasks.resolve()
-            or not path.is_relative_to(tasks.resolve())
-        ):
-            raise ValueError("Task reference belongs to a different Pool")
+        path = resolve_task_path(root, payload["path"])
         _, body = pack(path.parent)
         return {"body": base64.b64encode(body).decode()}
 
     name = payload["name"]
     validate_name(name)
-    target, lock = tasks / name, tasks / f".{name}.lock"
+    target, lock = root / name, root / f".{name}.lock"
     if action == "reserve":
-        tasks.mkdir(parents=True, exist_ok=True)
+        root.mkdir(parents=True, exist_ok=True)
         fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
         os.close(fd)
-        zipped = tasks.parent / "archives" / f"{name}.zip"
-        if target.exists() or target.is_symlink() or zipped.exists() or zipped.is_symlink():
+        if target.exists() or target.is_symlink():
             lock.unlink()
             raise FileExistsError("Task already exists")
     elif action == "release":
         lock.unlink(missing_ok=True)
     elif action == "publish":
-        with tempfile.TemporaryDirectory(prefix=".save-", dir=tasks) as temporary:
+        with tempfile.TemporaryDirectory(prefix=".save-", dir=root) as temporary:
             stage = Path(temporary) / "task"
             body = base64.b64decode(payload["body"])
             unpack("directory", body, stage, mode=0o700)
-            return publish(stage, tasks.parent, name, format=payload["format"], body=body)
+            return publish(stage, root, name)
     else:
         raise ValueError(f"Unknown task operation: {action}")
 
