@@ -426,11 +426,11 @@ result = evaluate(task=task, agent=agent, config=config, output_dir=output_dir)
                 <code>concurrency</code>
             </td>
             <td>
-                  <code><span title="int">int</span></code>
+                  <code><span title="int">int</span> | <span title="dict">dict</span>[<span title="str">str</span>, <span title="int">int</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>同时评测的任务数，默认 1。</p>
+                <p>正整数限制同时评测的任务数，默认 1；或填写 {"setup": 4, "agent": 40, "verify": 4}，分别限制三个阶段的并发。阶段排队不计入超时，同时进行中的任务最多为三个上限之和。</p>
               </div>
             </td>
             <td>
@@ -507,7 +507,7 @@ results = eval(
     agent=agent,
     config=config,
     output_dir=&quot;./runs/batch-001&quot;,
-    concurrency=8,
+    concurrency={&quot;setup&quot;: 4, &quot;agent&quot;: 40, &quot;verify&quot;: 4},
 )
 </code></pre>
 <p id="eval-result">返回列表中的每个字典包含以下字段：</p>
