@@ -2,7 +2,6 @@
 
 import base64
 import getpass
-import json
 import logging
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -16,7 +15,7 @@ from .._task_store import validate_name
 from .._util import metadata_tags, validate_goal
 from ..errors import RuntimeError as RuntimeFailure
 from ..trajectory.pool import validate_record
-from . import _pool_files
+from . import _pool_files, _ssh
 from .runtimes import normalize_ref, same_environment
 from .store import ANNOTATIONS, Conflict, digest
 
@@ -49,9 +48,7 @@ try:
 except (OSError, ValueError, KeyError) as error:
     print(json.dumps({'error': str(error), 'type': type(error).__name__}))
 """
-        result = json.loads(
-            ssh(host, ["python3", "-c", source], dict(payload, root=path), timeout=300)
-        )
+        result = _ssh.call(ssh, host, source, dict(payload, root=path))
         if "error" in result:
             cls = {
                 "FileNotFoundError": FileNotFoundError,
@@ -74,6 +71,7 @@ class Pools:
     def __init__(self, store, tasks):
         self.store, self.tasks = store, tasks
         self.lock = RLock()
+        self.sync_locks = {}
 
     def list(self, kind=None):
         with self.store.read():
@@ -109,10 +107,12 @@ class Pools:
         return self.store.pool_record(row["id"])
 
     def sync(self, pool_id=None, *, strict=False):
-        with self.lock:
-            for pool in self.list():
-                if pool_id is not None and pool["id"] != pool_id:
-                    continue
+        for pool in self.list():
+            if pool_id is not None and pool["id"] != pool_id:
+                continue
+            with self.lock:
+                lock = self.sync_locks.setdefault(pool["id"], RLock())
+            with lock:
                 try:
                     errors = self._sync(pool)
                     with self.store.read():
@@ -128,25 +128,43 @@ class Pools:
 
     def _sync(self, pool):
         store = self.store
-        with store.read():
-            files = PoolFiles(pool)
-            saved = files.call("metadata")
-            known = {
-                s["directory"]: s["stamp"]
-                for key, s in store.sources.items()
-                if store.assets[key]["pool_id"] == pool["id"] and s["present"]
-            }
-            items = files.call("scan", known=known)
-            if (
-                saved["stamp"] == store.documents[pool["id"]]["stamp"]
-                and len(items) == len(known)
-                and all(
-                    not item.get("error") and known.get(item["directory"]) == item.get("stamp")
-                    for item in items
-                )
-            ):
-                return []
-            return self._apply_scan(pool, saved, items)
+        files = PoolFiles(pool)
+        while True:
+            with store.read():
+                baseline = (store.fingerprint(), store.documents[pool["id"]]["stamp"])
+                known = {
+                    s["directory"]: s["stamp"]
+                    for key, s in store.sources.items()
+                    if store.assets[key]["pool_id"] == pool["id"] and s["present"]
+                }
+            # Network/disk work must not block unrelated reads or file previews.
+            result = None
+            if known and not isinstance(files.root, Path):
+                result = files.call("index", known_digest=_pool_files.index_digest(known))
+                if result["unchanged"]:
+                    result["items"] = [
+                        {"directory": directory, "stamp": stamp}
+                        for directory, stamp in known.items()
+                    ]
+                else:
+                    result = None
+            if result is None:
+                result = files.call("index", known=known)
+            saved, items = result["metadata"], result["items"]
+            with store.read():
+                if baseline != (store.fingerprint(), store.documents[pool["id"]]["stamp"]):
+                    # A concurrent edit won the race: never apply its older scan.
+                    continue
+                if (
+                    saved["stamp"] == store.documents[pool["id"]]["stamp"]
+                    and len(items) == len(known)
+                    and all(
+                        not item.get("error") and known.get(item["directory"]) == item.get("stamp")
+                        for item in items
+                    )
+                ):
+                    return []
+                return self._apply_scan(pool, saved, items)
 
     def _apply_scan(self, pool, saved, items):
         actor, errors = getpass.getuser(), []

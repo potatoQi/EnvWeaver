@@ -328,7 +328,7 @@ function startPolling() {
     running = false;
   const poll = async () => {
     if (running) return;
-    if (document.hidden || loading) {
+    if (document.hidden || loading || groupedRows.busy()) {
       timer = setTimeout(poll, 3000);
       return;
     }
@@ -337,6 +337,8 @@ function startPolling() {
     try {
       const [records, index] = await Promise.all([api("/jobs"), api("/index")]);
       if (request !== requestNumber) return;
+      // A background refresh must not repeatedly cancel an expanding group.
+      if (groupedRows.busy()) return;
       const changed = await restorePoolSelection(index.pools);
       const pool = index.pools.find((p) => p.id === poolId());
       if (pool?.error) {
@@ -519,6 +521,10 @@ async function switchPool(pool) {
   state.tagDefinitions = [];
   $("#tag-list").replaceChildren();
   state.page = 1;
+  state.total = 0;
+  rowSignature = "";
+  $("#rows").replaceChildren();
+  $("#count").textContent = id ? "加载中…" : "";
   clearSelection();
   previousIndex = "";
   renderPoolPath();

@@ -47,6 +47,10 @@ def stamp(directory):
     return digest.hexdigest()
 
 
+def index_digest(known):
+    return hashlib.sha256(json.dumps(known, sort_keys=True).encode()).hexdigest()
+
+
 def checked_path(directory, relative):
     part = Path(relative)
     if not part.parts or part.is_absolute() or ".." in part.parts or "\\" in relative:
@@ -126,6 +130,19 @@ def pool_operation(payload):
     kind = payload["kind"]
     if action == "metadata":
         return metadata_operation(root, kind, payload)
+    if action == "index":
+        if "known_digest" in payload:
+            items = pool_operation({**payload, "action": "scan", "stamps_only": True})
+            unchanged = all("stamp" in item and not item.get("error") for item in items)
+            current = {item["directory"]: item.get("stamp") for item in items}
+            return {
+                "metadata": metadata_operation(root, kind, payload),
+                "unchanged": unchanged and index_digest(current) == payload["known_digest"],
+            }
+        return {
+            "metadata": metadata_operation(root, kind, payload),
+            "items": pool_operation({**payload, "action": "scan"}),
+        }
     base = root / "runtimes" if kind == "runtime" else root
     recover_publications(base)
     filename = {"task": "task.json", "runtime": "runtime.json", "trajectory": "result.json"}[kind]
@@ -149,7 +166,7 @@ def pool_operation(payload):
                 if not (directory / filename).is_file():
                     continue
                 item["stamp"] = stamp(directory)
-                if known.get(directory.name) == item["stamp"]:
+                if payload.get("stamps_only") or known.get(directory.name) == item["stamp"]:
                     items.append(item)
                     continue
                 item["spec"] = json.loads((directory / filename).read_text())
@@ -183,10 +200,12 @@ def pool_operation(payload):
             for p in sorted(destination.rglob("*"))
             if p.is_file()
         ]
-    if action == "resolve":
+    if action in {"resolve", "read"}:
         path = checked_path(destination, payload["relative"])
         if not path.is_file():
             raise FileNotFoundError(payload["relative"])
+        if action == "read":
+            return base64.b64encode(path.read_bytes()).decode()
         return payload["relative"]
     base.mkdir(parents=True, exist_ok=True)
     lock = base / f".{name}.lock"

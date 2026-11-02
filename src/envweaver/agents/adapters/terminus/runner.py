@@ -108,6 +108,23 @@ def stop_terminal(session, timeout=10):
     raise TerminalError("Terminus foreground commands did not stop")
 
 
+async def prepare_terminal(environment):
+    """Install missing APT tmux under Eval's setup deadline, before Harbor starts it."""
+    if (await environment.exec("tmux -V", user="root")).return_code == 0:
+        return
+    if (await environment.exec("command -v apt-get", user="root")).return_code != 0:
+        return
+    result = await environment.exec(
+        "DEBIAN_FRONTEND=noninteractive apt-get update && "
+        "DEBIAN_FRONTEND=noninteractive apt-get install -y tmux",
+        user="root",
+    )
+    print(result.stdout, end="", flush=True)
+    print(result.stderr, end="", file=sys.stderr, flush=True)
+    if result.return_code:
+        raise TerminalError(f"tmux installation failed (exit {result.return_code}); see logs/prepare.log")
+
+
 async def execute(action, root):
     from model_capture import install
     install(root / "model-calls.jsonl")
@@ -168,6 +185,7 @@ async def execute(action, root):
         agent._session = terminal
         if action == "prepare":
             try:
+                await prepare_terminal(environment)
                 await terminal.start()
                 await terminal.send_keys(keys=["cd -- " + shlex.quote(os.getcwd()), "Enter"])
             except Exception as error:

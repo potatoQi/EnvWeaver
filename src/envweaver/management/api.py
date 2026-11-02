@@ -126,6 +126,11 @@ def create_app(*, environment_files=None) -> FastAPI:
         if (
             request.url.path != "/api/assets/page"
             and not (request.method == "GET" and request.url.path.startswith("/api/assets/"))
+            and not (
+                request.method == "GET"
+                and request.url.path.startswith(("/api/tasks/", "/api/trajectories/"))
+                and request.url.path.endswith(("/file", "/files"))
+            )
             and request.url.path.startswith("/api/")
             and not request.url.path.startswith(("/api/jobs", "/api/pools"))
         ):

@@ -122,6 +122,43 @@ class _Worker:
                 return self.value
 
 
+class _Concurrency:
+    def __init__(self, limits):
+        names = ("setup", "agent", "verify")
+        staged = isinstance(limits, dict)
+        if staged:
+            if set(limits) != set(names):
+                raise ValueError("concurrency requires setup, agent and verify limits")
+            limits = dict(limits)
+        else:
+            limits = dict.fromkeys(names, limits)
+        if any(type(value) is not int or value <= 0 for value in limits.values()):
+            raise ValueError("concurrency limits must be positive integers")
+        self.workers = sum(limits.values()) if staged else limits["agent"]
+        self.slots = {name: threading.BoundedSemaphore(value) for name, value in limits.items()}
+
+    def start(self, stage, function, cancelled):
+        slot = self.slots[stage]
+        while not slot.acquire(timeout=0.05):
+            if cancelled.is_set():
+                raise InterruptedError("Evaluation cancelled")
+
+        def run():
+            try:
+                if cancelled.is_set():
+                    raise InterruptedError("Evaluation cancelled")
+                return function()
+            finally:
+                # A timed-out caller does not imply that the operation has stopped.
+                slot.release()
+
+        try:
+            return _Worker(run)
+        except BaseException:
+            slot.release()
+            raise
+
+
 class _Resources:
     def __init__(self, runtime, on_error):
         self.runtime = runtime
@@ -242,7 +279,7 @@ def _error_record(stage, error, *, operation=None):
     }
 
 
-def _evaluate(task, agent, config, output_dir, panel, key, cancelled, record_result, input_error):
+def _evaluate(task, agent, config, output_dir, panel, key, cancelled, record_result, input_error, concurrency):
     # Reserve the Agent before allocating resources; a duplicate caller must not stop it.
     agent = AgentExecution(agent)
     output_store = OutputDirectory(output_dir)
@@ -277,6 +314,16 @@ def _evaluate(task, agent, config, output_dir, panel, key, cancelled, record_res
             cleanup_error("stop", error)
             return False
         return True
+
+    def start_stage(function):
+        panel.update(key, task.name, f"waiting_{stage}")
+        current_stage = stage
+
+        def run():
+            panel.update(key, task.name, current_stage)
+            return function()
+
+        return concurrency.start(current_stage, run, cancelled)
 
     try:
         panel.update(key, task.name, stage)
@@ -328,16 +375,14 @@ def _evaluate(task, agent, config, output_dir, panel, key, cancelled, record_res
             return task_instance, verifier_instance
 
         stage = "setup"
-        panel.update(key, task.name, stage)
-        setup_worker = _Worker(setup)
+        setup_worker = start_stage(setup)
         task_instance, verifier_instance = setup_worker.wait(config.setup_timeout, cancelled)
         stage = "agent"
-        panel.update(key, task.name, stage)
         try:
-            result["agent_result"] = _Worker(
+            result["agent_result"] = start_stage(
                 lambda: agent.run(
                     goal=task.goal, runtime=runtime, instance=task_instance, output_dir=agent_dir
-                )
+                ),
             ).wait(config.agent_timeout, cancelled)
         except BaseException as error:
             reason = stop_reason(error)
@@ -352,16 +397,15 @@ def _evaluate(task, agent, config, output_dir, panel, key, cancelled, record_res
         if cancelled.is_set():
             raise InterruptedError("Evaluation cancelled")
         stage = "verify"
-        panel.update(key, task.name, stage)
         verifier = copy(task.verifier)
         if config.verify_timeout is not None:
             verifier.timeout = config.verify_timeout
-        result["verification_result"] = _Worker(
+        result["verification_result"] = start_stage(
             lambda: verifier.run(
                 verifier_instance=verifier_instance,
                 task_instance=task_instance if verifier.requires_task_instance else None,
                 env=verifier_env,
-            )
+            ),
         ).wait(cancel=cancelled)
     except BaseException as error:
         result["errors"].append(_error_record(stage, error))
@@ -418,7 +462,7 @@ def eval(
     config: EvalConfig | None = None,
     output_dir: str | Path = "eval",
     *,
-    concurrency: int = 1,
+    concurrency: int | dict[str, int] = 1,
     resume: bool = False,
     traj_pool: TrajPool | None = None,
 ) -> list[dict]:
@@ -428,7 +472,7 @@ def eval(
         agent: 执行任务的 Agent 对象，例如 `CodexAgent(model=model_name)`。
         config: 任务使用的评测配置，不填使用 EvalConfig 默认值。
         output_dir: 评测产物的保存目录，默认 eval。
-        concurrency: 同时评测的任务数，默认 1。
+        concurrency: 正整数限制同时评测的任务数，默认 1；或填写 {"setup": 4, "agent": 40, "verify": 4}，分别限制三个阶段的并发。阶段排队不计入超时，同时进行中的任务最多为三个上限之和。
         traj_pool: 自动归档 rollout 的 [TrajPool](evaluation.md#trajpool)；默认 None，不入池。归档失败会报错，评测产物保留在 output_dir。
         resume: 是否继续上次评测，默认 False；已完成任务保留原结果，未完成任务使用本次 Agent 和 EvalConfig。
             历次尝试须包含 configuration 配置快照。
@@ -444,8 +488,7 @@ def eval(
         TimeoutError: SSH 操作或获取产物目录锁超时。
         KeyboardInterrupt: 用户中断；取消未开始的任务，保存已有结果并清理正在执行的评测。
     """
-    if isinstance(concurrency, bool) or not isinstance(concurrency, int) or concurrency <= 0:
-        raise ValueError("concurrency must be a positive integer")
+    concurrency = _Concurrency(concurrency)
     if not isinstance(resume, bool):
         raise TypeError("resume must be a boolean")
     if not isinstance(agent, Agent):
@@ -530,6 +573,7 @@ def _run_batch(iterator, agent, config, batch, concurrency, traj_pool=None):
                     cancelled,
                     record_result,
                     input_error,
+                    concurrency,
                 )
             except Exception as error:
                 with saved_lock:
@@ -610,7 +654,7 @@ def _run_batch(iterator, agent, config, batch, concurrency, traj_pool=None):
                     raise InterruptedError("Evaluation cancelled")
                 _, input_error = batch.register(index, task)
 
-        executor = ThreadPoolExecutor(max_workers=concurrency, thread_name_prefix="envweaver-eval")
+        executor = ThreadPoolExecutor(max_workers=concurrency.workers, thread_name_prefix="envweaver-eval")
         pending = {}
         submitted = 0
         exhausted = False
@@ -631,7 +675,7 @@ def _run_batch(iterator, agent, config, batch, concurrency, traj_pool=None):
             pending[executor.submit(run, index, task)] = index
 
         try:
-            for _ in range(concurrency):
+            for _ in range(concurrency.workers):
                 submit()
             while pending:
                 completed, _ = wait(pending, timeout=0.1, return_when=FIRST_COMPLETED)

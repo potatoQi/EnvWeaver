@@ -706,3 +706,119 @@ def test_invalid_new_does_not_start_or_modify_template(tmp_path, task, returned)
     assert not hasattr(agent, "_state") and not hasattr(agent, "_claimed")
     assert not agent._cancelled.is_set()
     assert not task.verifier.runtime.starts
+
+
+@pytest.mark.parametrize('limits', [
+    {}, {'setup': 1}, {'setup': 1, 'agent': 2, 'verify': 1, 'cleanup': 1},
+    {'setup': 0, 'agent': 2, 'verify': 1},
+    {'setup': 1, 'agent': True, 'verify': 1},
+    {'setup': 1, 'agent': 2, 'verify': 1.5}, None, [],
+])
+def test_invalid_stage_concurrency_allocates_nothing(tmp_path, task, limits):
+    with pytest.raises(ValueError, match='concurrency'):
+        eval(tasks=task, agent=GoodAgent(), concurrency=limits, output_dir=tmp_path / 'run')
+    assert not (tmp_path / 'run').exists()
+    assert not task.verifier.runtime.starts
+
+
+def test_stage_pipeline_reaches_40_agents_with_four_setup_slots(tmp_path, task):
+    from contextlib import contextmanager
+
+    active = dict.fromkeys(('setup', 'agent', 'verify'), 0)
+    peak = active.copy()
+    lock = threading.Lock()
+    agents_ready = threading.Barrier(40)
+    verifiers_ready = threading.Barrier(4)
+
+    @contextmanager
+    def track(stage):
+        with lock:
+            active[stage] += 1
+            peak[stage] = max(peak[stage], active[stage])
+        try:
+            yield
+        finally:
+            with lock:
+                active[stage] -= 1
+
+    runtime = task.verifier.runtime
+    original_start = runtime.start
+
+    def start(**kwargs):
+        with track('setup'):
+            time.sleep(0.02)
+            return original_start(**kwargs)
+
+    runtime.start = start
+
+    class PipelineAgent(GoodAgent):
+        def prepare(self, **kwargs):
+            with track('setup'):
+                time.sleep(0.02)
+
+        def run(self, **kwargs):
+            with track('agent'):
+                agents_ready.wait(timeout=10)
+                return super().run(**kwargs)
+
+    def verify(**kwargs):
+        with track('verify'):
+            verifiers_ready.wait(timeout=10)
+            time.sleep(0.01)
+            return {'score': 1}
+
+    task.verifier.run = verify
+    tasks = [replace(task, name=f'task-{i}') for i in range(40)]
+    results = eval(tasks=tasks, agent=PipelineAgent(), config=config(),
+                   concurrency={'setup': 4, 'agent': 40, 'verify': 4},
+                   output_dir=tmp_path / 'run')
+    assert peak == {'setup': 4, 'agent': 40, 'verify': 4}
+    assert all(row['score_valid'] and not row['errors'] for row in results)
+    assert [row['name'] for row in results] == [t.name for t in tasks]
+    assert not any(active.values()) and not runtime.active
+
+
+def test_stage_queue_wait_is_not_execution_timeout_and_late_worker_holds_slot():
+    limits = evaluation._Concurrency({'setup': 1, 'agent': 1, 'verify': 1})
+    release = threading.Event()
+    cancelled = threading.Event()
+    entered = threading.Event()
+    first = limits.start('setup', lambda: release.wait(5), cancelled)
+    try:
+        with pytest.raises(evaluation.StageTimeout):
+            first.wait(timeout=0.01)
+        second = evaluation._Worker(
+            lambda: limits.start('setup', lambda: entered.set(), cancelled).wait(timeout=0.1)
+        )
+        assert not entered.wait(0.2)  # Even after the caller's timeout, the first operation owns the slot.
+        release.set()
+        first.wait(timeout=1)
+        second.wait(timeout=1)
+        assert entered.is_set()
+    finally:
+        release.set()
+
+
+def test_cancellation_interrupts_stage_queue_without_starting_work():
+    limits = evaluation._Concurrency(1)
+    release = threading.Event()
+    cancelled = threading.Event()
+    entered = threading.Event()
+    first = limits.start('verify', lambda: release.wait(5), cancelled)
+    try:
+        waiting = evaluation._Worker(lambda: limits.start('verify', entered.set, cancelled))
+        cancelled.set()
+        with pytest.raises(InterruptedError):
+            waiting.wait(timeout=1)
+        assert not entered.is_set()
+    finally:
+        release.set()
+        first.wait(timeout=1)
+    # Cancellation must not consume a slot, and an operation error must release it.
+    cancelled.clear()
+    def fail():
+        raise OSError('verification failed')
+    with pytest.raises(OSError):
+        limits.start('verify', fail, cancelled).wait(timeout=1)
+    limits.start('verify', entered.set, cancelled).wait(timeout=1)
+    assert entered.is_set()

@@ -231,6 +231,44 @@ def local_environment(monkeypatch):
     return Environment()
 
 
+@pytest.mark.parametrize("codes,installed", [([0], False), ([1, 1], False), ([1, 0, 0], True)])
+def test_prepare_terminal_uses_setup_deadline(codes, installed, capsys):
+    import asyncio
+    from types import SimpleNamespace
+
+    from envweaver.agents.adapters.terminus.runner import prepare_terminal
+
+    calls = []
+    results = iter(codes)
+
+    async def execute(command, **kwargs):
+        calls.append((command, kwargs))
+        return SimpleNamespace(return_code=next(results), stdout="APT output\n", stderr="")
+
+    asyncio.run(prepare_terminal(SimpleNamespace(exec=execute)))
+    assert len(calls) == len(codes)
+    assert all(options == {"user": "root"} for _, options in calls)
+    if installed:
+        assert "apt-get install -y tmux" in calls[-1][0]
+        assert "APT output" in capsys.readouterr().out
+
+
+def test_prepare_terminal_reports_install_failure(capsys):
+    import asyncio
+    from types import SimpleNamespace
+
+    from envweaver.agents.adapters.terminus.runner import TerminalError, prepare_terminal
+
+    results = iter([1, 0, 100])
+
+    async def execute(command, **kwargs):
+        return SimpleNamespace(return_code=next(results), stdout="", stderr="mirror unavailable\n")
+
+    with pytest.raises(TerminalError, match="exit 100"):
+        asyncio.run(prepare_terminal(SimpleNamespace(exec=execute)))
+    assert "mirror unavailable" in capsys.readouterr().err
+
+
 def test_environment_exec_preserves_cwd_env_unicode_and_exit(local_environment, tmp_path):
     import asyncio
     import os

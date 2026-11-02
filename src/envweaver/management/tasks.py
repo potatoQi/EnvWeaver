@@ -190,13 +190,14 @@ class Tasks:
         row = self.store.get(asset_id)
         if row["kind"] not in {"task", "trajectory"}:
             raise Conflict("不是 Task 或轨迹")
-        from .._io.paths import join_address
-
-        # Validate the relative path before passing it to the SSH file transport.
         with self.store.read():
             files, source = self.store.source(asset_id)
-        files.call("resolve", directory=source["directory"], relative=relative)
-        with local_source(join_address(self.store.source_address(asset_id), relative)) as path:
-            if not path.is_file():
-                raise FileNotFoundError(relative)
-            yield path
+        if isinstance(files.root, Path):
+            files.call("resolve", directory=source["directory"], relative=relative)
+            yield files.root / source["directory"] / relative
+        else:
+            body = files.call("read", directory=source["directory"], relative=relative)
+            with tempfile.TemporaryDirectory(prefix="envweaver-file-") as temporary:
+                path = Path(temporary) / PurePosixPath(relative).name
+                path.write_bytes(base64.b64decode(body, validate=True))
+                yield path

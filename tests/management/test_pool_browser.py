@@ -77,6 +77,7 @@ def test_pool_selection_and_live_discovery(tmp_path):
             page.screenshot(path=str(tmp_path / "runtime.png"), full_page=True)
             page.locator("[data-kind=task]").click()
             expect(page.locator("#count")).to_have_text("2 条任务")
+            expect(page.locator("#rows [data-open]")).to_have_count(2)
             empty_pool = root / "empty-pool"
             empty_pool.mkdir()
             select_pool(empty_pool)

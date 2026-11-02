@@ -242,6 +242,7 @@ UsePAM no
                 assert remote_calls.count("asset_metadata_batch") == 1
                 for path in remote_root.glob("*/task.json"):
                     assert json.loads(path.read_text())["metadata"]["tags"] == ["ssh-tag"]
+                remote_calls.clear()
                 assert client.get(f"/api/tasks/{row['id']}/files").status_code == 200
                 assert (
                     client.get(
@@ -249,6 +250,17 @@ UsePAM no
                     ).content
                     == b"material"
                 )
+                assert remote_calls == ["files", "read"]
+                binary = remote_root / "remote-task/raw.bin"
+                binary.write_bytes(b"\x00\xff\r\n\x80")
+                assert client.get(
+                    f"/api/tasks/{row['id']}/file", params={"path": "raw.bin"}
+                ).content == binary.read_bytes()
+                (remote_root / "remote-task/escape").symlink_to(tmp_path)
+                assert client.get(
+                    f"/api/tasks/{row['id']}/file", params={"path": "escape/sshd_config"}
+                ).status_code == 422
+                (remote_root / "remote-task/escape").unlink()
                 runtime_root = tmp_path / "remote-runtime"
                 runtime_root.mkdir()
                 runtime_pool_id = add_pool(client, host + str(runtime_root), kind="runtime")

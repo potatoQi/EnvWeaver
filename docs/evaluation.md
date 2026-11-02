@@ -224,7 +224,7 @@ results = eval(
     agent=agent,
     config=config,
     output_dir="./runs/batch-001",
-    concurrency=8,
+    concurrency={"setup": 4, "agent": 40, "verify": 4},
 )
 ```
 

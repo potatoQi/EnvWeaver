@@ -2,13 +2,83 @@
 
 import json
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
+from threading import Event
 
 from fastapi.testclient import TestClient
 
+from envweaver.management._pool_files import index_digest
 from envweaver.management.api import create_app
+from envweaver.management.models import Edit
 from envweaver.management.pools import PoolFiles
 from tests.management.test_api import package
 from tests.management.test_pools import add_pool
+
+
+def test_file_previews_read_current_bytes_without_scanning(tmp_path, monkeypatch):
+    folder = package(tmp_path / "sample", "sample")
+    app = create_app()
+    with TestClient(app) as client:
+        pool = add_pool(client, tmp_path)
+        row = client.post("/api/assets/page", json={"selection": {"kind": "task", "pool_id": pool}}).json()["items"][0]
+        original = PoolFiles.call
+
+        def no_scan(self, action, **kwargs):
+            assert action not in {"index", "scan", "metadata"}
+            return original(self, action, **kwargs)
+
+        monkeypatch.setattr(PoolFiles, "call", no_scan)
+        for kind in ("tasks", "trajectories"):
+            path = folder / "new.bin"
+            path.write_bytes(b"new bytes\x00\xff" + kind.encode())
+            files = client.get(f"/api/{kind}/{row['id']}/files").json()
+            assert any(f["path"] == "new.bin" for f in files)
+            response = client.get(f"/api/{kind}/{row['id']}/file", params={"path": "new.bin"})
+            assert response.content == path.read_bytes()
+            path.unlink()
+            assert client.get(f"/api/{kind}/{row['id']}/file", params={"path": "new.bin"}).status_code == 404
+
+
+def test_slow_scan_does_not_block_reads_or_overwrite_concurrent_edit(tmp_path, monkeypatch):
+    package(tmp_path / "sample", "sample")
+    app = create_app()
+    with TestClient(app) as client:
+        pool = add_pool(client, tmp_path)
+        row = client.post("/api/assets/page", json={"selection": {"kind": "task", "pool_id": pool}}).json()["items"][0]
+        row = app.state.store.get(row["id"])
+        scanned, release = Event(), Event()
+        original = PoolFiles.call
+        scans = 0
+
+        def delayed(self, action, **kwargs):
+            nonlocal scans
+            result = original(self, action, **kwargs)
+            if action == "index":
+                scans += 1
+                if scans == 1:
+                    scanned.set()
+                    assert release.wait(10)
+            return result
+
+        monkeypatch.setattr(PoolFiles, "call", delayed)
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            future = executor.submit(app.state.pools.sync, pool)
+            try:
+                assert scanned.wait(5)
+
+                def read_and_edit():
+                    assert client.get("/api/pools").status_code == 200
+                    assert client.get(f"/api/tasks/{row['id']}/file", params={"path": "task.json"}).status_code == 200
+                    return app.state.tasks.edit(row["id"], Edit(revision=row["revision"], metadata={"edited": True}), "test")
+
+                edited = executor.submit(read_and_edit).result(timeout=5)
+            finally:
+                release.set()
+            future.result(timeout=5)
+        assert scans == 2
+        result = app.state.store.get(row["id"])
+        assert result["metadata"] == {"edited": True}
+        assert result["revision"] == edited["revision"]
 
 
 def test_summary_scans_once_and_returns_pool_wide_options(tmp_path, monkeypatch):
@@ -37,7 +107,8 @@ def test_summary_scans_once_and_returns_pool_wide_options(tmp_path, monkeypatch)
         )
         assert response.status_code == 200, response.text
         page = response.json()
-        assert calls["scan"] == 1
+        assert calls["index"] == 1
+        assert calls["metadata"] == calls["scan"] == 0
         assert page["total"] == 1
         assert page["items"][0]["name"] == "alpha"
         assert page["items"][0]["backend"] == "docker"
@@ -59,6 +130,27 @@ def test_scan_skips_unchanged_json_but_detects_nested_edits_and_symlinks(tmp_pat
     assert changed["stamp"] != original["stamp"] and "spec" in changed
     (tmp_path / "alpha/context/link").symlink_to(tmp_path)
     assert "symlink" in files.call("scan", known={"alpha": changed["stamp"]})[0]["error"]
+
+
+def test_remote_index_digest_detects_changes_without_transferring_all_stamps(tmp_path):
+    package(tmp_path / "alpha", "alpha")
+    files = PoolFiles({"address": str(tmp_path), "kind": "task"})
+    item = files.call("index", known={})["items"][0]
+    known_digest = index_digest({"alpha": item["stamp"]})
+    response = files.call("index", known_digest=known_digest)
+    assert response == {"metadata": files.call("metadata"), "unchanged": True}
+    # Pool annotations are returned even when the asset tree is unchanged.
+    files.call("metadata", data={"tags": {"new": {}}, "assets": {}}, expected=response["metadata"]["stamp"])
+    assert files.call("index", known_digest=known_digest)["metadata"]["data"]["tags"] == {"new": {}}
+    (tmp_path / "alpha/context/input.txt").write_text("external change")
+    assert files.call("index", known_digest=known_digest)["unchanged"] is False
+    item = files.call("index", known={})["items"][0]
+    known_digest = index_digest({"alpha": item["stamp"]})
+    (tmp_path / "alpha/context/escape").symlink_to(tmp_path)
+    assert files.call("index", known_digest=known_digest)["unchanged"] is False
+    (tmp_path / "alpha/context/escape").unlink()
+    (tmp_path / "alpha/task.json").unlink()
+    assert files.call("index", known_digest=known_digest)["unchanged"] is False
 
 
 def test_invalid_batch_record_does_not_discard_valid_records(tmp_path):

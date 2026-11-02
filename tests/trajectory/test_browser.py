@@ -125,6 +125,24 @@ def test_trajectory_browser(tmp_path):
                 channel="chromium", headless=True, args=["--no-sandbox"]
             )
             page = browser.new_page(viewport={"width": 1440, "height": 1000}, accept_downloads=True)
+            page.add_init_script("""
+                window.groupPolls = 0;
+                let pendingGroup = false, delayed = false;
+                const originalFetch = window.fetch;
+                window.fetch = async (...args) => {
+                    const path = new URL(args[0], location.origin).pathname;
+                    if (path.endsWith('/index') && pendingGroup) window.groupPolls++;
+                    const group = path.endsWith('/assets/page') &&
+                        JSON.parse(args[1].body).selection.task_group;
+                    if (!group || delayed) return originalFetch(...args);
+                    delayed = pendingGroup = true;
+                    try {
+                        const response = await originalFetch(...args);
+                        await new Promise(resolve => setTimeout(resolve, 4500));
+                        return response;
+                    } finally { pendingGroup = false; }
+                };
+            """)
             errors = []
             page.on("pageerror", lambda error: errors.append(str(error)))
             page.goto(f"http://127.0.0.1:{port}")
@@ -139,7 +157,8 @@ def test_trajectory_browser(tmp_path):
             expect(page.locator(".task-group-toggle")).to_have_attribute("aria-expanded", "false")
             page.locator("#clear-selection").click()
             page.locator(".task-group-toggle").click()
-            expect(page.locator("#rows [data-open]")).to_have_count(3)
+            expect(page.locator("#rows [data-open]")).to_have_count(3, timeout=10000)
+            assert page.evaluate("window.groupPolls") == 0
             assert (
                 "1.23K" in page.locator('#rows td[data-column="input_tokens"]').all_text_contents()
             )
@@ -372,6 +391,13 @@ def test_trajectory_browser(tmp_path):
             expect(page.locator("thead th")).to_have_count(8)
             page.get_by_role("button", name="Traj Pool", exact=True).click()
             expect(page.locator("thead th")).to_have_count(11)
+            # Reader-only fixtures replace the document; isolate them from the
+            # management page's in-flight requests and background refresh timer.
+            page.route("**/reader-fixture", lambda route: route.fulfill(
+                content_type="text/html",
+                body='<!doctype html><link rel="stylesheet" href="/src/style.css"><body></body>',
+            ))
+            page.goto(f"http://127.0.0.1:{port}/reader-fixture")
             check_reader_edges(page)
             check_reader_scrolling(page)
             assert not errors, errors

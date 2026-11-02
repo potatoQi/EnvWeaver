@@ -116,5 +116,5 @@ export function taskGroups(container, renderRow, bindRows, selection) {
     });
   }
 
-  return {render, reset, updateSelection};
+  return {render, reset, updateSelection, busy: () => requests.length > 0};
 }
