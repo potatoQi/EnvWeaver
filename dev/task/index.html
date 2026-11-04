@@ -678,7 +678,7 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>保存任务沙箱和执行 Verify 使用的沙箱管理器。</p>
+                <p>加载任务的 Verifier 使用的沙箱管理器。</p>
               </div>
             </td>
             <td>
@@ -885,6 +885,7 @@ pool = TaskPool(root=&quot;./tasks&quot;, runtime=runtime)
 
 </div></div>
 <h2 id="save">TaskPool.save：保存任务<a class="headerlink" href="#save" title="Permanent link">&para;</a></h2>
+<p>已有环境可直接复用 RuntimeRef；需要保留实例中的修改时，先调用 <a href="../runtime/#save">Runtime.save</a>，再传入返回的引用。</p>
 <div class="table-responsive">
 
 
@@ -959,14 +960,14 @@ pool = TaskPool(root=&quot;./tasks&quot;, runtime=runtime)
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>instance</code>
+                <code>task_runtime_ref</code>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="envweaver.models.Instance" href="../runtime/#envweaver.models.Instance">Instance</a></code>
+                  <code><a class="autorefs autorefs-internal" title="envweaver.models.RuntimeRef" href="../runtime/#envweaver.models.RuntimeRef">RuntimeRef</a></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>要保存为任务初始环境的沙箱，须由 Runtime.start 创建。</p>
+                <p>任务初始环境的 <a href="../runtime/#runtimeref">RuntimeRef</a>，必填。</p>
               </div>
             </td>
             <td>
@@ -1091,7 +1092,7 @@ target 填容器或虚拟机内的目标路径。</p>
         {&quot;type&quot;: &quot;image&quot;, &quot;path&quot;: &quot;./reference.png&quot;},
     ],
     metadata={&quot;software&quot;: &quot;LibreOffice&quot;, &quot;tags&quot;: [&quot;office&quot;, &quot;spreadsheet&quot;]},
-    instance=instance,
+    task_runtime_ref=task_runtime_ref,
     context=[
         {&quot;source&quot;: &quot;./sales.xlsx&quot;, &quot;target&quot;: &quot;/work/sales.xlsx&quot;},
         {&quot;source&quot;: &quot;./setup.py&quot;, &quot;target&quot;: &quot;/work/setup.py&quot;},
