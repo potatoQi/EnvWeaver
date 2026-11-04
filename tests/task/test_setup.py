@@ -123,7 +123,7 @@ def test_task_setup_survives_delivery_and_runs_on_each_start(
     original = runtime.start(ref=prepared["ref"])
     pool = TaskPool(root=tmp_path / "pool", runtime=runtime)
     ref = pool.save(
-        cwd="/", instance=original,
+        cwd="/", task_runtime_ref=prepared["ref"],
         name="ready-task",
         goal=[{"type": "text", "text": "task"}],
         verifier=prepared["verifier"],
@@ -154,7 +154,7 @@ def test_invalid_setup_not_saved(tmp_path, runtime, prepared):
     pool = TaskPool(root=tmp_path / "pool", runtime=runtime)
     with pytest.raises(ValueError, match="setup"):
         pool.save(
-            cwd="/", instance=None,
+            cwd="/", task_runtime_ref=prepared["ref"],
             name="invalid",
             goal=[{"type": "text", "text": "task"}],
             verifier=prepared["verifier"],

@@ -42,7 +42,6 @@ def remote_task(tmp_path, runtime, ssh_worker):
     base.mkdir()
     (base / "state").write_text("initial")
     ref = runtime.create(backend="test", image=str(base), connection={"profile": "task-worker"})
-    instance = runtime.start(ref=ref)
     materials = tmp_path / "materials"
     materials.mkdir()
     entry = materials / "verify/run.py"
@@ -57,7 +56,7 @@ def remote_task(tmp_path, runtime, ssh_worker):
     (inputs / "empty").mkdir()
     pool = TaskPool(root=address(tmp_path / "remote '中文 #"), runtime=runtime)
     args = dict(
-        instance=instance,
+        task_runtime_ref=ref,
         name="任务 one #100%",
         goal=[{"type": "text", "text": "整理 DATA"}, {"type": "image", "path": str(image)}],
         verifier=Verifier(entry=entry, runtime=runtime, timeout=60),
@@ -66,8 +65,7 @@ def remote_task(tmp_path, runtime, ssh_worker):
         metadata={"software": "Office", "rank": 1},
         setup={"command": "echo prepared", "timeout": 10},
     )
-    yield pool, args, materials
-    runtime.close(instance=instance)
+    return pool, args, materials
 
 
 def test_remote_task_roundtrip_and_material_lifetime(remote_task, runtime, ssh_worker):
@@ -210,18 +208,20 @@ def test_removed_format_parameter(tmp_path, runtime, format):
     pool = TaskPool(root=tmp_path / "pool", runtime=runtime)
     with pytest.raises(TypeError, match="format"):
         pool.save(
-            cwd="/", instance=None, name="task", goal=[], verifier=None,
+            cwd="/", task_runtime_ref=None, name="task", goal=[], verifier=None,
             verifier_runtime_ref=None, format=format,
         )
     assert not pool.root.exists()
 
 
-@pytest.mark.parametrize("failure", ["snapshot", "publish"])
+@pytest.mark.parametrize("failure", ["materials", "publish"])
 def test_failed_save_releases_name_without_publishing(remote_task, runtime, monkeypatch, failure):
     pool, args, _ = remote_task
     original = pool._remote
-    if failure == "snapshot":
-        runtime._backends["test"].fail_save = True
+    entry = Path(args["verifier"].entry)
+    content = entry.read_bytes()
+    if failure == "materials":
+        entry.unlink()
     else:
 
         def dispatch(action, **kwargs):
@@ -236,7 +236,7 @@ def test_failed_save_releases_name_without_publishing(remote_task, runtime, monk
     root = Path(unquote(urlsplit(pool.root).path))
     assert list(root.iterdir()) == []
     assert pool.search() == []
-    runtime._backends["test"].fail_save = False
+    entry.write_bytes(content)
     monkeypatch.setattr(pool, "_remote", original)
     assert pool.save(cwd="/", **args)
 
@@ -316,7 +316,7 @@ def test_invalid_name_fails_before_any_work(tmp_path, runtime, monkeypatch, remo
     monkeypatch.setattr(pool, "_remote", lambda *a, **k: pytest.fail("must not access SSH"))
     monkeypatch.setattr(runtime, "save", lambda *a, **k: pytest.fail("must not save sandbox"))
     with pytest.raises(ValueError, match="Task name"):
-        pool.save(cwd="/", instance=None, name=name, goal=[], verifier=None, verifier_runtime_ref=None)
+        pool.save(cwd="/", task_runtime_ref=None, name=name, goal=[], verifier=None, verifier_runtime_ref=None)
     assert not root.exists()
 
 

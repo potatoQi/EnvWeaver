@@ -308,6 +308,8 @@ pool = TaskPool(root="./tasks", runtime=runtime)
 
 ## TaskPool.save：保存任务 {#save}
 
+已有环境可直接复用 RuntimeRef；需要保留实例中的修改时，先调用 [Runtime.save](runtime.md#save)，再传入返回的引用。
+
 <div class="table-responsive" markdown="1">
 
 ::: envweaver.TaskPool.save
@@ -324,7 +326,7 @@ task_ref = pool.save(
         {"type": "image", "path": "./reference.png"},
     ],
     metadata={"software": "LibreOffice", "tags": ["office", "spreadsheet"]},
-    instance=instance,
+    task_runtime_ref=task_runtime_ref,
     context=[
         {"source": "./sales.xlsx", "target": "/work/sales.xlsx"},
         {"source": "./setup.py", "target": "/work/setup.py"},

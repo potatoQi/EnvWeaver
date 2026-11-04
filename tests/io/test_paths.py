@@ -207,7 +207,7 @@ def test_context_and_task_archive_remote_files(tmp_path, runtime, ssh_files):
     pool = TaskPool(root=tmp_path / "tasks", runtime=runtime)
     saved = pool.save(
         cwd="/", verifier_runtime_ref=ref,
-        instance=instance,
+        task_runtime_ref=ref,
         name="remote-context",
         goal=[{"type": "text", "text": "Task"}],
         verifier=Verifier(entry=verifier, timeout=60, runtime=runtime),
@@ -237,7 +237,6 @@ def test_task_archives_local_and_ssh_goal_images(tmp_path, runtime, ssh_files, r
     base = tmp_path / "base"
     base.mkdir()
     ref = runtime.create(backend="test", image=str(base))
-    instance = runtime.start(ref=ref)
     runtime.ssh = {"config_file": str(tmp_path / "sandbox_config")}
     materials = tmp_path / "materials"
     materials.mkdir()
@@ -255,33 +254,29 @@ def test_task_archives_local_and_ssh_goal_images(tmp_path, runtime, ssh_files, r
     ]
     root = tmp_path / "pool"
     pool = TaskPool(root=address(root) if remote_pool else root, runtime=runtime)
-    try:
-        saved = pool.save(
-            cwd="/", instance=instance,
-            name="images",
-            goal=goal,
-            verifier=Verifier(entry=entry, runtime=runtime, timeout=10),
-            verifier_runtime_ref=ref,
-        )
-        shutil.rmtree(materials)
-        task = pool.load(saved)
-        assert task.goal[0] == goal[0] and task.goal[2] == goal[2]
-        assert Path(task.goal[1]["path"]).read_bytes() == b"local image"
-        assert Path(task.goal[3]["path"]).read_bytes() == bytes(range(256))
-        manifest = Path(task.verifier.entry).parent.parent / "task.json"
-        archived = json.loads(manifest.read_text())["goal"]
-        assert archived[1]["path"] == "goal/1.png"
-        assert archived[3]["path"] == "goal/3.png"
-        assert goal[3]["path"] == address(remote)
-    finally:
-        runtime.close(instance=instance)
+    saved = pool.save(
+        cwd="/", task_runtime_ref=ref,
+        name="images",
+        goal=goal,
+        verifier=Verifier(entry=entry, runtime=runtime, timeout=10),
+        verifier_runtime_ref=ref,
+    )
+    shutil.rmtree(materials)
+    task = pool.load(saved)
+    assert task.goal[0] == goal[0] and task.goal[2] == goal[2]
+    assert Path(task.goal[1]["path"]).read_bytes() == b"local image"
+    assert Path(task.goal[3]["path"]).read_bytes() == bytes(range(256))
+    manifest = Path(task.verifier.entry).parent.parent / "task.json"
+    archived = json.loads(manifest.read_text())["goal"]
+    assert archived[1]["path"] == "goal/1.png"
+    assert archived[3]["path"] == "goal/3.png"
+    assert goal[3]["path"] == address(remote)
 
 
 def test_missing_ssh_goal_image_does_not_save_snapshot(tmp_path, runtime, ssh_files, monkeypatch):
     base = tmp_path / "base"
     base.mkdir()
     ref = runtime.create(backend="test", image=str(base))
-    instance = runtime.start(ref=ref)
     entry = tmp_path / "verify/run.py"
     entry.parent.mkdir()
     entry.write_text("print('{\"score\": 1}')")
@@ -289,19 +284,16 @@ def test_missing_ssh_goal_image_does_not_save_snapshot(tmp_path, runtime, ssh_fi
     monkeypatch.setattr(
         runtime, "save", lambda *args, **kwargs: pytest.fail("must not save snapshot")
     )
-    try:
-        with pytest.raises(RuntimeError, match="FileNotFoundError"):
-            pool.save(
-                cwd="/", instance=instance,
-                name="missing-image",
-                goal=[{"type": "image", "path": address(tmp_path / "missing.png")}],
-                verifier=Verifier(entry=entry, runtime=runtime, timeout=10),
-                verifier_runtime_ref=ref,
-            )
-        assert pool.search() == []
-        assert not list(pool.root.iterdir())
-    finally:
-        runtime.close(instance=instance)
+    with pytest.raises(RuntimeError, match="FileNotFoundError"):
+        pool.save(
+            cwd="/", task_runtime_ref=ref,
+            name="missing-image",
+            goal=[{"type": "image", "path": address(tmp_path / "missing.png")}],
+            verifier=Verifier(entry=entry, runtime=runtime, timeout=10),
+            verifier_runtime_ref=ref,
+        )
+    assert pool.search() == []
+    assert not list(pool.root.iterdir())
 
 
 @pytest.mark.parametrize("remote_pool", [False, True])
@@ -309,7 +301,6 @@ def test_task_archives_remote_verifier_directory(tmp_path, runtime, ssh_files, r
     base = tmp_path / "base"
     base.mkdir()
     ref = runtime.create(backend="test", image=str(base))
-    instance = runtime.start(ref=ref)
     runtime.ssh = {"config_file": str(tmp_path / "sandbox_config")}
     source = tmp_path / "remote verifier '中文 #"
     source.mkdir()
@@ -320,32 +311,29 @@ def test_task_archives_remote_verifier_directory(tmp_path, runtime, ssh_files, r
     (source / "helper.py").chmod(0o750)
     root = tmp_path / "pool"
     pool = TaskPool(root=address(root) if remote_pool else root, runtime=runtime)
-    try:
-        saved = pool.save(
-            cwd="/", instance=instance,
-            name="remote-verifier",
-            goal=[{"type": "text", "text": "Task"}],
-            verifier=Verifier(entry=address(source / "run.py"), runtime=runtime, timeout=30),
-            verifier_runtime_ref=ref,
-        )
-        shutil.rmtree(source)
-        task = pool.load(saved)
-        package = Path(task.verifier.entry).parent
-        assert (package / "nested/expected.bin").read_bytes() == bytes(range(256))
-        assert (package / "helper.py").stat().st_mode & 0o777 == 0o750
-        assert (
-            json.loads((package.parent / "task.json").read_text())["verifier"]["entry"]
-            == "verifier/run.py"
-        )
-        assert "ssh://" not in (package.parent / "task.json").read_text()
-        assert (
-            subprocess.run(
-                [sys.executable, task.verifier.entry], capture_output=True, check=True
-            ).stdout.strip()
-            == b'{"score": 1}'
-        )
-    finally:
-        runtime.close(instance=instance)
+    saved = pool.save(
+        cwd="/", task_runtime_ref=ref,
+        name="remote-verifier",
+        goal=[{"type": "text", "text": "Task"}],
+        verifier=Verifier(entry=address(source / "run.py"), runtime=runtime, timeout=30),
+        verifier_runtime_ref=ref,
+    )
+    shutil.rmtree(source)
+    task = pool.load(saved)
+    package = Path(task.verifier.entry).parent
+    assert (package / "nested/expected.bin").read_bytes() == bytes(range(256))
+    assert (package / "helper.py").stat().st_mode & 0o777 == 0o750
+    assert (
+        json.loads((package.parent / "task.json").read_text())["verifier"]["entry"]
+        == "verifier/run.py"
+    )
+    assert "ssh://" not in (package.parent / "task.json").read_text()
+    assert (
+        subprocess.run(
+            [sys.executable, task.verifier.entry], capture_output=True, check=True
+        ).stdout.strip()
+        == b'{"score": 1}'
+    )
 
 
 @pytest.mark.parametrize("outcome", ["success", "crash", "timeout"])
@@ -424,24 +412,20 @@ def test_missing_remote_entry_does_not_save_snapshot(tmp_path, runtime, ssh_file
     base = tmp_path / "base"
     base.mkdir()
     ref = runtime.create(backend="test", image=str(base))
-    instance = runtime.start(ref=ref)
     pool = TaskPool(root=tmp_path / "pool", runtime=runtime)
     monkeypatch.setattr(
         runtime, "save", lambda *args, **kwargs: pytest.fail("must not save snapshot")
     )
-    try:
-        with pytest.raises(FileNotFoundError):
-            pool.save(
-                cwd="/", instance=instance,
-                name="missing",
-                goal=[{"type": "text", "text": "Task"}],
-                verifier=Verifier(entry=address(source / "run.py"), runtime=runtime, timeout=10),
-                verifier_runtime_ref=ref,
-            )
-        assert pool.search() == []
-        assert not list(pool.root.iterdir())
-    finally:
-        runtime.close(instance=instance)
+    with pytest.raises(FileNotFoundError):
+        pool.save(
+            cwd="/", task_runtime_ref=ref,
+            name="missing",
+            goal=[{"type": "text", "text": "Task"}],
+            verifier=Verifier(entry=address(source / "run.py"), runtime=runtime, timeout=10),
+            verifier_runtime_ref=ref,
+        )
+    assert pool.search() == []
+    assert not list(pool.root.iterdir())
 
 
 def test_archive_path_traversal_rejected(tmp_path):

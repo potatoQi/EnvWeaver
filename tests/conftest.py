@@ -17,7 +17,6 @@ class FilesystemBackend:
 
     def __init__(self, root, *, host=None, ssh=None):
         self.root = root
-        self.fail_save = False
 
     def create(self, image, config=None, connection=None):
         return RuntimeRef(
@@ -58,8 +57,6 @@ class FilesystemBackend:
             shutil.copy2(local_path, target)
 
     def save(self, instance):
-        if self.fail_save:
-            raise OSError("injected snapshot failure")
         destination = self.root / uuid.uuid4().hex
         shutil.copytree(instance.data["path"], destination)
         return RuntimeRef(

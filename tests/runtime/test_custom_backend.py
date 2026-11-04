@@ -132,9 +132,10 @@ print(json.dumps({"score": float(Path("answer.txt").read_text() == "correct")}))
     )
     pool = TaskPool(root=tmp_path / "pool", runtime=runtime)
     try:
+        task_runtime_ref = runtime.save(instance=candidate)
         task_path = pool.save(
             cwd="/", verifier_runtime_ref=ref,
-            instance=candidate,
+            task_runtime_ref=task_runtime_ref,
             name="company-task",
             goal=[{"type": "text", "text": "Write the answer."}],
             verifier=checker,

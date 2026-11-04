@@ -31,10 +31,12 @@ def materials(tmp_path):
 def test_archive_restore_search_and_unique_names(tmp_path, runtime):
     original, package, image, inputs = materials(tmp_path)
     instance = runtime.start(RuntimeRef("test", str(original)))
+    (Path(instance.data["path"]) / "state.txt").write_text("prepared")
+    task_runtime_ref = runtime.save(instance=instance)
     pool = TaskPool(tmp_path / "pool", runtime=runtime)
     goal = [{"type": "text", "text": "修复表格"}, {"type": "image", "path": str(image)}]
     ref = pool.save(
-        instance,
+        task_runtime_ref,
         "unique",
         goal,
         verification(package / "run.py", runtime),
@@ -46,7 +48,7 @@ def test_archive_restore_search_and_unique_names(tmp_path, runtime):
     assert Path(ref) == pool.root / "unique/task.json"
     with pytest.raises(TaskExistsError):
         pool.save(
-            instance,
+            task_runtime_ref,
             "unique",
             goal,
             verification(package / "run.py", runtime),
@@ -65,7 +67,7 @@ def test_archive_restore_search_and_unique_names(tmp_path, runtime):
     assert Path(task.verifier.entry).with_name("private.txt").read_text() == "answer"
     restored = runtime.start(task.task_runtime_ref, task.context)
     root = Path(restored.data["path"])
-    assert (root / "state.txt").read_text() == "broken"
+    assert (root / "state.txt").read_text() == "prepared"
     assert (root / "work" / "sales.csv").read_text() == "a,b\n1,2"
     assert not (root / "private.txt").exists()
     (root / "work" / "sales.csv").write_text("changed")
@@ -78,30 +80,32 @@ def test_archive_restore_search_and_unique_names(tmp_path, runtime):
     assert pool.search(filters={}) == [ref]
 
 
-def test_failed_snapshot_never_publishes_task(tmp_path, runtime):
+def test_save_reuses_reference_without_starting_or_snapshotting(tmp_path, runtime, monkeypatch):
     original, package, *_ = materials(tmp_path)
-    instance = runtime.start(RuntimeRef("test", str(original)))
+    task_runtime_ref = RuntimeRef("test", str(original), metadata={"source": "shared"})
     pool = TaskPool(tmp_path / "pool", runtime=runtime)
-    runtime._backends["test"].fail_save = True
-    with pytest.raises(OSError, match="snapshot"):
-        pool.save(
-            instance,
-            "failed",
-            [{"type": "text", "text": "task"}],
-            verification(package / "run.py", runtime),
-            RuntimeRef("test", "verifier-base"),
+
+    def unexpected(*args, **kwargs):
+        pytest.fail("Saving a task must not start or snapshot an environment")
+
+    monkeypatch.setattr(runtime, "start", unexpected)
+    monkeypatch.setattr(runtime, "save", unexpected)
+    for name in ("first", "second"):
+        path = pool.save(
+            task_runtime_ref=task_runtime_ref,
+            name=name,
+            goal=[{"type": "text", "text": "task"}],
+            verifier=verification(package / "run.py", runtime),
+            verifier_runtime_ref=task_runtime_ref,
             cwd="/",
         )
-    assert pool.search() == []
-    runtime._backends["test"].fail_save = False
-    assert pool.save(
-        instance,
-        "failed",
-        [{"type": "text", "text": "task"}],
-        verification(package / "run.py", runtime),
-        RuntimeRef("test", "verifier-base"),
-        cwd="/",
-    )
+        task = pool.load(task_ref=path)
+        assert task.task_runtime_ref == task_runtime_ref
+        assert task.verifier_runtime_ref == task_runtime_ref
+        task.task_runtime_ref.metadata["source"] = "changed"
+        assert pool.load(task_ref=path).task_runtime_ref.metadata == {"source": "shared"}
+    assert task_runtime_ref.metadata == {"source": "shared"}
+    assert list(runtime.root.iterdir()) == []
 
 
 def test_pool_requires_runtime(tmp_path):
@@ -109,12 +113,53 @@ def test_pool_requires_runtime(tmp_path):
         TaskPool(root=tmp_path / "pool")
 
 
+@pytest.mark.parametrize("field", ["task_runtime_ref", "verifier_runtime_ref"])
+@pytest.mark.parametrize("invalid", [None, {"backend": "docker", "image": "base"}])
+def test_save_rejects_invalid_runtime_refs_before_publication(tmp_path, runtime, field, invalid):
+    _, package, *_ = materials(tmp_path)
+    pool = TaskPool(root=tmp_path / "pool", runtime=runtime)
+    refs = {
+        "task_runtime_ref": RuntimeRef("test", "task"),
+        "verifier_runtime_ref": RuntimeRef("test", "verifier"),
+    }
+    refs[field] = invalid
+    with pytest.raises(TypeError, match=field + " must be a RuntimeRef"):
+        pool.save(
+            **refs,
+            name="invalid",
+            goal=[{"type": "text", "text": "task"}],
+            verifier=verification(package / "run.py", runtime),
+            cwd="/",
+        )
+    assert not pool.root.exists()
+
+
+@pytest.mark.parametrize("field", ["task_runtime_ref", "verifier_runtime_ref"])
+def test_save_rejects_unserializable_runtime_refs_before_publication(tmp_path, runtime, field):
+    _, package, *_ = materials(tmp_path)
+    pool = TaskPool(root=tmp_path / "pool", runtime=runtime)
+    refs = {
+        "task_runtime_ref": RuntimeRef("test", "task"),
+        "verifier_runtime_ref": RuntimeRef("test", "verifier"),
+    }
+    refs[field].config["invalid"] = object()
+    with pytest.raises(TypeError):
+        pool.save(
+            **refs,
+            name="invalid",
+            goal=[{"type": "text", "text": "task"}],
+            verifier=verification(package / "run.py", runtime),
+            cwd="/",
+        )
+    assert not pool.root.exists()
+
+
 def test_load_rejects_escaping_assets(tmp_path, runtime):
     original, package, *_ = materials(tmp_path)
-    instance = runtime.start(RuntimeRef("test", str(original)))
+    task_runtime_ref = RuntimeRef("test", str(original))
     pool = TaskPool(tmp_path / "pool", runtime=runtime)
     ref = pool.save(
-        instance,
+        task_runtime_ref,
         "bad",
         [{"type": "text", "text": "task"}],
         verification(package / "run.py", runtime),
@@ -130,11 +175,11 @@ def test_load_rejects_escaping_assets(tmp_path, runtime):
 
 def test_verifier_cannot_recursively_archive_the_pool(tmp_path, runtime):
     original, package, *_ = materials(tmp_path)
-    instance = runtime.start(RuntimeRef("test", str(original)))
+    task_runtime_ref = RuntimeRef("test", str(original))
     pool = TaskPool(package / "pool", runtime=runtime)
     with pytest.raises(ValueError, match="separate verifier package"):
         pool.save(
-            instance,
+            task_runtime_ref,
             "recursive",
             [{"type": "text", "text": "task"}],
             verification(package / "run.py", runtime),
@@ -184,12 +229,11 @@ def test_context_failure_keeps_original_error_when_cleanup_also_fails(
     ],
 )
 def test_task_keeps_runtime_requirements_without_producer_settings(
-    tmp_path, runtime, monkeypatch, backend, operational
+    tmp_path, runtime, backend, operational
 ):
     import copy
 
-    original, package, *_ = materials(tmp_path)
-    instance = runtime.start(RuntimeRef("test", str(original)))
+    _, package, *_ = materials(tmp_path)
     if backend == "docker":
         required = {
             "python": "/opt/python/bin/python3",
@@ -226,10 +270,9 @@ def test_task_keeps_runtime_requirements_without_producer_settings(
         }
     saved = RuntimeRef(backend, "/asset", {**required, **operational})
     original_config = copy.deepcopy(saved.config)
-    monkeypatch.setattr(runtime, "save", lambda *a, **k: saved)
     pool = TaskPool(tmp_path / "pool", runtime=runtime)
     path = pool.save(
-        instance,
+        saved,
         "task",
         [{"type": "text", "text": "goal"}],
         verification(package / "run.py", runtime),
@@ -255,7 +298,7 @@ def test_verifier_contract_roundtrip_and_environment_filtering(
     tmp_path, runtime, requires_task_instance
 ):
     original, package, *_ = materials(tmp_path)
-    instance = runtime.start(RuntimeRef("test", str(original)))
+    task_runtime_ref = RuntimeRef("test", str(original))
     pool = TaskPool(tmp_path / "pool", runtime=runtime)
     verifier_runtime_ref = RuntimeRef(
         "qemu",
@@ -276,7 +319,7 @@ def test_verifier_contract_roundtrip_and_environment_filtering(
         runtime=runtime,
     )
     ref = pool.save(
-        instance,
+        task_runtime_ref,
         "windows-checker",
         [{"type": "text", "text": "task"}],
         checker,
@@ -360,10 +403,10 @@ def test_verifier_requires_names_not_values(required, runtime):
 @pytest.mark.parametrize("version", [2, True, 1.0, "1", None, 99])
 def test_load_rejects_unsupported_or_invalid_task_versions(tmp_path, runtime, version):
     original, package, *_ = materials(tmp_path)
-    instance = runtime.start(RuntimeRef("test", str(original)))
+    task_runtime_ref = RuntimeRef("test", str(original))
     pool = TaskPool(tmp_path / "pool", runtime=runtime)
     ref = pool.save(
-        instance,
+        task_runtime_ref,
         "version",
         [{"type": "text", "text": "task"}],
         verification(package / "run.py", runtime),
@@ -379,12 +422,12 @@ def test_load_rejects_unsupported_or_invalid_task_versions(tmp_path, runtime, ve
 
 def test_invalid_verifier_does_not_create_snapshot(tmp_path, runtime, monkeypatch):
     original, package, *_ = materials(tmp_path)
-    instance = runtime.start(RuntimeRef("test", str(original)))
+    task_runtime_ref = RuntimeRef("test", str(original))
     pool = TaskPool(tmp_path / "pool", runtime=runtime)
     monkeypatch.setattr(runtime, "save", lambda *a, **kw: pytest.fail("must not save snapshot"))
     with pytest.raises(TypeError, match="Verifier"):
         pool.save(
-            instance,
+            task_runtime_ref,
             "legacy",
             [{"type": "text", "text": "task"}],
             package / "run.py",
@@ -400,12 +443,12 @@ def test_invalid_verifier_does_not_create_snapshot(tmp_path, runtime, monkeypatc
     )
     with pytest.raises(TypeError, match="RuntimeRef"):
         pool.save(
-            instance, "invalid", [{"type": "text", "text": "task"}], checker, {"backend": "docker"},
+            task_runtime_ref, "invalid", [{"type": "text", "text": "task"}], checker, {"backend": "docker"},
             cwd="/",
         )
     with pytest.raises(TypeError):
         pool.save(
-            instance,
+            task_runtime_ref,
             "invalid",
             [{"type": "text", "text": "task"}],
             checker,
@@ -426,9 +469,6 @@ def test_task_connections_roundtrip_and_start(tmp_path, runtime, backend_name):
             instance = replace(super().start(ref, connection=connection), backend=backend_name)
             return instance
 
-        def save(self, instance):
-            return replace(super().save(instance), backend=backend_name)
-
     runtime.register(backend_name, Backend)
     original, package, *_ = materials(tmp_path)
     connections = {
@@ -441,10 +481,9 @@ def test_task_connections_roundtrip_and_start(tmp_path, runtime, backend_name):
     }
     task_connection, verifier_connection = connections[backend_name]
     ref = RuntimeRef(backend_name, str(original), connection=task_connection)
-    instance = runtime.start(ref)
     pool = TaskPool(tmp_path / "pool", runtime=runtime)
     path = pool.save(
-        cwd="/", instance=instance,
+        cwd="/", task_runtime_ref=ref,
         name="connections",
         goal=[{"type": "text", "text": "task"}],
         verifier=verification(package / "run.py", runtime),
@@ -466,10 +505,11 @@ def test_task_connections_roundtrip_and_start(tmp_path, runtime, backend_name):
     verify_instance = runtime.start(ref=task.verifier_runtime_ref)
     assert task_instance.data["connection"] == manifest["task_runtime_ref"]["connection"]
     assert verify_instance.data["connection"] == manifest["verifier_runtime_ref"]["connection"]
-    for live in (instance, task_instance, verify_instance):
+    for live in (task_instance, verify_instance):
         runtime.close(live)
 
 
+@pytest.mark.parametrize("field", ["task_runtime_ref", "verifier_runtime_ref"])
 @pytest.mark.parametrize(
     "backend,connection,error",
     [
@@ -485,31 +525,32 @@ def test_task_connections_roundtrip_and_start(tmp_path, runtime, backend_name):
     ],
 )
 def test_invalid_task_connections_fail_before_save(
-    tmp_path, runtime, monkeypatch, backend, connection, error
+    tmp_path, runtime, backend, connection, error, field
 ):
-    from envweaver import Instance
-
     _, package, *_ = materials(tmp_path)
     pool = TaskPool(tmp_path / "pool", runtime=runtime)
-    monkeypatch.setattr(runtime, "save", lambda *_: pytest.fail("must not save environment"))
+    refs = {
+        "task_runtime_ref": RuntimeRef(backend, "task"),
+        "verifier_runtime_ref": RuntimeRef(backend, "verifier"),
+    }
+    refs[field] = RuntimeRef(backend, "invalid", connection=connection)
     with pytest.raises(error):
         pool.save(
-            cwd="/", instance=Instance("live", backend),
+            cwd="/", **refs,
             name="invalid",
             goal=[{"type": "text", "text": "task"}],
             verifier=verification(package / "run.py", runtime),
-            verifier_runtime_ref=RuntimeRef(backend, "verifier", connection=connection),
         )
-    assert not (pool.root / "invalid").exists()
+    assert not pool.root.exists()
 
 
 def test_load_rejects_deployment_fields_in_connection(tmp_path, runtime):
     original, package, *_ = materials(tmp_path)
-    instance = runtime.start(RuntimeRef("test", str(original)))
+    task_runtime_ref = RuntimeRef("test", str(original))
     pool = TaskPool(tmp_path / "pool", runtime=runtime)
     path = Path(
         pool.save(
-            instance,
+            task_runtime_ref,
             "tampered",
             [{"type": "text", "text": "task"}],
             verification(package / "run.py", runtime),
@@ -522,7 +563,6 @@ def test_load_rejects_deployment_fields_in_connection(tmp_path, runtime):
     path.write_text(json.dumps(manifest))
     with pytest.raises(ValueError, match="connection"):
         pool.load(path)
-    runtime.close(instance)
 
 
 @pytest.mark.parametrize("filters", ["keyword", [], False, 1])
@@ -536,20 +576,17 @@ def test_search_rejects_non_dictionary_filters(tmp_path, runtime, monkeypatch, f
 @pytest.mark.parametrize("cwd", ["/workspace/project", r"C:\Tasks", r"\\server\share\project"])
 def test_cwd_round_trip(tmp_path, runtime, cwd):
     original, package, _, _ = materials(tmp_path)
-    instance = runtime.start(ref=RuntimeRef("test", str(original)))
+    task_runtime_ref = RuntimeRef("test", str(original))
     pool = TaskPool(root=tmp_path / "pool", runtime=runtime)
-    try:
-        ref = pool.save(
-            instance=instance, name="cwd", goal=[{"type": "text", "text": "solve"}],
-            verifier=verification(package / "run.py", runtime),
-            verifier_runtime_ref=RuntimeRef("test", "verifier"), cwd=cwd,
-        )
-        assert pool.load(task_ref=ref).cwd == cwd
-        data = json.loads(Path(ref).read_text())
-        assert data["version"] == 1
-        assert data["cwd"] == cwd
-    finally:
-        runtime.close(instance=instance)
+    ref = pool.save(
+        task_runtime_ref=task_runtime_ref, name="cwd", goal=[{"type": "text", "text": "solve"}],
+        verifier=verification(package / "run.py", runtime),
+        verifier_runtime_ref=RuntimeRef("test", "verifier"), cwd=cwd,
+    )
+    assert pool.load(task_ref=ref).cwd == cwd
+    data = json.loads(Path(ref).read_text())
+    assert data["version"] == 1
+    assert data["cwd"] == cwd
 
 
 @pytest.mark.parametrize("cwd", [None, "", "relative/path", r"C:relative", 12, [], " /work", "/work\0"])
@@ -557,28 +594,25 @@ def test_invalid_cwd_rejected_on_save_load_and_task(tmp_path, runtime, cwd):
     from dataclasses import replace
 
     original, package, _, _ = materials(tmp_path)
-    instance = runtime.start(ref=RuntimeRef("test", str(original)))
+    task_runtime_ref = RuntimeRef("test", str(original))
     pool = TaskPool(root=tmp_path / "pool", runtime=runtime)
     kwargs = dict(
-        instance=instance, goal=[{"type": "text", "text": "solve"}],
+        task_runtime_ref=task_runtime_ref, goal=[{"type": "text", "text": "solve"}],
         verifier=verification(package / "run.py", runtime),
         verifier_runtime_ref=RuntimeRef("test", "verifier"),
     )
-    try:
-        with pytest.raises(ValueError, match="cwd"):
-            pool.save(name="invalid", cwd=cwd, **kwargs)
-        assert pool.search() == []
-        ref = pool.save(cwd="/", name="valid", **kwargs)
-        task = pool.load(task_ref=ref)
-        with pytest.raises(ValueError, match="cwd"):
-            replace(task, cwd=cwd)
-        data = json.loads(Path(ref).read_text())
-        data["cwd"] = cwd
-        Path(ref).write_text(json.dumps(data))
-        with pytest.raises(ValueError, match="cwd"):
-            pool.load(task_ref=ref)
-    finally:
-        runtime.close(instance=instance)
+    with pytest.raises(ValueError, match="cwd"):
+        pool.save(name="invalid", cwd=cwd, **kwargs)
+    assert pool.search() == []
+    ref = pool.save(cwd="/", name="valid", **kwargs)
+    task = pool.load(task_ref=ref)
+    with pytest.raises(ValueError, match="cwd"):
+        replace(task, cwd=cwd)
+    data = json.loads(Path(ref).read_text())
+    data["cwd"] = cwd
+    Path(ref).write_text(json.dumps(data))
+    with pytest.raises(ValueError, match="cwd"):
+        pool.load(task_ref=ref)
 
 
 def test_cwd_is_required_without_implicit_default(tmp_path, runtime):
@@ -587,26 +621,23 @@ def test_cwd_is_required_without_implicit_default(tmp_path, runtime):
     from envweaver import Task
 
     original, package, _, _ = materials(tmp_path)
-    instance = runtime.start(ref=RuntimeRef("test", str(original)))
+    task_runtime_ref = RuntimeRef("test", str(original))
     pool = TaskPool(root=tmp_path / "pool", runtime=runtime)
     kwargs = dict(
-        instance=instance, name="required-cwd", goal=[{"type": "text", "text": "solve"}],
+        task_runtime_ref=task_runtime_ref, name="required-cwd", goal=[{"type": "text", "text": "solve"}],
         verifier=verification(package / "run.py", runtime),
         verifier_runtime_ref=RuntimeRef("test", "verifier"),
     )
-    try:
-        with pytest.raises(TypeError, match="cwd"):
-            pool.save(**kwargs)
-        assert pool.search() == []
-        ref = pool.save(cwd="/workspace", **kwargs)
-        task = pool.load(task_ref=ref)
-        without_cwd = {field.name: getattr(task, field.name) for field in fields(task) if field.name != "cwd"}
-        with pytest.raises(TypeError, match="cwd"):
-            Task(**without_cwd)
-        data = json.loads(Path(ref).read_text())
-        del data["cwd"]
-        Path(ref).write_text(json.dumps(data))
-        with pytest.raises(ValueError, match="cwd"):
-            pool.load(task_ref=ref)
-    finally:
-        runtime.close(instance=instance)
+    with pytest.raises(TypeError, match="cwd"):
+        pool.save(**kwargs)
+    assert pool.search() == []
+    ref = pool.save(cwd="/workspace", **kwargs)
+    task = pool.load(task_ref=ref)
+    without_cwd = {field.name: getattr(task, field.name) for field in fields(task) if field.name != "cwd"}
+    with pytest.raises(TypeError, match="cwd"):
+        Task(**without_cwd)
+    data = json.loads(Path(ref).read_text())
+    del data["cwd"]
+    Path(ref).write_text(json.dumps(data))
+    with pytest.raises(ValueError, match="cwd"):
+        pool.load(task_ref=ref)

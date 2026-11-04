@@ -198,6 +198,7 @@ def test_independent_downstream_complete_task(tmp_path, request, monkeypatch):
     try:
         runtime.upload(instance=source_instance, source=program, target="/tmp/csv task/parser.py")
         pool = TaskPool(root=producer / "pool", runtime=runtime)
+        task_runtime_ref = runtime.save(instance=source_instance)
         task = pool.save(
             cwd="/", verifier_runtime_ref=runtime.create(
                 backend="docker",
@@ -210,7 +211,7 @@ def test_independent_downstream_complete_task(tmp_path, request, monkeypatch):
                     "network": "none",
                 },
             ),
-            instance=source_instance,
+            task_runtime_ref=task_runtime_ref,
             name="CSV 引号与 BOM",
             goal=[
                 {"type": "text", "text": "修复 parser.py，支持引号、换行、BOM 和 Unicode。"},
@@ -366,9 +367,10 @@ def test_patch_verification_without_task_connection(tmp_path, monkeypatch):
             == 0
         )
         pool = TaskPool(root=tmp_path / "pool", runtime=runtime)
+        task_runtime_ref = runtime.save(instance=candidate)
         task_path = pool.save(
             cwd="/", verifier_runtime_ref=ref,
-            instance=candidate,
+            task_runtime_ref=task_runtime_ref,
             name="patch-evaluation",
             goal=[{"type": "text", "text": "Fix app.py so add returns the sum."}],
             verifier=checker,

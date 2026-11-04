@@ -21,20 +21,16 @@ def test_sdk_save_ui_tags_and_sdk_load_share_metadata(tmp_path, runtime):
     verifier = tmp_path / "verify/run.py"
     verifier.parent.mkdir()
     verifier.write_text('print("{\\"score\\": 1}")')
-    instance = runtime.start(ref=RuntimeRef("test", str(image)))
     pool = TaskPool(root=tmp_path / "pool", runtime=runtime)
-    try:
-        ref = pool.save(
-            instance=instance,
-            name="sdk",
-            goal=[{"type": "text", "text": "task"}],
-            verifier=Verifier(entry=verifier, timeout=30, runtime=runtime),
-            verifier_runtime_ref=RuntimeRef("test", str(image)),
-            cwd="/",
-            metadata={"source": "sdk", "tags": ["initial"]},
-        )
-    finally:
-        runtime.close(instance=instance)
+    ref = pool.save(
+        task_runtime_ref=RuntimeRef("test", str(image)),
+        name="sdk",
+        goal=[{"type": "text", "text": "task"}],
+        verifier=Verifier(entry=verifier, timeout=30, runtime=runtime),
+        verifier_runtime_ref=RuntimeRef("test", str(image)),
+        cwd="/",
+        metadata={"source": "sdk", "tags": ["initial"]},
+    )
     material = Path(ref).parent / "verifier/run.py"
     inode = material.stat().st_ino
     before = material.read_bytes()

@@ -342,7 +342,7 @@ def test_real_sdk_save_is_visible_without_import(tmp_path):
             )
             pool = TaskPool(root=task_root, runtime=runtime)
             path = pool.save(
-                instance=instance,
+                task_runtime_ref=saved,
                 name="sdk-end-to-end",
                 goal=[{"type": "text", "text": "Inspect workspace"}],
                 verifier=Verifier(entry=entry, runtime=runtime, timeout=30),

@@ -14,7 +14,7 @@ from ._io.storage import local_source
 from ._task_store import list_tasks, operate, publish, resolve_task_path, validate_name
 from ._util import metadata_tags, read_json, validate_cwd, validate_goal, validate_setup, write_json
 from .errors import TaskExistsError
-from .models import Instance, RuntimeRef, Task
+from .models import RuntimeRef, Task
 from .runtime import Runtime
 from .runtime._connection import fixed_connection
 from .verifier import Verifier
@@ -82,7 +82,7 @@ class TaskPool:
     """
     Args:
         root: 任务存储路径。
-        runtime: 保存任务沙箱和执行 Verify 使用的沙箱管理器。
+        runtime: 加载任务的 Verifier 使用的沙箱管理器。
     """
 
     def __init__(self, root: str | Path, *, runtime: Runtime):
@@ -144,7 +144,7 @@ class TaskPool:
 
     def save(
         self,
-        instance: Instance,
+        task_runtime_ref: RuntimeRef,
         name: str,
         goal: list[dict],
         verifier: Verifier,
@@ -162,7 +162,7 @@ class TaskPool:
             goal: 任务要求，按顺序填写文字和图片。文字格式为 {"type": "text", "text": ...}，图片为
                 {"type": "image", "path": ...}，path 填写图片路径。
             metadata: 自定义任务信息，填写可保存为 JSON 的字典。tags 填标签字符串列表，默认无标签；每项去除首尾空白后须为 1–100 个字符。
-            instance: 要保存为任务初始环境的沙箱，须由 Runtime.start 创建。
+            task_runtime_ref: 任务初始环境的 [RuntimeRef](runtime.md#runtimeref)，必填。
             context: 任务输入文件列表。source 填文件或目录路径；
                 target 填容器或虚拟机内的目标路径。
             setup: 准备命令和超时，格式同 [Runtime.start](runtime.md#start) 的 setup。
@@ -176,7 +176,7 @@ class TaskPool:
         Raises:
             envweaver.errors.TaskExistsError: 同名任务已存在或正在保存。
             ValueError: 任务名称、goal、metadata.tags、验证入口、setup、cwd、连接配置无效。
-            TypeError: verifier 或 verifier_runtime_ref 类型不符、metadata、连接配置不是字典，或任务信息不能保存为 JSON。
+            TypeError: task_runtime_ref 或 verifier_runtime_ref 不是 RuntimeRef、verifier 不是 Verifier、metadata 或连接配置不是字典，或任务信息不能保存为 JSON。
             OSError: 验证器、图片或输入文件无法读取，或存储目录无法写入。
             envweaver.errors.RuntimeError: SSH 文件传输失败。
             TimeoutError: SSH 文件传输超时。
@@ -192,6 +192,8 @@ class TaskPool:
         validate_goal(goal)
         if not isinstance(verifier, Verifier):
             raise TypeError("verifier must be a Verifier")
+        if not isinstance(task_runtime_ref, RuntimeRef):
+            raise TypeError("task_runtime_ref must be a RuntimeRef")
         if not isinstance(verifier_runtime_ref, RuntimeRef):
             raise TypeError("verifier_runtime_ref must be a RuntimeRef")
         verification = {
@@ -200,10 +202,13 @@ class TaskPool:
             "required_env": verifier.required_env,
             "requires_task_instance": verifier.requires_task_instance,
         }
+        task_runtime_data = json.loads(
+            json.dumps(_task_runtime(task_runtime_ref), allow_nan=False)
+        )
         verifier_runtime_data = json.loads(
             json.dumps(_task_runtime(verifier_runtime_ref), allow_nan=False)
         )
-        # Reject unserializable configuration before creating environment assets.
+        # Reject unserializable configuration before reserving the task name.
         verification = json.loads(json.dumps(verification, allow_nan=False))
         with self._destination(name) as target:
             with tempfile.TemporaryDirectory(
@@ -218,7 +223,6 @@ class TaskPool:
                         entry,
                         context or [],
                     )
-                ref = self.runtime.save(instance)
                 write_json(
                     stage / "task.json",
                     {
@@ -226,7 +230,7 @@ class TaskPool:
                         "name": name,
                         "goal": assets["goal"],
                         "metadata": metadata,
-                        "task_runtime_ref": _task_runtime(ref),
+                        "task_runtime_ref": task_runtime_data,
                         "context": assets["context"],
                         **({"setup": setup} if setup is not None else {}),
                         "cwd": cwd,

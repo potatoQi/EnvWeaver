@@ -4,7 +4,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from envweaver import Agent, Instance, Runtime, RuntimeRef, TaskPool, Verifier
+from envweaver import Agent, Runtime, RuntimeRef, TaskPool, Verifier
 from envweaver.agents.execution import AgentExecution
 
 
@@ -28,7 +28,7 @@ def test_invalid_goal_rejected_before_saving_or_calling_adapter(tmp_path, goal):
     verifier = Verifier(entry=tmp_path / "run.py", runtime=runtime, timeout=30)
     with pytest.raises(ValueError) as saved:
         pool.save(
-            instance=Instance("unused", "test"), name="invalid", goal=goal,
+            task_runtime_ref=RuntimeRef("test", "task"), name="invalid", goal=goal,
             verifier=verifier, verifier_runtime_ref=RuntimeRef("test", "verifier"), cwd="/",
         )
     with pytest.raises(ValueError) as executed:

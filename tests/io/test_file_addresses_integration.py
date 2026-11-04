@@ -97,7 +97,7 @@ def test_real_ssh_context_upload_download(tmp_path):
         assert run_verifier(checker, ref, files=files) == {"score": 1}
         pool = TaskPool(root=host + directory + "/pool", runtime=runtime)
         task_ref = pool.save(
-            cwd="/", instance=instance,
+            cwd="/", task_runtime_ref=ref,
             name="任务 materials #100%",
             goal=[
                 {"type": "text", "text": "Task"},

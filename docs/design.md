@@ -113,7 +113,7 @@ RuntimeRef.connection 保存 SSH 用户名、Python 路径或 VNC 密码环境�
 - QEMU 每个实例使用独立差分盘；保存时关机，生成依赖基础盘的差分文件，再重启。基础盘须保留且不修改。
 - QEMU 的 `config.save_mode` 默认为 `"incremental"`。重复保存同一个 QEMU 实例不加深依赖链；从已保存环境创建新环境再保存，会增加一层。
 - QEMU 的 `config.save_mode="consolidated"` 将累计变化保存为直接依赖差分链最底层基础盘的新快照，不修改基础盘或中间快照。保存可能更慢；保留多个版本时，累计变化可能重复占用空间。Docker 使用原生镜像层，不配置 save_mode。
-- Runtime.save 和 TaskPool.save 不接收保存模式；QEMU 按实例的 config.save_mode 保存，并在返回的 RuntimeRef 中保留此配置。Task 交付时去掉 save_mode。
+- Runtime.save 不接收保存模式；QEMU 按实例的 config.save_mode 保存，并在返回的 RuntimeRef 中保留此配置。Task 交付时去掉 save_mode。
 
 `create` 检查目标服务器上的现有镜像或磁盘，返回 RuntimeRef，不启动环境或构建镜像。Docker 引用固定为镜像 ID；QEMU 引用使用绝对磁盘路径。`start` 接收 RuntimeRef 并启动实例，`save` 保存实例并返回 RuntimeRef。
 
@@ -136,7 +136,7 @@ RuntimeRef.connection 保存 SSH 用户名、Python 路径或 VNC 密码环境�
 
 清理时暂停相关 Pipeline。迁移时需同时搬运 Docker 镜像或 QEMU 完整磁盘链，并更新地址与路径；只复制 `root` 不够。
 
-TaskPool.save 将任务保存到 `root/<name>/`，返回 task.json 地址。目录包含元信息、Goal 图片、Context 和验证材料，不包含镜像或虚拟机磁盘，格式版本保持 1。search 读取各任务目录的元信息并返回 task_ref；load 支持本地和 SSH。SSH 材料下载到临时目录，在 Task 或其 Verifier 存活期间保留。保存前预留任务名称，重名或并发保存同名任务均报错；材料准备完成后原子发布目录，失败则清理临时材料和名称锁。保存失败可能留下 Runtime 资产。异常退出留下的 `.lock` 文件，确认保存进程已退出后再删除。
+TaskPool.save 接收已有的 task_runtime_ref 和 verifier_runtime_ref，不启动环境或创建快照。需要保留实例中的修改时，由调用者先用 Runtime.save 保存环境。TaskPool.save 将任务保存到 `root/<name>/`，返回 task.json 地址。目录包含元信息、Goal 图片、Context 和验证材料，不包含镜像或虚拟机磁盘，格式版本保持 1。search 读取各任务目录的元信息并返回 task_ref；load 支持本地和 SSH。SSH 材料下载到临时目录，在 Task 或其 Verifier 存活期间保留。保存前预留任务名称，重名或并发保存同名任务均报错；材料准备完成后原子发布目录，失败则清理临时材料和名称锁。异常退出留下的 `.lock` 文件，确认保存进程已退出后再删除。
 
 ## 实例连接
 
@@ -168,7 +168,7 @@ QEMU 截图通过 QMP 读取 PPM，再用包依赖 Pillow 转成 PNG 字节；�
 
 `Verifier` 接收 entry、runtime、timeout 和可选的 required_env、requires_task_instance。`run(verifier_instance=..., task_instance=...)` 在调用者提供的验证沙箱执行；requires_task_instance 默认为 True；为 True 时必须传 task_instance，为 False 时不能传。Task 文件省略该字段时也按 True 加载；不需要任务沙箱的验证器须显式填写 False。调用不匹配时，在传输材料和执行 Verify 前报错。Verifier 不启动或销毁沙箱，调用者使用 Runtime.start 和 Runtime.close 管理生命周期。
 
-TaskPool.save 分别接收 verifier 和 verifier_runtime_ref。load 返回 task.verifier 和 task.verifier_runtime_ref；前者使用 TaskPool 的 Runtime 执行 Verify，后者用于启动验证沙箱。Task 和 task.json 统一用 task_runtime_ref、verifier_runtime_ref 表示任务和验证环境的镜像引用；验证程序要求放在 verifier 中，格式版本保持 1。Task 不保存 Runtime 对象或本次连接凭据。
+TaskPool.load 返回 task.verifier 和 task.verifier_runtime_ref；前者使用 TaskPool 的 Runtime 执行 Verify，后者用于启动验证沙箱。Task 和 task.json 统一用 task_runtime_ref、verifier_runtime_ref 表示任务和验证环境的镜像引用；验证程序要求放在 verifier 中，格式版本保持 1。Task 不保存 Runtime 对象或本次连接凭据。
 
 每次 run 在验证沙箱创建独立验证目录，复制材料并执行 run.py。是否复用沙箱由调用者决定；Verifier 不恢复沙箱状态。files 使用 source、target 文件映射列表，target 为相对路径时以 run.py 所在目录为基准，为绝对路径时指向验证沙箱内的位置。files 和 env 是本次输入，不写入 Task；required_env 中的变量必须通过 run(env=...) 提供，缺少时报错，不读取调用进程的环境变量。
 

@@ -92,8 +92,9 @@ print(json.dumps({'score': float(out.strip() == 'fixed')}))
             "assert Path('/inputs/data.csv').read_text() == 'original input'\n"
             "Path('/work/ready.txt').write_text('ready')\n"
         )
+        task_runtime_ref = runtime.save(instance=original)
         task_ref = pool.save(
-            original,
+            task_runtime_ref,
             "bug",
             [{"type": "text", "text": "fix state.txt"}],
             Verifier(entry=entry, timeout=60, runtime=runtime, requires_task_instance=True),
@@ -109,6 +110,8 @@ print(json.dumps({'score': float(out.strip() == 'fixed')}))
         entry.unlink()
         assert pool.search(filters={"kind": "repair"}) == [task_ref]
         task = pool.load(task_ref)
+        assert task.task_runtime_ref.image == task_runtime_ref.image
+        assert len(saved_records(runtime.root)) == 1
         assert "host" not in task.task_runtime_ref.to_dict()
         # A fresh manager explicitly selects the server holding the saved image.
         runtime = Runtime(root=runtime.root, host=host)

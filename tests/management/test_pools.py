@@ -54,19 +54,15 @@ def test_sdk_save_appears_without_import_and_edits_same_files(tmp_path, runtime)
     app = create_app()
     with TestClient(app) as client:
         pool_id = add_pool(client, root)
-        instance = runtime.start(ref=RuntimeRef("test", str(original)))
-        try:
-            pool = TaskPool(root=root, runtime=runtime)
-            ref = pool.save(
-                instance=instance,
-                name="sdk-save",
-                goal=[{"type": "text", "text": "Solve"}],
-                verifier=Verifier(entry=str(entry), runtime=runtime, timeout=30),
-                verifier_runtime_ref=RuntimeRef("test", "verifier"),
-                cwd="/",
-            )
-        finally:
-            runtime.close(instance=instance)
+        pool = TaskPool(root=root, runtime=runtime)
+        ref = pool.save(
+            task_runtime_ref=RuntimeRef("test", str(original)),
+            name="sdk-save",
+            goal=[{"type": "text", "text": "Solve"}],
+            verifier=Verifier(entry=str(entry), runtime=runtime, timeout=30),
+            verifier_runtime_ref=RuntimeRef("test", "verifier"),
+            cwd="/",
+        )
         rows = listing(client, pool_id=pool_id)["items"]
         assert len(rows) == 1 and rows[0]["name"] == "sdk-save"
         assert app.state.store.source_address(rows[0]["id"]) == Path(ref).parent
