@@ -615,7 +615,7 @@ agent = MiniSweAgent(model=model_name, env=agent_env)
             <td>
               <div class="doc-md-description">
                 <p>传给沙箱内 Agent 的环境变量，默认 None；不自动读取当前机器的变量。
-TMUX_TMPDIR 由适配器设置为本次 Agent 的目录。</p>
+TMUX_TMPDIR 由适配器设置为本次独立终端目录。</p>
               </div>
             </td>
             <td>
@@ -658,6 +658,12 @@ temperature、max_turns、model_info、llm_call_kwargs。</p>
       </tbody>
     </table>
 
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>自动为 Harbor 0.25.0 修复短摘要回退：替换旧历史并保留原始任务说明。
+恢复请求仍失败时上报原有错误类型，不继续空转；上下文超限后 Eval 仍验证已有成果。</p>
+</details>
 
 
 
