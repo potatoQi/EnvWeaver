@@ -391,6 +391,62 @@ def test_rich_panel_shows_zero_score_by_default(tmp_path, task, capsys):
     assert result["verification_result"]["score"] == 0
     rendered = capsys.readouterr().err
     assert "Eval" in rendered and "done" in rendered and "0" in rendered
+    assert "1/1" in rendered and "平均 score 0" in rendered and "运行 0" in rendered
+
+
+def test_progress_uses_final_valid_scores_and_keeps_elapsed_time_live(monkeypatch):
+    from rich.console import Console
+
+    clock = [0.0]
+    monkeypatch.setattr(evaluation.time, "monotonic", lambda: clock[0])
+    panel = evaluation._Panel(total=96)
+    console = Console(width=160, color_system=None)
+
+    def render():
+        with console.capture() as capture:
+            console.print(panel._render())
+        return capture.get()
+
+    for index, value in enumerate([0, 0.5, 1]):
+        result = {"score_valid": True, "verification_result": {"score": value}, "errors": []}
+        panel.update(index, "same-task", "done", result)
+        panel.finish(index, result)
+        panel.finish(index, result)  # Repeated/resumed notification must not double-count.
+    invalid = {"score_valid": False, "verification_result": {"score": 0}, "errors": []}
+    panel.update(3, "unscored", "failed", invalid)
+    panel.finish(3, invalid)
+    panel.update(4, "retrying", "failed", invalid)
+    panel.update(4, "retrying", "retry")
+    for index in range(5, 8):
+        panel.update(index, "running", "agent")
+    clock[0] = 1080.0
+    text = render()
+    assert "4/96" in text and "平均 score 0.5" in text
+    assert "运行 4" in text and "已用时 18m" in text
+    clock[0] += 60
+    assert "已用时 19m" in render()  # No stage update is needed for the timer.
+
+
+def test_progress_without_scores_and_cancelled_attempt():
+    from rich.console import Console
+
+    panel = evaluation._Panel()
+    panel.finish(0, {"agent_stop_reason": "cancelled", "errors": []})
+    console = Console(width=160, color_system=None)
+    with console.capture() as capture:
+        console.print(panel._render())
+    text = capture.get()
+    assert "0/?" in text and "平均 score —" in text
+
+
+@pytest.mark.parametrize("streaming", [False, True])
+def test_progress_total_and_resume(tmp_path, task, capsys, streaming):
+    output = tmp_path / "batch"
+    for resume in (False, True):
+        tasks = iter([task, task]) if streaming else [task, task]
+        eval(tasks=tasks, agent=GoodAgent(), config=config(), output_dir=output, resume=resume)
+        rendered = capsys.readouterr().err
+        assert "2/2" in rendered and "平均 score 0" in rendered and "运行 0" in rendered
 
 
 def test_output_directory_collision_is_not_overwritten(tmp_path, task):

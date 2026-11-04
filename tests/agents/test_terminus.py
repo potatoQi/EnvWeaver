@@ -328,29 +328,72 @@ def test_environment_timeout_or_cancel_reaps_only_its_command(local_environment,
         "error connecting to /tmp/tmux/default (No such file or directory)",
     ],
 )
-def test_missing_terminal_is_already_stopped(monkeypatch, message):
+def test_missing_terminal_is_already_stopped(message):
+    import asyncio
     from types import SimpleNamespace
 
     from envweaver.agents.adapters.terminus import runner
 
-    monkeypatch.setattr(
-        runner.subprocess, "run", lambda *a, **k: SimpleNamespace(returncode=1, stderr=message)
-    )
-    runner.stop_terminal("gone")
+    async def execute(command, **kwargs):
+        assert "list-panes" in command
+        return SimpleNamespace(return_code=1, stderr=message)
+
+    asyncio.run(runner.stop_terminal(SimpleNamespace(exec=execute), "gone"))
 
 
-def test_inspection_failure_is_not_mistaken_for_successful_stop(monkeypatch):
+def test_inspection_failure_is_not_mistaken_for_successful_stop():
+    import asyncio
     from types import SimpleNamespace
 
     from envweaver.agents.adapters.terminus import runner
 
-    monkeypatch.setattr(
-        runner.subprocess,
-        "run",
-        lambda *a, **k: SimpleNamespace(returncode=1, stderr="Permission denied"),
-    )
+    async def execute(command, **kwargs):
+        return SimpleNamespace(return_code=1, stderr="Permission denied")
+
     with pytest.raises(runner.TerminalError, match="Cannot inspect"):
-        runner.stop_terminal("alive")
+        asyncio.run(runner.stop_terminal(SimpleNamespace(exec=execute), "alive"))
+
+
+def test_terminal_directory_is_private_reused_and_scoped(local_environment, tmp_path, monkeypatch):
+    import asyncio
+    import os
+    import stat
+
+    from envweaver.agents.adapters.terminus.runner import Environment
+
+    monkeypatch.setenv("TMUX_TMPDIR", "/original")
+
+    async def run():
+        await local_environment.configure_terminal(tmp_path, create=True)
+        directory = local_environment.terminal_dir
+        try:
+            assert directory.stat().st_uid == os.geteuid()
+            assert stat.S_IMODE(directory.stat().st_mode) == 0o700
+            resumed = Environment()
+            await resumed.configure_terminal(tmp_path, create=False)
+            assert resumed.terminal_dir == directory
+            result = await resumed.exec('printf %s "$TMUX_TMPDIR"', env={"TMUX_TMPDIR": "/override"})
+            assert result.return_code == 0 and result.stdout == str(directory)
+            assert os.environ["TMUX_TMPDIR"] == "/original"
+        finally:
+            shutil.rmtree(directory)
+
+    asyncio.run(run())
+
+
+def test_terminal_directory_creation_failure_is_reported(local_environment, tmp_path, monkeypatch):
+    import asyncio
+
+    from envweaver.agents.adapters.terminus.runner import TerminalError
+
+    async def execute(command, **kwargs):
+        return SimpleNamespace(return_code=1, stderr="No space left on device")
+
+    monkeypatch.setattr(local_environment, "exec", execute)
+    with pytest.raises(TerminalError, match="No space left"):
+        asyncio.run(local_environment.configure_terminal(tmp_path, create=True))
+    assert local_environment.terminal_dir is None
+    assert not (tmp_path / "terminal.json").exists()
 
 
 def test_failed_stop_is_reported_before_waiting_for_process_exit(adapter):

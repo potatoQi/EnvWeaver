@@ -139,6 +139,112 @@ def make_agent(url, **options):
 START = "python3 /workspace/server.py >/workspace/service.log 2>&1 &"
 
 
+def test_patch_installation_keeps_official_files_and_is_idempotent():
+    import subprocess
+    from pathlib import Path
+
+    from envweaver.agents.adapters.terminus import monkey_patches
+
+    source = Path(monkey_patches.__file__).parent
+    script = '''
+import hashlib, sys
+from pathlib import Path
+sys.path.insert(0, '/patches')
+from monkey_patches import install
+from harbor.agents.terminus_2 import terminus_2
+from harbor.llms import chat, lite_llm
+paths = [Path(module.__file__) for module in (terminus_2, chat, lite_llm)]
+before = [hashlib.sha256(path.read_bytes()).digest() for path in paths]
+original = terminus_2.Terminus2._query_llm
+install()
+patched = terminus_2.Terminus2._query_llm
+assert patched is not original
+install()
+assert terminus_2.Terminus2._query_llm is patched
+assert [hashlib.sha256(path.read_bytes()).digest() for path in paths] == before
+'''
+    subprocess.run(
+        ["docker", "run", "--rm", "--network", "none", "--entrypoint", "python3",
+         "--mount", f"type=bind,source={source},target=/patches/monkey_patches,readonly",
+         os.environ["ENVWEAVER_TEST_TERMINUS_IMAGE"], "-B", "-c", script],
+        check=True, capture_output=True, timeout=60,
+    )
+
+
+@pytest.mark.parametrize("mode", ["short", "terminal", "full", "still_exceeded"])
+def test_context_recovery_patch_with_official_harbor(service_task, tmp_path, monkeypatch, mode):
+    """Run the official recovery code over HTTP, then verify and archive with Eval."""
+    from envweaver import TrajPool
+
+    monkeypatch.setattr("envweaver.agents.adapters._cli._POLL_INTERVAL", 0.05)
+    task = replace(
+        service_task,
+        task_runtime_ref=replace(
+            service_task.task_runtime_ref,
+            image=os.environ["ENVWEAVER_TEST_TERMINUS_IMAGE"],
+            config={"command": ["sleep", "infinity"], "network": "host"},
+        ),
+        setup={"command": START, "timeout": 10},
+    )
+    state = {"main": 0, "summary": 0, "short": 0, "recoveries": []}
+    exceeded = (400, "maximum context length exceeded")
+
+    def script(body):
+        prompt = body["messages"][-1]["content"]
+        if prompt.startswith("You are about to hand off"):
+            state["summary"] += 1
+            return "The service is running." if mode == "full" else exceeded
+        if prompt.startswith("You are picking up work"):
+            return "Is the service still running?"
+        if prompt.startswith("The next agent has a few questions"):
+            return "Yes, it is running; verify it."
+        if prompt.startswith("Briefly continue this task:"):
+            state["short"] += 1
+            return exceeded if mode == "terminal" else "The service is running; verify it."
+        if (
+            "\n\nSummary:" in prompt
+            or prompt.startswith("start services\n\nCurrent state:")
+            or prompt.startswith("Here are the answers")
+        ):
+            state["recoveries"].append(body)
+            return exceeded if mode == "still_exceeded" else response(complete=True)
+        state["main"] += 1
+        if state["main"] == 3:
+            assert len(body["messages"]) == 5
+            return exceeded
+        if state["main"] > 3:
+            return response(complete=True)
+        return response("printf 'history step %s\\n' " + str(state["main"]))
+
+    with api(script) as (url, requests):
+        (result,) = eval(
+            tasks=task,
+            agent=make_agent(url, enable_summarize=True, max_turns=8,
+                             proactive_summarization_threshold=0),
+            config=EvalConfig(agent_timeout=90),
+            output_dir=tmp_path / "run",
+            traj_pool=TrajPool(root=tmp_path / "trajectories"),
+        )
+        count = len(requests)
+        time.sleep(0.15)
+        assert len(requests) == count, "Agent kept requesting after Eval returned"
+    assert result["score_valid"] and result["verification_result"]["score"] == 1, result
+    assert result["traj_ref"], result
+    assert state["summary"] == 1
+    assert state["short"] == int(mode != "full")
+    assert len(state["recoveries"]) == 1
+    messages = state["recoveries"][0]["messages"]
+    assert messages[0] == requests[0][0]["messages"][0], "Original instructions were lost"
+    assert len(messages) == (4 if mode == "full" else 2), "Old history leaked into recovery"
+    if mode == "still_exceeded":
+        assert result["agent_stop_reason"] == "context_limit", result
+        assert [(e["stage"], e["type"]) for e in result["errors"]] == [("agent", "context_limit")]
+        assert state["main"] == 3
+    else:
+        assert result["agent_stop_reason"] == "completed" and not result["errors"], result
+        assert state["main"] == 4
+
+
 @pytest.mark.parametrize(
     "scenario",
     [
@@ -158,9 +264,14 @@ START = "python3 /workspace/server.py >/workspace/service.log 2>&1 &"
         "disconnect",
         "truncated_http",
         "truncated_output",
+        "unprivileged_completed",
+        "unprivileged_step_limit",
+        "unprivileged_timeout_command",
     ],
 )
 def test_native_terminus_eval(service_task, tmp_path, monkeypatch, scenario):
+    unprivileged = scenario.startswith("unprivileged_")
+    scenario = scenario.removeprefix("unprivileged_")
     monkeypatch.setattr("envweaver.agents.adapters._cli._POLL_INTERVAL", 0.05)
     task = replace(
         service_task,
@@ -171,6 +282,37 @@ def test_native_terminus_eval(service_task, tmp_path, monkeypatch, scenario):
         ),
         setup=None,
     )
+    if unprivileged:
+        from pathlib import Path
+
+        material = Path(task.context[0]["source"])
+        (material / "bash").write_text(
+            '#!/bin/sh\nif [ "$(id -u)" = 0 ]; then\n'
+            'exec setpriv --reuid=1000 --regid=1000 --clear-groups '
+            '--bounding-set=-all --inh-caps=-all --ambient-caps=-all --no-new-privs '
+            '/usr/bin/env HOME=/tmp /bin/bash "$@"\nfi\nexec /bin/bash "$@"\n'
+        )
+        (material / "bash").chmod(0o755)
+        check = material / "check.py"
+        check.write_text(check.read_text() + '''
+import stat
+roots = list(Path('/tmp').glob('envweaver-agent-*'))
+assert len(roots) == 1
+root = roots[0]
+assert root.stat().st_uid == 0
+assert stat.S_IMODE(root.stat().st_mode) == 0o700
+terminal = Path(json.loads((root / 'terminal.json').read_text())['directory'])
+assert terminal.stat().st_uid == 1000
+assert stat.S_IMODE(terminal.stat().st_mode) == 0o700
+assert (terminal / 'tmux-1000/default').is_socket()
+assert (terminal / 'pane.log').stat().st_uid == 1000
+assert (terminal / 'pane.log').stat().st_size > 0
+assert Path('/workspace/ready.json').stat().st_uid == 1000
+''')
+        task = replace(task, setup={
+            "command": "chown -R 1000:1000 /workspace && cp /workspace/bash /usr/local/bin/bash",
+            "timeout": 10,
+        })
     success = [response(START), response(complete=True), response(complete=True)]
     scripts = {
         "completed": success,
@@ -522,14 +664,15 @@ def test_install_from_bare_image(tmp_path, monkeypatch):
             ],
         )
         assert code == 0 and out.strip() == "0.25.0", err
+        terminal_dir = json.loads(agent._read_remote(agent._remote + "/terminal.json"))["directory"]
         code, _, err = runtime.exec(
             instance=instance,
-            command=["env", "TMUX_TMPDIR=" + agent._remote, "tmux", "has-session"],
+            command=["env", "TMUX_TMPDIR=" + terminal_dir, "tmux", "has-session"],
         )
         assert code == 0, err
         code, out, err = runtime.exec(
             instance=instance,
-            command=["env", "TMUX_TMPDIR=" + agent._remote, "tmux",
+            command=["env", "TMUX_TMPDIR=" + terminal_dir, "tmux",
                      "show-environment", "-g", "ENVWEAVER_TERMINAL_CHECK"],
         )
         assert code == 0 and out.strip() == (

@@ -11,24 +11,7 @@ from PIL import Image
 
 from .._redaction import redact_data
 
-_SCAN = """import base64,json,sys
-from pathlib import Path
-sources,previous=json.loads(sys.argv[1])
-result={}
-for label,folder in sources.items():
- root=Path(folder)
- paths=root.rglob('*') if root.is_dir() else [root]
- for p in paths:
-  if p.is_symlink() or not p.is_file() or p.suffix not in ('.json','.jsonl'): continue
-  rel=label+'/'+(str(p.relative_to(root)) if root.is_dir() else p.name)
-  try:
-   stat=p.stat(); stamp=[stat.st_mtime_ns,stat.st_size]
-   if previous.get(rel)==stamp: continue
-   data=p.read_bytes()
-  except FileNotFoundError: continue
-  result[rel]={'stamp':stamp,'data':base64.b64encode(data).decode()}
-print(json.dumps(result))
-"""
+_SCAN = Path(__file__).with_name("_scan.py").read_text()
 
 
 class NativeFiles:
@@ -40,6 +23,7 @@ class NativeFiles:
         self.redact = redact
         self.stamps = {}
         self.files = {}
+        self._prefixes = {}
 
     def poll(self, sources):
         if not sources:
@@ -57,14 +41,16 @@ class NativeFiles:
             if Path(name).is_absolute() or ".." in Path(name).parts:
                 raise ValueError("Native artifact path escapes its directory")
             # A concurrent append may end this snapshot inside a UTF-8 character.
-            text = codecs.getincrementaldecoder("utf-8")().decode(
-                base64.b64decode(item["data"]), final=False
-            )
+            data = base64.b64decode(item["data"])
+            text = codecs.getincrementaldecoder("utf-8")().decode(data, final=False)
+            start = item["start"]
+            prefix, written = self._prefixes.get(name, (0, 0)) if start else (0, 0)
             if name.endswith(".jsonl"):
-                text = "".join(
-                    json.dumps(redact_data(item, self.redact), ensure_ascii=False) + "\n"
-                    for item in json_lines(text)
-                )
+                # Only newline-terminated records are committed. A valid last record
+                # without LF remains visible, but is re-read when the writer appends.
+                boundary = text.rfind("\n") + 1
+                complete = self._jsonl(text[:boundary])
+                text = complete + self._jsonl(text[boundary:])
             else:
                 try:
                     value = json.loads(text)
@@ -73,15 +59,29 @@ class NativeFiles:
                 text = json.dumps(redact_data(value, self.redact), ensure_ascii=False)
             path = self.output.directory / "logs/native" / name
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(text, encoding="utf-8")
+            # Replace only the tentative tail; committed, redacted records stay on disk.
+            with path.open("r+b" if start else "wb") as stream:
+                stream.seek(written)
+                stream.write(text.encode("utf-8"))
+                stream.truncate()
             saved.append(name)
-            self.files[name] = text
+            self.files[name] = self.files.get(name, "")[:prefix] + text
+            if name.endswith(".jsonl"):
+                self._prefixes[name] = (
+                    prefix + len(complete), written + len(complete.encode("utf-8")),
+                )
             self.stamps[name] = item["stamp"]
         if saved:
             logs = self.output.result["artifacts"]["logs"]
             logs = list(dict.fromkeys([*logs, *("logs/native/" + n for n in saved)]))
             self.output.update(artifacts={"logs": logs}, sync=False)
         return bool(saved)
+
+    def _jsonl(self, text):
+        return "".join(
+            json.dumps(redact_data(item, self.redact), ensure_ascii=False) + "\n"
+            for item in json_lines(text)
+        )
 
 
 def json_lines(text):

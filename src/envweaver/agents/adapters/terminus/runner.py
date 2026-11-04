@@ -7,7 +7,6 @@ import pwd
 import shlex
 import shutil
 import signal
-import subprocess
 import sys
 import time
 from pathlib import Path
@@ -24,16 +23,37 @@ class StepLimit(Exception):
 class Environment:
     """Only the local process/file operations consumed by Harbor's TmuxSession."""
 
+    def __init__(self):
+        self.terminal_dir = None
+
+    async def configure_terminal(self, root, *, create):
+        """Keep the terminal directory owned by the user who actually runs bash."""
+        state = root / "terminal.json"
+        if create:
+            result = await self.exec("mktemp -d /tmp/envweaver-terminal-XXXXXX", timeout_sec=10)
+            if result.return_code:
+                raise TerminalError(f"Cannot create Terminus terminal directory: {result.stderr.strip()}")
+            directory = result.stdout.strip()
+            if not directory.startswith("/tmp/envweaver-terminal-") or "\n" in directory:
+                raise TerminalError("Invalid Terminus terminal directory")
+            self.terminal_dir = Path(directory)
+            state.write_text(json.dumps({"directory": directory}))
+        else:
+            self.terminal_dir = Path(json.loads(state.read_text())["directory"])
+
     async def exec(self, command, *, user=None, timeout_sec=None, env=None, cwd=None):
         from harbor.environments.base import ExecResult
 
+        process_env = {**os.environ, **(env or {})}
+        if self.terminal_dir is not None:
+            process_env["TMUX_TMPDIR"] = str(self.terminal_dir)
         args = ["bash", "-c", command]
         if user and pwd.getpwuid(os.geteuid()).pw_name != user:
             args = ["runuser", "-u", str(user), "--"] + args
         process = await asyncio.create_subprocess_exec(
             *args,
             cwd=cwd,
-            env={**os.environ, **(env or {})},
+            env=process_env,
             start_new_session=True,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
@@ -60,15 +80,13 @@ class Environment:
         return Path(path).is_dir()
 
 
-def stop_terminal(session, timeout=10):
+async def stop_terminal(environment, session, timeout=10):
     """Interrupt foreground work while retaining the terminal's background services."""
-    result = subprocess.run(
-        ["tmux", "list-panes", "-s", "-t", session, "-F", "#{pane_pid}"],
-        capture_output=True,
-        text=True,
-        timeout=5,
+    result = await environment.exec(
+        shlex.join(["tmux", "list-panes", "-s", "-t", session, "-F", "#{pane_pid}"]),
+        timeout_sec=5,
     )
-    if result.returncode:
+    if result.return_code:
         message = result.stderr.strip()
         if message.startswith(("can't find session:", "no server running on ")) or message.endswith(
             "(No such file or directory)"
@@ -89,10 +107,10 @@ def stop_terminal(session, timeout=10):
             if foreground > 0 and foreground != own:
                 groups.add(foreground)
         # Ctrl-C also discards pending terminal input, rather than executing queued commands.
-        interrupted = subprocess.run(
-            ["tmux", "send-keys", "-t", session, "C-c"], capture_output=True, timeout=5
+        interrupted = await environment.exec(
+            shlex.join(["tmux", "send-keys", "-t", session, "C-c"]), timeout_sec=5
         )
-        if interrupted.returncode:
+        if interrupted.return_code:
             raise TerminalError("Cannot interrupt Terminus terminal")
         if not groups:
             return
@@ -104,7 +122,7 @@ def stop_terminal(session, timeout=10):
                 os.killpg(group, signal.SIGKILL if age > 2 else signal.SIGTERM)
             except ProcessLookupError:
                 pass
-        time.sleep(0.05)
+        await asyncio.sleep(0.05)
     raise TerminalError("Terminus foreground commands did not stop")
 
 
@@ -127,14 +145,15 @@ async def prepare_terminal(environment):
 
 async def execute(action, root):
     from model_capture import install
+    from monkey_patches import install as install_patches
+
     install(root / "model-calls.jsonl")
+    install_patches()
     from harbor.agents.terminus_2.terminus_2 import Terminus2
     from harbor.agents.terminus_2.tmux_session import TmuxSession
     from harbor.models.agent.context import AgentContext
 
     config = json.loads((root / "config.json").read_text())
-    # A private server inherits the prepared environment without touching task sessions.
-    os.environ["TMUX_TMPDIR"] = str(root)
     context = AgentContext()
     state = {"completed": False, "error": None, "usage": {}, "trajectories": {}}
     session = root.name.replace("-", "_")
@@ -163,6 +182,7 @@ async def execute(action, root):
             snapshot()
 
     try:
+        await environment.configure_terminal(root, create=action == "prepare")
         agent = RecordedTerminus(
             logs_dir=logs,
             model_name=config["model"],
@@ -176,7 +196,7 @@ async def execute(action, root):
         terminal = TmuxSession(
             session_name=session,
             environment=environment,
-            logging_path=root / "pane.log",
+            logging_path=environment.terminal_dir / "pane.log",
             local_asciinema_recording_path=None,
             remote_asciinema_recording_path=None,
             pane_width=agent.options.tmux_pane_width,
@@ -204,9 +224,9 @@ async def execute(action, root):
             "classes": [c.__name__ for c in type(error).__mro__],
             "message": str(error) or type(error).__name__,
         }
-        if shutil.which("tmux"):
+        if environment.terminal_dir is not None and shutil.which("tmux"):
             try:
-                stop_terminal(session)
+                await stop_terminal(environment, session)
             except Exception as stopping:
                 # A failed stop must not be reported as a clean process exit to CliAgent.
                 state["stop_failed"] = str(stopping)

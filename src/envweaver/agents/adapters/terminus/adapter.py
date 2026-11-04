@@ -34,10 +34,14 @@ class Terminus2Agent(CliAgent):
     Args:
         model: 模型名称，必填，例如 openai/Qwen3.8-27B。
         env: 传给沙箱内 Agent 的环境变量，默认 None；不自动读取当前机器的变量。
-            TMUX_TMPDIR 由适配器设置为本次 Agent 的目录。
+            TMUX_TMPDIR 由适配器设置为本次独立终端目录。
         options: Harbor 0.25.0 的 Terminus 2 参数字典，默认 None；例如 api_base、
             temperature、max_turns、model_info、llm_call_kwargs。
         cache: 是否复用已缓存的安装包，默认 True。
+
+    Note:
+        自动为 Harbor 0.25.0 修复短摘要回退：替换旧历史并保留原始任务说明。
+        恢复请求仍失败时上报原有错误类型，不继续空转；上下文超限后 Eval 仍验证已有成果。
 
     Raises:
         ValueError: model、env 或 options 无效，或覆盖了适配器管理的参数。
@@ -136,6 +140,11 @@ class Terminus2Agent(CliAgent):
             instance=instance,
             source=Path(__file__).with_name("runner.py"),
             target=self._remote + "/terminus.py",
+        )
+        runtime.upload(
+            instance=instance,
+            source=Path(__file__).with_name("monkey_patches"),
+            target=self._remote + "/monkey_patches",
         )
         runtime.upload(instance=instance, source=Path(__file__).parent.parent / "_model_capture.py", target=self._remote + "/model_capture.py")
         runtime.upload(instance=instance, source=Path(__file__).parents[2] / "_redaction.py", target=self._remote + "/_redaction.py")
