@@ -1,36 +1,30 @@
-# EnvWeaver
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://potatoqi.github.io/EnvWeaver/0.0.1/assets/envweaver-logo-dark.png">
+    <img src="https://potatoqi.github.io/EnvWeaver/0.0.1/assets/envweaver-logo.png" alt="EnvWeaver Logo" width="96" height="96">
+  </picture>
+</p>
 
-提供 Runtime、Verifier、Task Pool、Agent 和 Eval 接口，让 Agent 根据真实数据源编写可复用的任务生产 Pipeline。
+<h1 align="center">EnvWeaver</h1>
 
-Python 3.11+，尚未发布到 PyPI。开发期间安装到运行 Pipeline 的环境中：
+EnvWeaver 是一个 Python 包，将不同数据来源的 Agent 任务、运行环境和评分方式统一保存，方便复用同一套流程生产任务、评测 Agent，并为训练准备数据。网页面板可管理任务和环境、查看 Agent 的执行轨迹。
+
+以下命令在仓库根目录运行，需要 Python 3.11+ 和 [uv](https://docs.astral.sh/uv/)。首次运行会自动安装所需依赖。
+
+## 文档面板
+
+[在线文档](https://potatoqi.github.io/EnvWeaver/)提供版本切换。本地实时预览：
 
 ```bash
-pip install -e /path/to/EnvWeaver
-```
-
-- [项目简介](docs/index.md)：在 Data Pipeline、评测和训练中使用 EnvWeaver。
-- 接口手册：[Runtime](docs/runtime.md) · [Verifier](docs/verifier.md) · [Task](docs/task.md) · [Agent](docs/agent.md) · [Eval](docs/evaluation.md)
-- [设计说明](docs/design.md)：职责边界、任务与资产约定、验证范围。
-- [资产管理](web/README.md)：Task Pool、Runtime Pool 的网页管理与 HTTP API。
-
-项目开发使用 uv：
-
-```bash
-uv sync
-uv run pytest
-uv build
 uv run --group docs mkdocs serve
 ```
 
-接口文档从 docstring 自动生成；修改约定见 [AGENTS.md](AGENTS.md)。
+打开 <http://127.0.0.1:8000>，查看项目介绍和接口用法。
 
-文档版本与包版本一致，`dev` 为开发版，`latest` 指向最新正式版。用 mike 保存和查看本地版本：
+## 管理面板
 
 ```bash
-uv run --group docs mike deploy dev
-uv run --group docs mike deploy --update-aliases "$(uv version --short)" latest
-uv run --group docs mike set-default latest
-uv run --group docs mike serve --dev-addr 127.0.0.1:8779
+uv run --extra management python -m envweaver.management --port 8788
 ```
 
-这些命令将快照保存在本地 `gh-pages` 分支，不修改包版本。`mike serve` 查看已保存的快照；实时编辑仍使用 `mkdocs serve`。CI 在默认分支更新时归档 `dev`，在 `vX.Y.Z` 标签发布时归档对应包版本；网站托管另行配置。
+打开 <http://127.0.0.1:8788>，在 Task Pool、Runtime Pool 或 Traj Pool 页签中点击“切换目录”，选择要查看的数据目录。

@@ -101,7 +101,7 @@ Node 归档逐项检查并解压，只接受普通文件、目录和位于安装
 
 Task Pool 的 root 支持本地目录和 SSH 地址，与沙箱所在服务器独立。远端保存使用名称锁和同盘重命名，完整写入后才发布；检索只读取 task.json。读取远端任务时将材料下载到临时目录，Task 及其 Verifier 释放后清理本地副本。任务池的 SSH 文件操作使用系统默认 OpenSSH 配置。Runtime 的 `root` 可省略，省略时不写环境记录；填写时支持本地目录或 SSH 地址，与 `host` 独立，只保存环境记录：镜像 ID 或磁盘路径、启动配置和服务器地址。Docker 镜像由目标 Docker 服务存储；QEMU 的运行文件、差分磁盘和固件存入必填的 `config.disk_dir`，该目录位于启动虚拟机的服务器上。
 
-Task 格式版本保持 1，只有用户明确要求时才修改。包版本保持 0.1.0。
+Task 格式版本保持 1，只有用户明确要求时才修改。包版本保持 0.0.1。
 
 TaskPool.save 写入 task.json 时，对做题环境和验证环境均清理内置后端的 EnvWeaver 操作配置：Docker 去掉 startup_timeout，保留镜像内的 python 路径；QEMU 去掉 save_mode、disk_dir、remote_python、binary、image_binary、startup_timeout、shutdown_timeout。Runtime.save 返回的完整配置和环境记录不变；自定义后端配置原样保留。下游使用 EnvWeaver 启动 QEMU 时自行补充 disk_dir，必要时指定工具路径。
 
@@ -260,7 +260,7 @@ Docker config.python_prepare_command 只在默认 python3 缺失时执行一次�
 
 ## 资产管理
 
-管理服务放在 `envweaver.management`，浏览器界面放在仓库 `web/`。页面仅通过 HTTP API 操作，资产规则集中在管理服务；不在前端或核心 Runtime、Task 接口里重复实现。可选依赖通过 `management` extra 安装，包版本仍为 0.1.0，Task 格式版本仍为 1。管理 HTTP 接口由服务的 `/docs` 和 `/openapi.json` 提供说明，不加入核心接口导航。
+管理服务放在 `envweaver.management`，浏览器界面放在仓库 `web/`。页面仅通过 HTTP API 操作，资产规则集中在管理服务；不在前端或核心 Runtime、Task 接口里重复实现。可选依赖通过 `management` extra 安装，Task 格式版本仍为 1。管理 HTTP 接口由服务的 `/docs` 和 `/openapi.json` 提供说明，不加入核心接口导航。
 
 服务启动不指定管理目录，不预设或恢复 Task Pool、Runtime Pool。首次使用时分别选择目录；当前目录保存在服务内存中，刷新、重新打开页面继续使用。切换目录更新对应类型的当前选择，服务重启后重新选择。服务在内存中保存已连接目录、文件索引、关联、删除确认和后台操作，重启即清空。没有 SQLite 或独立管理数据库。Task 按 `*/task.json` 发现，Runtime 按 `runtimes/*/runtime.json` 发现；支持本机和 SSH。SDK 不依赖管理服务，save 后页面轮询即可发现，编辑直接写回原文件。 Runtime Pool 不提供手动登记入口；环境通过 SDK 保存，管理界面提供查看、编辑和删除；复制仅保留 HTTP API，不提供页面入口。
 

@@ -39,10 +39,6 @@ class Terminus2Agent(CliAgent):
             temperature、max_turns、model_info、llm_call_kwargs。
         cache: 是否复用已缓存的安装包，默认 True。
 
-    Note:
-        自动为 Harbor 0.25.0 修复短摘要回退：替换旧历史并保留原始任务说明。
-        恢复请求仍失败时上报原有错误类型，不继续空转；上下文超限后 Eval 仍验证已有成果。
-
     Raises:
         ValueError: model、env 或 options 无效，或覆盖了适配器管理的参数。
         TypeError: cache 不是布尔值，或配置不能保存为 JSON。

@@ -6,8 +6,10 @@
 
 - Task 格式版本保持 `1`。没有用户明确指示，不得修改格式版本；新增字段、调整结构或兼容性变化都不构成修改版本的授权。
 
-- 当前包版本保持 `0.1.0`。只有用户明确要求修改版本号时才能修改；功能变更、文档更新、提交或发布准备都不构成升级版本的授权。
+- 当前包版本保持 `0.0.1`。只有用户明确要求修改版本号时才能修改；功能变更、文档更新、提交或发布准备都不构成升级版本的授权。
 - `pyproject.toml` 的 `project.version` 是包和正式版文档的唯一版本来源。日常开发文档使用 `dev`；发布标签 `vX.Y.Z` 必须与包版本一致。
+- 用户要求修改文档时，默认修改当前源码中的最新开发版文档；归档或发布这些修改时更新 `dev`，不覆盖已发布的正式版文档快照，也不移动 `latest`。只有用户明确指定修订某个已发布版本时，才修改该版本的文档。
+- 向 PyPI 发布新版本前，必须先用 mike 归档并发布同一份源码对应的正式版文档，文档版本与 `project.version` 一致，并将 `latest` 指向该版本。确认文档发布成功、网页可访问、版本下拉菜单能切换到该版本后，才能上传包；通过 CI 发布时必须等待相关任务完成。仅运行 `mkdocs serve` 或在本地保存文档快照，不算完成文档发布。
 
 新增、修改或删除公开接口时，必须在同一次改动中同步更新以下内容；文档未同步，接口改动就不算完成：
 
@@ -53,4 +55,4 @@ local_path：当前机器上的文件或目录。
 - 顶层导航依次为项目简介、Runtime、Task、Verifier、Agent、Eval，分别对应 `docs/index.md`、`docs/runtime.md`、`docs/task.md`、`docs/verifier.md`、`docs/agent.md`、`docs/evaluation.md`。项目简介作为文档首页。项目简介用简洁的段落说明项目用途，以及 Data Pipeline、评测和训练的使用流程，不堆代码、技术细节或列表。接口扩展说明放在对应页；`docs/design.md` 保留必要设计约定，不列入接口导航。不增加独立首页、快速开始或概念教程。
 - 参数与返回值优先通过 MkDocs / mkdocstrings 从 docstring 生成，不重复手写。README 仅保留简介、安装、文档入口和开发命令。
 - 保留 MkDocs 默认主题。浅色模式正文和表格为纯白，去掉网格、隔行灰底和悬停灰底，保留默认布局和细分隔线。不为普通接口改动新增样式。
-- 维护 Markdown、docstring 和生成配置，生成的 `site/` 不提交到源码分支。CI 检查构建，并用 mike 将开发版或标签对应的正式版文档归档到 `gh-pages` 分支；网站托管单独配置。实时预览用 `uv run --group docs mkdocs serve`，多版本预览用 `uv run --group docs mike serve`；普通 pip 安装不包含文档工具。
+- 维护 Markdown、docstring 和生成配置，生成的 `site/` 不提交到源码分支。CI 检查构建，并用 mike 将开发版或标签对应的正式版文档归档到 `gh-pages` 分支，再通过 GitHub Pages 部署归档内容。实时预览用 `uv run --group docs mkdocs serve`，多版本预览用 `uv run --group docs mike serve`；普通 pip 安装不包含文档工具。
