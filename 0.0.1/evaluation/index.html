@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="zh_CN" data-bs-theme="auto">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        
+        <link rel="shortcut icon" href="../img/favicon.ico">
+        <title>Eval - EnvWeaver</title>
+        <link href="../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../css/fontawesome.min.css" rel="stylesheet">
+        <link href="../css/brands.min.css" rel="stylesheet">
+        <link href="../css/solid.min.css" rel="stylesheet">
+        <link href="../css/v4-font-face.min.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/vs.min.css" disabled>
+        <link id="hljs-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css" disabled>
+        <link href="../assets/_mkdocstrings.css" rel="stylesheet">
+        <link href="../stylesheets/white.css" rel="stylesheet">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="..">EnvWeaver</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar-collapse" aria-controls="navbar-collapse" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="nav-item">
+                                <a href=".." class="nav-link">项目简介</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../runtime/" class="nav-link">Runtime</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../task/" class="nav-link">Task</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../verifier/" class="nav-link">Verifier</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../agent/" class="nav-link">Agent</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="./" class="nav-link active" aria-current="page">Eval</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ms-md-auto">
+  <li class="nav-item">
+    <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#mkdocs_search_modal">
+      <i class="fa fa-search" aria-hidden="true"></i> 搜索
+    </a>
+  </li>
+
+                            <li class="nav-item dropdown">
+                              <button id="theme-menu" aria-expanded="false" data-bs-toggle="dropdown" data-bs-display="static" aria-label="Toggle theme" class="nav-link dropdown-toggle">
+                                <i class="fa-solid fa-circle-half-stroke fa-fw"></i>
+                                <span class="d-lg-none ms-2">Toggle theme</span>
+                              </button>
+                              <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                  <button class="dropdown-item d-flex align-items-center" data-bs-theme-value="light" aria-pressed="false">
+                                    <i class="fa-solid fa-sun fa-fw"></i>
+                                    <span class="ms-2">Light</span>
+                                    <i class="fa-solid fa-check ms-auto d-none"></i>
+                                  </button>
+                                </li>
+                                <li>
+                                  <button class="dropdown-item d-flex align-items-center" data-bs-theme-value="dark" aria-pressed="false">
+                                    <i class="fa-solid fa-moon fa-fw"></i>
+                                    <span class="ms-2">Dark</span>
+                                    <i class="fa-solid fa-check ms-auto d-none"></i>
+                                  </button>
+                                </li>
+                                <li>
+                                  <button class="dropdown-item d-flex align-items-center" data-bs-theme-value="auto" aria-pressed="true">
+                                    <i class="fa-solid fa-circle-half-stroke fa-fw"></i>
+                                    <span class="ms-2">Auto</span>
+                                    <i class="fa-solid fa-check ms-auto"></i>
+                                  </button>
+                                </li>
+                              </ul>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <script src="../js/darkmode.js"></script>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-bs-toggle="collapse" data-bs-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-body-tertiary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-bs-level="1"><a href="#eval_1" class="nav-link">Eval</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="2"><a href="#eval" class="nav-link">eval：评测任务</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#config" class="nav-link">config：本次评测配置</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#traj-pool" class="nav-link">Traj Pool</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="eval_1">Eval<a class="headerlink" href="#eval_1" title="Permanent link">&para;</a></h1>
+<p>Eval 按统一的 Setup、Agent Run、Verify 流程评测 Task，并保存评测结果、轨迹和日志。</p>
+<p>进行一道题的评测需要 <a href="../task/#task_1">task</a>、<a href="../agent/">agent</a> 和 <a href="#config">config</a>。</p>
+<details>
+<summary>流程伪代码</summary>
+<pre><code class="language-python">import json
+import os
+import warnings
+from copy import copy, deepcopy
+from dataclasses import replace
+from envweaver.agents.execution import AgentExecution
+from envweaver.evaluation.store import inspect_task
+from envweaver.evaluation.failure import stop_reason
+from envweaver.evaluation.runner import _error_record
+from envweaver.errors import AgentStopReason
+
+# 下文“阶段时限”到期时抛出 StageTimeout；底层操作的 TimeoutError 不视为阶段到期。
+
+def evaluate(task, agent, config, output_dir):
+    execution = AgentExecution(agent.new())  # 为本次尝试创建独立 Agent，并管理其执行流程。
+    # 此处 output_dir 是当前机器上的工作目录。
+    # 使用 Verifier 已绑定的 Runtime，用来操作沙箱。
+    runtime = task.verifier.runtime
+
+    # 先建立结果记录，便于中途失败时仍能保存任务信息和错误。
+    result = {
+        &quot;name&quot;: task.name,           # 任务名称。
+        &quot;task_ref&quot;: task.task_ref,   # 任务在 Task Pool 中的地址，用于追溯和重新加载。
+        &quot;metadata&quot;: {},  # 本次 rollout 的自定义信息。
+        &quot;agent_stop_reason&quot;: None,  # Agent 退出原因；尚未运行时为 None。
+        &quot;agent_result&quot;: None,       # agent.run 返回的结果，或失败后读取的已有结果快照。
+        &quot;verification_result&quot;: None, # 验证程序返回的 JSON，包含 score 及其他评测信息。
+        &quot;score_valid&quot;: False,       # 该次得分是否可以计入统计。
+        &quot;errors&quot;: [],   # 评测过程中的问题，按发生顺序记录。
+    }
+
+    task_instance = None      # Agent 执行任务的沙箱实例。
+    verifier_instance = None  # 运行验证程序的沙箱实例。
+    stop_attempted = False  # 是否已请求停止 Agent。
+
+    stage = &quot;preflight&quot;  # 当前评测阶段：preflight（启动前检查）、setup、agent 或 verify。
+    output_dir.mkdir(parents=True, exist_ok=False)  # 每次尝试使用新目录；目录已存在时在创建资源前报错。
+
+    try:
+        execution.preflight(goal=task.goal)
+        _, input_error = inspect_task(task)  # 检查并计算输入材料指纹；批量执行时复用已计算的结果。
+        if input_error is not None:
+            raise input_error
+
+        # 任务的 Verifier 对象
+        verifier = task.verifier
+
+        # 从 os.environ 读取必需变量，config.verifier_env 补充或覆盖。
+        env = dict(config.verifier_env)
+        for name in verifier.required_env:
+            if name not in env and (value := os.environ.get(name)) is not None:
+                env[name] = value
+            if name not in env:
+                raise ValueError(f&quot;Missing verifier environment variable: {name}&quot;)
+
+        setup_timeout = config.setup_timeout
+        if task.setup is not None and setup_timeout &lt; task.setup[&quot;timeout&quot;]:
+            warnings.warn(&quot;setup_timeout is less than task.setup.timeout; Setup may time out before the setup command finishes&quot;)
+
+        # Setup
+        stage = &quot;setup&quot;
+        with 阶段时限(setup_timeout):
+            # 递归合并本次任务环境配置，得到启动任务沙箱的引用。
+            task_ref = task.task_runtime_ref
+            if config.task_runtime_config:
+                task_ref = replace(
+                    task_ref, config=merge_config(task_ref.config, config.task_runtime_config)
+                )
+
+            # 递归合并本次验证环境配置，得到启动验证沙箱的引用。
+            verifier_ref = task.verifier_runtime_ref
+            if config.verifier_runtime_config:
+                verifier_ref = replace(
+                    verifier_ref, config=merge_config(verifier_ref.config, config.verifier_runtime_config)
+                )
+
+            # 准备做题实例和验证实例
+            task_instance = runtime.start(
+                ref=task_ref,
+                context=task.context,
+                setup=task.setup,
+                connection=config.task_connection,
+            )
+            verifier_instance = runtime.start(
+                ref=verifier_ref,
+                connection=config.verifier_connection,
+            )
+
+            # 准备 Agent 执行任务所需的环境和工具，具体操作由各 Agent 适配代码实现。
+            execution.prepare(
+                runtime=runtime,
+                instance=task_instance,
+                output_dir=output_dir / &quot;agent&quot;,
+                cwd=task.cwd,
+            )
+
+        # Agent Run
+        stage = &quot;agent&quot;
+        agent_timeout = config.agent_timeout
+        try:
+            with 阶段时限(agent_timeout):
+                result[&quot;agent_result&quot;] = execution.run(
+                    goal=task.goal,
+                    runtime=runtime,
+                    instance=task_instance,
+                    output_dir=output_dir / &quot;agent&quot;,
+                )
+        except BaseException as error:
+            reason = stop_reason(error)
+            result[&quot;agent_stop_reason&quot;] = reason.value
+            if not reason.should_verify:
+                raise
+            result[&quot;errors&quot;].append(_error_record(&quot;agent&quot;, error))
+            stop_attempted = True
+            try:
+                execution.stop(timeout=30)
+            except Exception as stop_error:
+                result[&quot;errors&quot;].append(_error_record(&quot;cleanup&quot;, stop_error, operation=&quot;stop&quot;))
+                return result  # finally 仍会保存结果并关闭沙箱。
+        else:
+            result[&quot;agent_stop_reason&quot;] = AgentStopReason.COMPLETED.value
+
+        # Verify：正常完成或达到执行限制，均对已有成果评分。
+        stage = &quot;verify&quot;
+        # 在副本上设置本次验证超时，不修改 Task。
+        if config.verify_timeout is not None:
+            if config.verify_timeout &lt; verifier.timeout:
+                warnings.warn(&quot;verify_timeout is less than task.verifier.timeout&quot;)
+            verifier = copy(verifier)
+            verifier.timeout = config.verify_timeout
+        result[&quot;verification_result&quot;] = verifier.run(
+            verifier_instance=verifier_instance,
+            task_instance=(
+                task_instance if verifier.requires_task_instance else None
+            ),
+            env=env,
+        )
+
+    except BaseException as error:
+        result[&quot;errors&quot;].append(_error_record(stage, error))
+        if not isinstance(error, Exception):
+            raise
+
+    finally:
+        # 停止本次 Agent
+        if not stop_attempted:
+            try:
+                execution.stop(timeout=30)
+            except Exception as error:
+                result[&quot;errors&quot;].append(_error_record(&quot;cleanup&quot;, error, operation=&quot;stop&quot;))
+
+        # run 未返回结果时，读取已保存的 Agent 结果快照。
+        if result[&quot;agent_result&quot;] is None:
+            try:
+                with (output_dir / &quot;agent&quot; / &quot;result.json&quot;).open(&quot;r&quot;, encoding=&quot;utf-8&quot;) as file:
+                    result[&quot;agent_result&quot;] = json.load(file)
+            except FileNotFoundError:
+                pass
+            except Exception as error:
+                result[&quot;errors&quot;].append(_error_record(&quot;cleanup&quot;, error, operation=&quot;snapshot&quot;))
+
+        # 关闭验证实例和做题实例
+        for instance in (verifier_instance, task_instance):
+            if instance is not None:
+                try:
+                    runtime.close(instance=instance)
+                except Exception as error:
+                    result[&quot;errors&quot;].append(_error_record(&quot;cleanup&quot;, error, operation=&quot;close&quot;))
+
+        result[&quot;score_valid&quot;] = (
+            result[&quot;verification_result&quot;] is not None
+            and result[&quot;agent_stop_reason&quot;] is not None
+            and AgentStopReason(result[&quot;agent_stop_reason&quot;]).should_verify
+        )
+
+        # 保存本次评测结果
+        with (output_dir / &quot;result.json&quot;).open(&quot;w&quot;, encoding=&quot;utf-8&quot;) as file:
+            json.dump(result, file, ensure_ascii=False, indent=2, allow_nan=False)
+
+    return result
+
+
+def merge_config(base, overrides):
+    merged = deepcopy(base)
+    for key, value in overrides.items():
+        if isinstance(merged.get(key), dict) and isinstance(value, dict):
+            merged[key] = merge_config(merged[key], value)
+        else:
+            merged[key] = deepcopy(value)
+    return merged
+
+
+task = pool.load(task_ref=task_ref)
+result = evaluate(task=task, agent=agent, config=config, output_dir=output_dir)
+</code></pre>
+</details>
+<h2 id="eval">eval：评测任务<a class="headerlink" href="#eval" title="Permanent link">&para;</a></h2>
+<div class="table-responsive">
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="envweaver.evaluation.eval"></a>
+    <div class="doc doc-contents first">
+
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>tasks</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="envweaver.models.Task" href="../task/#envweaver.models.Task">Task</a> | <span title="collections.abc.Iterable">Iterable</span>[<a class="autorefs autorefs-internal" title="envweaver.models.Task" href="../task/#envweaver.models.Task">Task</a>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>一个 Task，或 Task 的可迭代对象。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>agent</code>
+            </td>
+            <td>
+                  <code><span title="envweaver.agents.Agent">Agent</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>执行任务的 Agent 对象，例如 <code>CodexAgent(model=model_name)</code>。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>config</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="envweaver.evaluation.runner.EvalConfig" href="#envweaver.EvalConfig">EvalConfig</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>任务使用的评测配置，不填使用 EvalConfig 默认值。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>output_dir</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | <span title="pathlib.Path">Path</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>评测产物的保存目录，默认 eval。</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;eval&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>concurrency</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | <span title="dict">dict</span>[<span title="str">str</span>, <span title="int">int</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>正整数限制同时评测的任务数，默认 1；或填写 {"setup": 4, "agent": 40, "verify": 4}，分别限制三个阶段的并发。阶段排队不计入超时，同时进行中的任务最多为三个上限之和。</p>
+              </div>
+            </td>
+            <td>
+                  <code>1</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>traj_pool</code>
+            </td>
+            <td>
+                  <code><span title="envweaver.trajectory.TrajPool">TrajPool</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>自动归档 rollout 的 <a href="./#trajpool">TrajPool</a>；默认 None，不入池。归档失败会报错，评测产物保留在 output_dir。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>resume</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>是否继续上次评测，默认 False；已完成任务保留原结果，未完成任务使用本次 Agent 和 EvalConfig。
+历次尝试须包含 configuration 配置快照。</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="list">list</span>[<span title="dict">dict</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>按输入顺序排列的评测结果列表，每道题一个字典；errors 按发生顺序记录各阶段的问题；每次新执行的 metadata 默认为独立的空字典。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div></div>
+<pre><code class="language-python">from envweaver import eval
+
+results = eval(
+    tasks=tasks,
+    agent=agent,
+    config=config,
+    output_dir=&quot;./runs/batch-001&quot;,
+    concurrency={&quot;setup&quot;: 4, &quot;agent&quot;: 40, &quot;verify&quot;: 4},
+)
+</code></pre>
+<p id="eval-result">返回列表中的每个字典包含以下字段：</p>
+<div class="table-responsive">
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>name</code></td>
+<td>任务名称</td>
+</tr>
+<tr>
+<td><code>task_ref</code></td>
+<td>任务在 Task Pool 中的存储地址</td>
+</tr>
+<tr>
+<td><code>metadata</code></td>
+<td>本次 rollout 的自定义信息，默认 <code>{}</code></td>
+</tr>
+<tr>
+<td><code>output_dir</code></td>
+<td>本次尝试的产物目录，相对于传给 <code>eval</code> 的批次目录</td>
+</tr>
+<tr>
+<td><code>agent_result</code></td>
+<td><a href="../agent/#agent-run">Agent 运行结果</a>，无结果时为 <code>None</code></td>
+</tr>
+<tr>
+<td><code>agent_stop_reason</code></td>
+<td>Agent 退出原因，如 <code>completed</code>、<code>timeout</code>；尚未运行时为 <code>None</code></td>
+</tr>
+<tr>
+<td><code>verification_result</code></td>
+<td>Verify 脚本返回的 JSON 结果，无结果时为 <code>None</code></td>
+</tr>
+<tr>
+<td><code>score_valid</code></td>
+<td>得分是否可计入统计；需取得有效验证结果、Agent 正常结束或达到执行限制</td>
+</tr>
+<tr>
+<td><code>errors</code></td>
+<td>评测过程中的问题列表，按发生顺序记录，无问题时为 <code>[]</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+<details>
+<summary>agent_stop_reason 退出原因</summary>
+<p>Eval 结果的 <code>agent_stop_reason</code> 保存 <code>AgentStopReason</code> 的字符串值；尚未进入 Agent Run 时为 <code>null</code>。退出原因如下：</p>
+<div class="table-responsive" id="agent-stop-reasons">
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<a id="envweaver.AgentStopReason"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.AgentStopReason.COMPLETED">COMPLETED</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>正常结束，值为 completed；是否完成题目由 Verifier 判断。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.AgentStopReason.TIMEOUT">TIMEOUT</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>达到 Agent 执行时间上限，值为 timeout。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.AgentStopReason.CONTEXT_LIMIT">CONTEXT_LIMIT</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>耗尽模型上下文，值为 context_limit。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.AgentStopReason.STEP_LIMIT">STEP_LIMIT</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>达到执行步数上限，值为 step_limit。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.AgentStopReason.COST_LIMIT">COST_LIMIT</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>达到费用上限，值为 cost_limit。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.AgentStopReason.TOKEN_LIMIT">TOKEN_LIMIT</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>达到输出 Token 上限，值为 token_limit。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.AgentStopReason.OTHER_LIMIT">OTHER_LIMIT</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>已确认达到其他限制或无法细分原因，值为 other_limit；在 message 中说明。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.AgentStopReason.CANCELLED">CANCELLED</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>被用户取消或主动停止，值为 cancelled。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.AgentStopReason.ERROR">ERROR</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>认证、连接、环境等执行异常，值为 error。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div></div>
+</details>
+<details>
+<summary>errors 中每条记录的字段</summary>
+<div class="table-responsive" id="error-fields">
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>stage</code></td>
+<td>发生阶段：<code>preflight</code>、<code>setup</code>、<code>agent</code>、<code>verify</code> 或 <code>cleanup</code></td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td><code>ErrorType</code> 的字符串值，具体类型见下方</td>
+</tr>
+<tr>
+<td><code>message</code></td>
+<td>具体问题说明</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>ErrorType：问题类型</p>
+<div class="table-responsive" id="error-type">
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<a id="envweaver.ErrorType"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.ErrorType.TIMEOUT">TIMEOUT</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>阶段或 Agent 执行时间达到上限，值为 timeout。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.ErrorType.CONTEXT_LIMIT">CONTEXT_LIMIT</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>模型上下文耗尽，值为 context_limit。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.ErrorType.STEP_LIMIT">STEP_LIMIT</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>达到执行步数上限，值为 step_limit。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.ErrorType.COST_LIMIT">COST_LIMIT</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>达到费用上限，值为 cost_limit。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.ErrorType.TOKEN_LIMIT">TOKEN_LIMIT</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>达到输出 Token 上限，值为 token_limit。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.ErrorType.OTHER_LIMIT">OTHER_LIMIT</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>已确认的其他执行限制，值为 other_limit。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.ErrorType.PROVIDER_TRANSIENT">PROVIDER_TRANSIENT</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>模型服务连接中断、请求超时、限流或临时不可用，值为 provider_transient。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.ErrorType.TRANSPORT">TRANSPORT</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>非模型服务的连接或传输故障，值为 transport。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.ErrorType.AUTHENTICATION">AUTHENTICATION</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>认证或权限错误，值为 authentication。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.ErrorType.CONFIGURATION">CONFIGURATION</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>参数、输入或配置错误，值为 configuration。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.ErrorType.SANDBOX">SANDBOX</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>沙箱启动或操作失败，值为 sandbox。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.ErrorType.VERIFIER">VERIFIER</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>验证执行失败或结果无效，值为 verifier。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.ErrorType.CANCELLED">CANCELLED</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>用户取消或主动停止，值为 cancelled。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.ErrorType.UNKNOWN">UNKNOWN</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>未分类的问题，值为 unknown。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div></div>
+</details>
+<h2 id="config">config：本次评测配置<a class="headerlink" href="#config" title="Permanent link">&para;</a></h2>
+<div class="table-responsive">
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<a id="envweaver.EvalConfig"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>setup_timeout</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Setup 总时限，单位秒，默认 600；小于 task.setup.timeout 时 warning，继续执行。</p>
+              </div>
+            </td>
+            <td>
+                  <code>600</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>agent_timeout</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Agent Run 总时限，单位秒，默认 10800（3 小时）。</p>
+              </div>
+            </td>
+            <td>
+                  <code>10800</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>verify_timeout</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>验证程序时限，不包含材料复制；默认使用 task.verifier.timeout，小于它时 warning，继续执行。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>task_runtime_config</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>与 task_runtime_ref.config 递归合并，同名值以本次为准，默认 {}。</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span>()</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>verifier_runtime_config</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>与 verifier_runtime_ref.config 递归合并，同名值以本次为准，默认 {}。</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span>()</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>task_connection</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>与任务引用的 connection 递归合并，同名值以本次为准，默认 {}。</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span>()</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>verifier_connection</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>与验证引用的 connection 递归合并，同名值以本次为准，默认 {}。</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span>()</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>verifier_env</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>传给 run.py 的环境变量，默认 {}；task.verifier.required_env 从 os.environ 读取，此处补充或覆盖。</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span>()</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>max_retries</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>整题重试次数，非负整数，默认 0（不重试）；不影响 Agent 内部的请求重试。</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>retry_delay</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>整题重试的初始等待秒数，默认 1；指数退避并加入随机抖动，最长 60 秒，可被取消。</p>
+              </div>
+            </td>
+            <td>
+                  <code>1</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div></div>
+<h2 id="traj-pool">Traj Pool<a class="headerlink" href="#traj-pool" title="Permanent link">&para;</a></h2>
+<p><code>TrajPool</code> 用于保存和管理 rollout 的轨迹、评测结果及相关产物，传入 <code>eval(traj_pool=...)</code> 即可自动归档。</p>
+<h3 id="trajpool">Traj Pool：轨迹池<a class="headerlink" href="#trajpool" title="Permanent link">&para;</a></h3>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+
+    <div class="doc doc-contents first">
+
+
+
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>root</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | <span title="pathlib.Path">Path</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>轨迹池目录。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>completed_only</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>是否只保存已有 ATIF、正常结束或达到执行限制、取得有效评分且无其他故障的 rollout，默认 True；零分也保存。</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div><pre><code class="language-python">from envweaver import TrajPool
+
+traj_pool = TrajPool(root=&quot;/data/traj-pool&quot;, completed_only=True)
+</code></pre></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+  
+        <script src="../js/bootstrap.bundle.min.js"></script>
+        <script>
+            var base_url = "..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../js/base.js"></script>
+        <script src="../javascripts/search.js"></script>
+  
+    <script id="docs-version-script" data-version="0.0.1" src="../javascripts/versions.js"></script>
+  
+
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title" id="searchModalLabel">搜索</h4>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+      </div>
+      <div class="modal-body">
+        <form>
+          <input type="search" class="form-control" id="mkdocs-search-query" placeholder="请输入搜索内容" aria-label="请输入搜索内容">
+        </form>
+        <div id="mkdocs-search-results" aria-live="polite"></div>
+      </div>
+    </div>
+  </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>

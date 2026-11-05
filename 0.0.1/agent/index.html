@@ -1,0 +1,2069 @@
+<!DOCTYPE html>
+<html lang="zh_CN" data-bs-theme="auto">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        
+        <link rel="shortcut icon" href="../img/favicon.ico">
+        <title>Agent - EnvWeaver</title>
+        <link href="../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../css/fontawesome.min.css" rel="stylesheet">
+        <link href="../css/brands.min.css" rel="stylesheet">
+        <link href="../css/solid.min.css" rel="stylesheet">
+        <link href="../css/v4-font-face.min.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/vs.min.css" disabled>
+        <link id="hljs-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css" disabled>
+        <link href="../assets/_mkdocstrings.css" rel="stylesheet">
+        <link href="../stylesheets/white.css" rel="stylesheet">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="..">EnvWeaver</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar-collapse" aria-controls="navbar-collapse" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="nav-item">
+                                <a href=".." class="nav-link">项目简介</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../runtime/" class="nav-link">Runtime</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../task/" class="nav-link">Task</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../verifier/" class="nav-link">Verifier</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="./" class="nav-link active" aria-current="page">Agent</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../evaluation/" class="nav-link">Eval</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ms-md-auto">
+  <li class="nav-item">
+    <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#mkdocs_search_modal">
+      <i class="fa fa-search" aria-hidden="true"></i> 搜索
+    </a>
+  </li>
+
+                            <li class="nav-item dropdown">
+                              <button id="theme-menu" aria-expanded="false" data-bs-toggle="dropdown" data-bs-display="static" aria-label="Toggle theme" class="nav-link dropdown-toggle">
+                                <i class="fa-solid fa-circle-half-stroke fa-fw"></i>
+                                <span class="d-lg-none ms-2">Toggle theme</span>
+                              </button>
+                              <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                  <button class="dropdown-item d-flex align-items-center" data-bs-theme-value="light" aria-pressed="false">
+                                    <i class="fa-solid fa-sun fa-fw"></i>
+                                    <span class="ms-2">Light</span>
+                                    <i class="fa-solid fa-check ms-auto d-none"></i>
+                                  </button>
+                                </li>
+                                <li>
+                                  <button class="dropdown-item d-flex align-items-center" data-bs-theme-value="dark" aria-pressed="false">
+                                    <i class="fa-solid fa-moon fa-fw"></i>
+                                    <span class="ms-2">Dark</span>
+                                    <i class="fa-solid fa-check ms-auto d-none"></i>
+                                  </button>
+                                </li>
+                                <li>
+                                  <button class="dropdown-item d-flex align-items-center" data-bs-theme-value="auto" aria-pressed="true">
+                                    <i class="fa-solid fa-circle-half-stroke fa-fw"></i>
+                                    <span class="ms-2">Auto</span>
+                                    <i class="fa-solid fa-check ms-auto"></i>
+                                  </button>
+                                </li>
+                              </ul>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <script src="../js/darkmode.js"></script>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-bs-toggle="collapse" data-bs-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-body-tertiary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-bs-level="1"><a href="#agent" class="nav-link">Agent</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="2"><a href="#codex-agent" class="nav-link">CodexAgent</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#pi-agent" class="nav-link">PiAgent</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#mini-swe-agent" class="nav-link">MiniSweAgent</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#terminus-agent" class="nav-link">Terminus2Agent</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="agent">Agent<a class="headerlink" href="#agent" title="Permanent link">&para;</a></h1>
+<p>Agent 为 <a href="../evaluation/">Eval</a> 提供统一的执行接口。创建 Agent 对象时配置模型、环境变量和原生参数，再将对象传给 <code>eval(agent=...)</code>。</p>
+<p>内置 Agent 默认复用准备阶段有校验值的安装包；<code>cache=False</code> 关闭。缓存目录通过当前进程的 <code>ENVWEAVER_CACHE_DIR</code> 设置，默认 <code>~/.cache/envweaver/downloads</code>，容量为 30 GiB。</p>
+<p>已支持的 Agent：<a href="#codex-agent">Codex CLI</a>、<a href="#pi-agent">Pi</a>、<a href="#mini-swe-agent">mini-swe-agent</a>、<a href="#terminus-agent">Terminus 2</a>、<a href="#custom-agent">自定义 Agent</a>。</p>
+<h2 id="codex-agent">CodexAgent<a class="headerlink" href="#codex-agent" title="Permanent link">&para;</a></h2>
+<div class="table-responsive">
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<a id="envweaver.CodexAgent"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>model</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Codex 模型名称，不填使用 Codex 默认配置。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>version</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Codex CLI 版本；不填时使用已安装版本，未安装则安装默认版本。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>env</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="str">str</span>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>环境变量字典，传入值覆盖沙箱同名变量；默认 None，不自动读取当前机器的变量。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>extra_args</code>
+            </td>
+            <td>
+                  <code><span title="list">list</span>[<span title="str">str</span>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>原生 codex exec 参数列表，如 ["-c", 'model_reasoning_effort="high"']；默认 None。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>cache</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>是否复用已缓存的安装包，默认 True。</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div></div>
+<pre><code class="language-python">from envweaver import CodexAgent
+
+agent = CodexAgent(model=model_name, env=agent_env)
+</code></pre>
+<h2 id="pi-agent">PiAgent<a class="headerlink" href="#pi-agent" title="Permanent link">&para;</a></h2>
+<div class="table-responsive">
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<a id="envweaver.PiAgent"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>model</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Pi 模型名称，可用 provider/model 格式；不填使用 Pi 的配置。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>version</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>安装的 Pi 版本；不填则使用已安装版本，未安装时安装最新版。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>env</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="str">str</span>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>环境变量字典，传入值覆盖沙箱同名变量；默认 None，不自动读取当前机器的变量。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>extra_args</code>
+            </td>
+            <td>
+                  <code><span title="list">list</span>[<span title="str">str</span>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>原生 pi 参数列表，如 ["--thinking", "high"]；默认 None。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>cache</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>是否复用已缓存的安装包，默认 True。</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div></div>
+<pre><code class="language-python">from envweaver import PiAgent
+
+agent = PiAgent(model=model_name, env=agent_env)
+</code></pre>
+<h2 id="mini-swe-agent">MiniSweAgent<a class="headerlink" href="#mini-swe-agent" title="Permanent link">&para;</a></h2>
+<div class="table-responsive">
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<a id="envweaver.MiniSweAgent"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>model</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>mini-swe-agent 模型名称，例如 provider/model；不填使用其配置。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>version</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>安装的 mini-swe-agent 版本，仅支持 2.x；不填则使用已安装版本，未安装时安装最新的 2.x 版本。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>env</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="str">str</span>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>环境变量字典，传入值覆盖沙箱同名变量；默认 None，不自动读取当前机器的变量。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>extra_args</code>
+            </td>
+            <td>
+                  <code><span title="list">list</span>[<span title="str">str</span>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>原生 mini 参数列表，如 ["-c", "/workspace/agent.yaml"]；配置文件须已在沙箱内。默认 None。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>cache</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>是否复用已缓存的安装包，默认 True。</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div></div>
+<pre><code class="language-python">from envweaver import MiniSweAgent
+
+agent = MiniSweAgent(model=model_name, env=agent_env)
+</code></pre>
+<h2 id="terminus-agent">Terminus2Agent<a class="headerlink" href="#terminus-agent" title="Permanent link">&para;</a></h2>
+<div class="table-responsive">
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<a id="envweaver.Terminus2Agent"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>model</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>模型名称，必填，例如 openai/Qwen3.8-27B。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>env</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="str">str</span>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>传给沙箱内 Agent 的环境变量，默认 None；不自动读取当前机器的变量。
+TMUX_TMPDIR 由适配器设置为本次独立终端目录。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>options</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Harbor 0.25.0 的 Terminus 2 参数字典，默认 None；例如 api_base、
+temperature、max_turns、model_info、llm_call_kwargs。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>cache</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>是否复用已缓存的安装包，默认 True。</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div></div>
+<pre><code class="language-python">from envweaver import Terminus2Agent
+
+agent = Terminus2Agent(
+    model=&quot;openai/Qwen3.8-27B&quot;,
+    env={&quot;OPENAI_API_KEY&quot;: api_key},
+    options={
+        &quot;api_base&quot;: base_url,
+        &quot;model_info&quot;: {
+            &quot;max_input_tokens&quot;: 262144,
+            &quot;max_output_tokens&quot;: 8192,
+            &quot;input_cost_per_token&quot;: 0,
+            &quot;output_cost_per_token&quot;: 0,
+        },
+    },
+)
+</code></pre>
+<details class="mt-5" id="custom-agent">
+<summary>自定义 Agent</summary>
+<p>自定义 Agent 需继承 <code>Agent</code> 基类。<code>run()</code> 必须实现；<code>preflight()</code>、<code>prepare()</code> 和 <code>stop()</code> 按需实现。Eval 自动调用这些方法并提供参数：</p>
+<div class="table-responsive">
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>Eval 调用时机</th>
+<th>适配代码需要实现什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>preflight()</code></td>
+<td>沙箱启动前，以及 <code>run()</code> 执行前</td>
+<td>检查输入和配置是否支持</td>
+</tr>
+<tr>
+<td><code>prepare()</code></td>
+<td>做题沙箱完成 context 上传和 task.setup 后</td>
+<td>安装工具、配置环境或初始化客户端</td>
+</tr>
+<tr>
+<td><code>run()</code></td>
+<td><code>prepare()</code> 完成后</td>
+<td>执行题目，保存轨迹和产物，返回运行结果</td>
+</tr>
+<tr>
+<td><code>stop()</code></td>
+<td>超时、取消或执行失败，需要停止 Agent 时</td>
+<td>停止本次请求和进程，保留任务沙箱及题目服务</td>
+</tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-python">from envweaver import Agent
+
+class CustomAgent(Agent):
+    def preflight(self, goal):
+        # 检查 Agent 特有的输入要求。
+        ...
+
+    def prepare(self, *, runtime, instance, output, cwd: str):
+        # 安装工具或创建客户端；参数由 Eval 提供。
+        ...
+
+    def run(self, *, goal, runtime, instance, output, cwd: str):
+        # 执行 goal，将最终回复保存为文字和图片列表。
+        reply = ...
+        return output.finish(output=reply)
+
+    def stop(self, timeout=30):
+        # 停止自己创建的请求或进程，保留做题沙箱和题目服务。
+        ...
+
+# 自定义参数通过 self.config[&quot;参数名&quot;] 读取；修改返回的字典不会改变 Agent 配置。
+agent = CustomAgent(model=model_name, endpoint=base_url, temperature=0.7)
+</code></pre>
+<h3 class="mt-4" id="agent-preflight">Agent.preflight：启动前检查<a class="headerlink" href="#agent-preflight" title="Permanent link">&para;</a></h3>
+<div class="table-responsive">
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="envweaver.Agent.preflight"></a>
+    <div class="doc doc-contents first">
+
+        <p>检查 Agent 特有的输入要求；不需要额外检查时可省略。</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>goal</code>
+            </td>
+            <td>
+                  <code><span title="list">list</span>[<span title="dict">dict</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>题目的文字和图片列表。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>None。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div></div>
+<h3 class="mt-4" id="agent-prepare">Agent.prepare：准备 Agent<a class="headerlink" href="#agent-prepare" title="Permanent link">&para;</a></h3>
+<div class="table-responsive">
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="envweaver.Agent.prepare"></a>
+    <div class="doc doc-contents first">
+
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>runtime</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="envweaver.runtime.Runtime" href="../runtime/#envweaver.Runtime">Runtime</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>用来操作沙箱的 Runtime。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>instance</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="envweaver.models.Instance" href="../runtime/#envweaver.models.Instance">Instance</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>已完成 context 上传和 task.setup 的做题实例。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>output</code>
+            </td>
+            <td>
+                  <code><span title="envweaver.agents.output.AgentOutput">AgentOutput</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>本次产物写入器，output.directory 是当前机器上的产物目录。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>cwd</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>沙箱内已存在的工作目录绝对路径。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>None。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div></div>
+<h3 class="mt-4" id="agent-run">Agent.run：执行任务<a class="headerlink" href="#agent-run" title="Permanent link">&para;</a></h3>
+<div class="table-responsive">
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="envweaver.Agent.run"></a>
+    <div class="doc doc-contents first">
+
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>goal</code>
+            </td>
+            <td>
+                  <code><span title="list">list</span>[<span title="dict">dict</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>题目的文字和图片列表；图片 path 已转换为当前机器上的路径。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>runtime</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="envweaver.runtime.Runtime" href="../runtime/#envweaver.Runtime">Runtime</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>用来操作沙箱的 Runtime。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>instance</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="envweaver.models.Instance" href="../runtime/#envweaver.models.Instance">Instance</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>做题实例。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>output</code>
+            </td>
+            <td>
+                  <code><span title="envweaver.agents.output.AgentOutput">AgentOutput</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>与 prepare 相同的产物写入器。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>cwd</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>沙箱内已存在的工作目录绝对路径。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="dict">dict</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>包含 output、artifacts、metadata 的 JSON 对象；可通过 output.finish(回复列表) 保存并返回。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div></div>
+<details>
+<summary>返回结果</summary>
+<div class="table-responsive">
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>output</code></td>
+<td>最终回复的文字和图片列表，无回复时为 []；使用与 goal 相同的字段，图片 path 相对于 output.directory</td>
+</tr>
+<tr>
+<td><code>artifacts.trajectory</code></td>
+<td>已保存的轨迹文件路径，无轨迹时为 null</td>
+</tr>
+<tr>
+<td><code>artifacts.logs</code></td>
+<td>已保存的日志文件路径列表，无日志时为 []</td>
+</tr>
+<tr>
+<td><code>artifacts.files</code></td>
+<td>已保存的附件路径列表，无附件时为 []</td>
+</tr>
+<tr>
+<td><code>metadata</code></td>
+<td>运行信息字典，包含以下固定字段，也可添加耗时、用量等自定义字段；未知数值使用 null</td>
+</tr>
+<tr>
+<td>↳ <code>agent</code></td>
+<td>Agent 名称</td>
+</tr>
+<tr>
+<td>↳ <code>agent_version</code></td>
+<td>Agent 版本，未知时为 null</td>
+</tr>
+<tr>
+<td>↳ <code>model</code></td>
+<td>模型名称，未知时为 null</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>产物格式：</p>
+<pre><code class="language-text">agent/
+├── result.json       # Agent 运行结果快照
+├── trajectory.json   # ATIF 轨迹
+├── logs/             # 原始事件、原生记录和日志
+└── files/            # 图片和模型上下文快照
+</code></pre>
+<p>轨迹使用 <a href="https://harborframework.com/docs/atif">Harbor ATIF</a> v1.8，<code>schema_version</code> 为 <code>ATIF-v1.8</code>；可通过 <code>envweaver.ATIF_VERSION</code> 读取当前版本。</p>
+<p>模型步骤的 <code>extra.context.path</code> 指向该次调用的上下文快照；<code>source</code> 标明采集位置，<code>complete</code> 和 <code>missing</code> 标明是否存在已知缺失。图片、上下文和子轨迹文件路径均相对于 Agent 的产物目录。</p>
+<p>Codex 子 Agent 使用独立子轨迹；Terminus 的压缩和续接沿用 Harbor 的轨迹引用。加密内容保存在原生记录中，不还原为推理文字。未采集到原生模型调用时，轨迹中的 <code>extra.capture</code> 会注明缺失。</p>
+</details>
+<h3 class="mt-4" id="agent-stop">Agent.stop：停止 Agent<a class="headerlink" href="#agent-stop" title="Permanent link">&para;</a></h3>
+<div class="table-responsive">
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="envweaver.Agent.stop"></a>
+    <div class="doc doc-contents first">
+
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>timeout</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>停止本次 Agent 的最长等待秒数。可与 prepare 或 run 并发调用；保留任务沙箱和题目服务。</p>
+              </div>
+            </td>
+            <td>
+                  <code>30</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>None。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div></div>
+<h3 id="agent-output">适配建议<a class="headerlink" href="#agent-output" title="Permanent link">&para;</a></h3>
+<p><strong>1. 强烈建议使用 <code>output</code> 保存产物。</strong></p>
+<p>Eval 将 <code>output</code> 传给 <code>prepare()</code> 和 <code>run()</code>。新增 Agent 适配需要将原生轨迹转换为 ATIF，并保存每次模型调用的上下文；原始记录单独保存为日志。</p>
+<p><code>output.directory</code> 是当前机器上的产物目录，结果中的产物路径相对于该目录。以下写入方法默认会同步产物；直接写入目录的文件可通过 <code>sync()</code> 同步。</p>
+<details>
+<summary>AgentOutput.save_trajectory：保存 ATIF 轨迹</summary>
+<div class="table-responsive">
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="envweaver.AgentOutput.save_trajectory"></a>
+    <div class="doc doc-contents first">
+
+        <p>写入 directory/trajectory.json，并更新 artifacts.trajectory。</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>trajectory</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>ATIF 字典；附件和上下文文件路径相对于 directory。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>related</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="dict">dict</span>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>子轨迹或续接轨迹的文件名到 ATIF 字典的映射，默认 None。文件名填写
+trajectory.&lt;名称&gt;.json，文件保存到 directory 并登记到 artifacts.files。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>None。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div></div>
+<pre><code class="language-python">from envweaver import ATIF_VERSION
+
+trajectory = {
+    &quot;schema_version&quot;: ATIF_VERSION,
+    &quot;agent&quot;: {&quot;name&quot;: &quot;my-agent&quot;, &quot;version&quot;: &quot;1&quot;},
+    &quot;steps&quot;: [
+        {&quot;step_id&quot;: 1, &quot;source&quot;: &quot;user&quot;, &quot;message&quot;: prompt},
+        {&quot;step_id&quot;: 2, &quot;source&quot;: &quot;agent&quot;, &quot;message&quot;: reply},
+    ],
+}
+output.save_trajectory(trajectory=trajectory)
+
+# 有续接轨迹时一并保存。
+trajectory[&quot;continued_trajectory_ref&quot;] = &quot;trajectory.cont-1.json&quot;
+output.save_trajectory(
+    trajectory=trajectory,
+    related={&quot;trajectory.cont-1.json&quot;: continuation},
+)
+</code></pre>
+</details>
+<details>
+<summary>AgentOutput.record：记录原始事件</summary>
+<div class="table-responsive">
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="envweaver.AgentOutput.record"></a>
+    <div class="doc doc-contents first">
+
+        <p>向 logs/events.jsonl 追加原始事件，自动填写连续序号 seq 和 UTC 时间 time。</p>
+<p>event_type 保存为 type，data 保存为事件内容；文件登记到 artifacts.logs。</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>event_type</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>事件名称，如 message、tool_call 或 Agent 原生事件名称。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>data</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>可保存为 JSON 的事件内容。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>None。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div></div>
+<pre><code class="language-python">output.record(event_type=&quot;message&quot;, data={&quot;role&quot;: &quot;assistant&quot;, &quot;text&quot;: text})
+</code></pre>
+</details>
+<details>
+<summary>AgentOutput.write_log：写入日志</summary>
+<div class="table-responsive">
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="envweaver.AgentOutput.write_log"></a>
+    <div class="doc doc-contents first">
+
+        <p>向 output.directory/logs 下的日志文件追加原始文字，并将路径登记到 artifacts.logs。</p>
+<p>文件不存在时创建；不会自动添加时间、事件字段或换行。</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>name</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>日志文件名，如 stdout.log，保存在 directory/logs 下。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>text</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>追加写入的日志内容。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>None。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div></div>
+<pre><code class="language-python">output.write_log(name=&quot;stdout.log&quot;, text=text)
+</code></pre>
+</details>
+<details>
+<summary>AgentOutput.save_file：保存附件</summary>
+<div class="table-responsive">
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="envweaver.AgentOutput.save_file"></a>
+    <div class="doc doc-contents first">
+
+        <p>将附件内容保存到 output.directory/files，并将路径登记到 artifacts.files。</p>
+<p>文件名根据内容生成；相同内容和扩展名复用已有文件。</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>data</code>
+            </td>
+            <td>
+                  <code><span title="bytes">bytes</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>附件内容。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>suffix</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>文件扩展名，如 .png；默认空字符串。</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;&#39;</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>附件相对于 output.directory 的路径，可用于最终回复的图片 path 或轨迹中的附件引用。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div></div>
+<pre><code class="language-python">path = output.save_file(data=image_bytes, suffix=&quot;.png&quot;)
+</code></pre>
+</details>
+<details>
+<summary>AgentOutput.update：更新结果</summary>
+<div class="table-responsive">
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="envweaver.AgentOutput.update"></a>
+    <div class="doc doc-contents first">
+
+        <p>更新当前运行结果并保存到 result.json；未传入的字段保持原值。</p>
+<p>artifacts 只登记已保存文件的路径，不创建或复制这些文件。</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>output</code>
+            </td>
+            <td>
+                  <code><span title="list">list</span>[<span title="dict">dict</span>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>回复列表，填写时替换当前回复；默认 None。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>metadata</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>补充或覆盖运行信息的同名字段；默认 None。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>artifacts</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>补充或覆盖 trajectory、logs、files 字段；路径相对于 directory，文件须已存在。默认 None。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>sync</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>是否立即同步到产物存储目录，默认 True。</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>None。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div></div>
+<pre><code class="language-python">output.update(metadata={&quot;usage&quot;: usage})
+</code></pre>
+</details>
+<details>
+<summary>AgentOutput.finish：保存最终回复</summary>
+<div class="table-responsive">
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="envweaver.AgentOutput.finish"></a>
+    <div class="doc doc-contents first">
+
+        <p>将最终回复保存到 result.json，并返回包含回复、产物路径和运行信息的完整结果。</p>
+<p>等价于 update(output=...) 后读取 result；不负责停止 Agent。</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>output</code>
+            </td>
+            <td>
+                  <code><span title="list">list</span>[<span title="dict">dict</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>最终回复的文字和图片列表；无回复时填写 []。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="dict">dict</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>已保存的完整 Agent 结果，可作为 Agent.run 的返回值。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div></div>
+<pre><code class="language-python">reply = [{&quot;type&quot;: &quot;text&quot;, &quot;text&quot;: &quot;任务已完成&quot;}]
+return output.finish(output=reply)
+</code></pre>
+</details>
+<details>
+<summary>AgentOutput.result：读取结果</summary>
+<div class="table-responsive">
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+
+<a id="envweaver.AgentOutput.result"></a>
+    <div class="doc doc-contents first">
+
+        <p>读取当前结果，不写入文件；修改返回的字典不会改变已记录的结果。</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="dict">dict</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>当前结果的独立字典副本，包含 output、artifacts、metadata。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div></div>
+<pre><code class="language-python">result = output.result
+</code></pre>
+</details>
+<details>
+<summary>AgentOutput.sync：同步直接写入的文件</summary>
+<div class="table-responsive">
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="envweaver.AgentOutput.sync"></a>
+    <div class="doc doc-contents first">
+
+        <p>将 output.directory 中新增或修改的文件同步到产物存储目录。</p>
+<p>直接写入 output.directory，或调用 update(sync=False) 后，可用此方法立即同步。
+此方法不从任务沙箱下载文件，也不将文件路径自动登记到运行结果中。</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>None。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div></div>
+<pre><code class="language-python"># 写入自行生成的文件，再同步到产物存储目录。
+(output.directory / &quot;report.txt&quot;).write_text(report_text, encoding=&quot;utf-8&quot;)
+output.sync()
+</code></pre>
+</details>
+<p><strong>2. 强烈建议通过 <code>AgentError</code> 报告问题。</strong></p>
+<p><code>type</code> 使用 <a href="../evaluation/#error-type">ErrorType</a>。</p>
+<div class="table-responsive">
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<a id="envweaver.errors.AgentError"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>type</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="envweaver.errors.ErrorType" href="../evaluation/#envweaver.ErrorType">ErrorType</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>ErrorType 问题类型，必填；无法识别时使用 UNKNOWN。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>message</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>具体说明，默认使用类型的字符串值；不要包含密钥。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div></div>
+<pre><code class="language-python">from envweaver import ErrorType
+from envweaver.errors import AgentError
+
+raise AgentError(type=ErrorType.STEP_LIMIT, message=&quot;已达到最大步数&quot;)
+</code></pre>
+</details></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+  
+        <script src="../js/bootstrap.bundle.min.js"></script>
+        <script>
+            var base_url = "..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../js/base.js"></script>
+        <script src="../javascripts/search.js"></script>
+  
+    <script id="docs-version-script" data-version="0.0.1" src="../javascripts/versions.js"></script>
+  
+
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title" id="searchModalLabel">搜索</h4>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+      </div>
+      <div class="modal-body">
+        <form>
+          <input type="search" class="form-control" id="mkdocs-search-query" placeholder="请输入搜索内容" aria-label="请输入搜索内容">
+        </form>
+        <div id="mkdocs-search-results" aria-live="polite"></div>
+      </div>
+    </div>
+  </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>
