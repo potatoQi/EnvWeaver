@@ -70,9 +70,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: gh-pages
+      - name: Identify documentation archive
+        id: archive
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
           path: .
       - uses: actions/deploy-pages@v4
         id: deployment
+        env:
+          # main and a release tag may share a source SHA but archive different docs.
+          GITHUB_SHA: ${{ steps.archive.outputs.sha }}
