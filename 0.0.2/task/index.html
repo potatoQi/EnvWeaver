@@ -1,0 +1,1373 @@
+<!DOCTYPE html>
+<html lang="zh_CN" data-bs-theme="auto">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        
+        <link rel="shortcut icon" href="../img/favicon.ico">
+        <title>Task - EnvWeaver</title>
+        <link href="../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../css/fontawesome.min.css" rel="stylesheet">
+        <link href="../css/brands.min.css" rel="stylesheet">
+        <link href="../css/solid.min.css" rel="stylesheet">
+        <link href="../css/v4-font-face.min.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/vs.min.css" disabled>
+        <link id="hljs-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css" disabled>
+        <link href="../assets/_mkdocstrings.css" rel="stylesheet">
+        <link href="../stylesheets/white.css" rel="stylesheet">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="..">EnvWeaver</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar-collapse" aria-controls="navbar-collapse" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="nav-item">
+                                <a href=".." class="nav-link">项目简介</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../runtime/" class="nav-link">Runtime</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="./" class="nav-link active" aria-current="page">Task</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../verifier/" class="nav-link">Verifier</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../agent/" class="nav-link">Agent</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../evaluation/" class="nav-link">Eval</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ms-md-auto">
+  <li class="nav-item">
+    <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#mkdocs_search_modal">
+      <i class="fa fa-search" aria-hidden="true"></i> 搜索
+    </a>
+  </li>
+
+                            <li class="nav-item dropdown">
+                              <button id="theme-menu" aria-expanded="false" data-bs-toggle="dropdown" data-bs-display="static" aria-label="Toggle theme" class="nav-link dropdown-toggle">
+                                <i class="fa-solid fa-circle-half-stroke fa-fw"></i>
+                                <span class="d-lg-none ms-2">Toggle theme</span>
+                              </button>
+                              <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                  <button class="dropdown-item d-flex align-items-center" data-bs-theme-value="light" aria-pressed="false">
+                                    <i class="fa-solid fa-sun fa-fw"></i>
+                                    <span class="ms-2">Light</span>
+                                    <i class="fa-solid fa-check ms-auto d-none"></i>
+                                  </button>
+                                </li>
+                                <li>
+                                  <button class="dropdown-item d-flex align-items-center" data-bs-theme-value="dark" aria-pressed="false">
+                                    <i class="fa-solid fa-moon fa-fw"></i>
+                                    <span class="ms-2">Dark</span>
+                                    <i class="fa-solid fa-check ms-auto d-none"></i>
+                                  </button>
+                                </li>
+                                <li>
+                                  <button class="dropdown-item d-flex align-items-center" data-bs-theme-value="auto" aria-pressed="true">
+                                    <i class="fa-solid fa-circle-half-stroke fa-fw"></i>
+                                    <span class="ms-2">Auto</span>
+                                    <i class="fa-solid fa-check ms-auto"></i>
+                                  </button>
+                                </li>
+                              </ul>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <script src="../js/darkmode.js"></script>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-bs-toggle="collapse" data-bs-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-body-tertiary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-bs-level="1"><a href="#task" class="nav-link">Task</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="2"><a href="#package" class="nav-link">Task 的组成</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#manifest" class="nav-link">task.json</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#taskpool" class="nav-link">TaskPool：任务池管理器</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#task_1" class="nav-link">Task：任务</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#save" class="nav-link">TaskPool.save：保存任务</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#load" class="nav-link">TaskPool.load：读取任务</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#search" class="nav-link">TaskPool.search：检索任务</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="task">Task<a class="headerlink" href="#task" title="Permanent link">&para;</a></h1>
+<p>Task 将各种任务场景的任务组织成统一的任务包，通过 TaskPool 保存、读取和检索，供 Data Pipeline 交付任务、Training 和 Evaluation 使用。</p>
+<h2 id="package">Task 的组成<a class="headerlink" href="#package" title="Permanent link">&para;</a></h2>
+<p>Task 是一个材料包，<code>task.json</code> 保存 Task 的元信息。</p>
+<pre><code class="language-text">&lt;TaskPool.root&gt;/&lt;name&gt;/
+├── task.json                 # 必需：Task 元信息
+├── goal/                     # 按需：任务说明中的图片
+├── context/                  # 按需：任务输入文件或目录
+└── verifier/                 # 必需：验证程序和材料
+    ├── run.py                # 必需：验证入口
+    └── &lt;其他文件或目录&gt;       # 按需：测试、标准答案、辅助文件等
+</code></pre>
+<h2 id="manifest">task.json<a class="headerlink" href="#manifest" title="Permanent link">&para;</a></h2>
+<div class="table-responsive" id="task-fields">
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>含义</th>
+<th>必填 / 默认值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>version</code></td>
+<td>Task 格式版本</td>
+<td>EnvWeaver 自动填写，当前为 <code>1</code></td>
+</tr>
+<tr>
+<td><code>name</code></td>
+<td>同一 Task Pool 内唯一的任务名称</td>
+<td>是</td>
+</tr>
+<tr>
+<td><code>goal[]</code></td>
+<td>按顺序排列的文字和图片</td>
+<td>是</td>
+</tr>
+<tr>
+<td>&emsp;↳ <code>type</code></td>
+<td><code>text</code> 或 <code>image</code></td>
+<td>是</td>
+</tr>
+<tr>
+<td>&emsp;↳ <code>text</code></td>
+<td>任务文字</td>
+<td><code>type=text</code> 时必填</td>
+</tr>
+<tr>
+<td>&emsp;↳ <code>path</code></td>
+<td>图片路径，相对于 <code>task.json</code></td>
+<td><code>type=image</code> 时必填</td>
+</tr>
+<tr>
+<td><code>metadata</code></td>
+<td>来源、标签等自定义信息</td>
+<td>否，<code>{}</code></td>
+</tr>
+<tr>
+<td>&emsp;↳ <code>tags[]</code></td>
+<td>标签字符串列表；每项去除首尾空白后为 1–100 个字符，与管理页面共用</td>
+<td>否，<code>[]</code></td>
+</tr>
+<tr>
+<td>&emsp;↳ <code>&lt;自定义字段&gt;</code></td>
+<td>其他可保存为 JSON 的值，字段名由 Pipeline 决定</td>
+<td>按需</td>
+</tr>
+<tr>
+<td><code>task_runtime_ref</code></td>
+<td>任务环境的镜像引用</td>
+<td>是</td>
+</tr>
+<tr>
+<td>&emsp;↳ <code>name</code></td>
+<td>环境名称</td>
+<td>否，使用 <code>image</code></td>
+</tr>
+<tr>
+<td>&emsp;↳ <code>backend</code></td>
+<td>后端名称，如 <code>docker</code>、<code>qemu</code></td>
+<td>是</td>
+</tr>
+<tr>
+<td>&emsp;↳ <code>image</code></td>
+<td>Docker 镜像名或 ID；QEMU 服务器上的磁盘路径</td>
+<td>是</td>
+</tr>
+<tr>
+<td>&emsp;↳ <code>metadata</code></td>
+<td>环境自定义 JSON 字典；<code>tags</code> 为环境标签字符串列表</td>
+<td>否，<code>{}</code></td>
+</tr>
+<tr>
+<td>&emsp;↳ <code>config</code></td>
+<td>后端启动配置</td>
+<td>否，<code>{}</code></td>
+</tr>
+<tr>
+<td>&emsp;&emsp;↳ <code>python</code></td>
+<td>Docker：容器内的 Python 程序</td>
+<td>否，<code>python3</code></td>
+</tr>
+<tr>
+<td>&emsp;&emsp;↳ <code>python_install_command</code></td>
+<td>Docker：缺少默认 Python 时执行的 shell 安装命令</td>
+<td>否，内置安装流程，上限 300 秒</td>
+</tr>
+<tr>
+<td>&emsp;&emsp;↳ <code>command[]</code></td>
+<td>Docker：容器启动命令</td>
+<td>否，使用镜像默认命令</td>
+</tr>
+<tr>
+<td>&emsp;&emsp;↳ <code>env</code></td>
+<td>Docker：传入容器的环境变量</td>
+<td>否，<code>{}</code></td>
+</tr>
+<tr>
+<td>&emsp;&emsp;&emsp;↳ <code>&lt;变量名&gt;</code></td>
+<td>环境变量的值，不填写真实密钥</td>
+<td>按需</td>
+</tr>
+<tr>
+<td>&emsp;&emsp;↳ <code>user</code></td>
+<td>Docker：运行用户，如 <code>1000:1000</code></td>
+<td>否，使用镜像默认用户</td>
+</tr>
+<tr>
+<td>&emsp;&emsp;↳ <code>memory</code></td>
+<td>内存；Docker 如 <code>4g</code>，QEMU 单位为 MiB</td>
+<td>否；Docker 不额外限制，QEMU 为 <code>4096</code></td>
+</tr>
+<tr>
+<td>&emsp;&emsp;↳ <code>cpus</code></td>
+<td>CPU 数量，Docker 可填小数</td>
+<td>否；Docker 不额外限制，QEMU 为 <code>2</code></td>
+</tr>
+<tr>
+<td>&emsp;&emsp;↳ <code>network</code></td>
+<td>Docker：网络模式或网络名称</td>
+<td>否，使用 Docker 默认网络</td>
+</tr>
+<tr>
+<td>&emsp;&emsp;↳ <code>shm_size</code></td>
+<td>Docker：共享内存大小，如 <code>1g</code></td>
+<td>否，使用 Docker 默认值</td>
+</tr>
+<tr>
+<td>&emsp;&emsp;↳ <code>gpus</code></td>
+<td>Docker：可用 GPU，如 <code>all</code></td>
+<td>否，不请求 GPU</td>
+</tr>
+<tr>
+<td>&emsp;&emsp;↳ <code>disk_interface</code></td>
+<td>QEMU：磁盘接口</td>
+<td>否，<code>virtio</code></td>
+</tr>
+<tr>
+<td>&emsp;&emsp;↳ <code>network_device</code></td>
+<td>QEMU：虚拟网卡型号</td>
+<td>否，<code>virtio-net-pci</code></td>
+</tr>
+<tr>
+<td>&emsp;&emsp;↳ <code>format</code></td>
+<td>QEMU：基础磁盘的格式</td>
+<td>否，<code>qcow2</code></td>
+</tr>
+<tr>
+<td>&emsp;&emsp;↳ <code>machine</code></td>
+<td>QEMU：机器类型</td>
+<td>否，<code>q35</code></td>
+</tr>
+<tr>
+<td>&emsp;&emsp;↳ <code>accel</code></td>
+<td>QEMU：加速方式</td>
+<td>否，<code>kvm</code></td>
+</tr>
+<tr>
+<td>&emsp;&emsp;↳ <code>firmware</code></td>
+<td>QEMU：服务器上的只读 UEFI 固件路径</td>
+<td>否，不额外配置</td>
+</tr>
+<tr>
+<td>&emsp;&emsp;↳ <code>nvram</code></td>
+<td>QEMU：服务器上的 UEFI 设置文件路径</td>
+<td>否，不额外配置</td>
+</tr>
+<tr>
+<td>&emsp;&emsp;↳ <code>args[]</code></td>
+<td>额外的 Docker 或 QEMU 启动参数</td>
+<td>否，<code>[]</code></td>
+</tr>
+<tr>
+<td>&emsp;↳ <code>connection</code></td>
+<td>SSH 用户名、Python 路径或 VNC 密码环境变量名；自定义后端字段由后端约定</td>
+<td>否，<code>{}</code></td>
+</tr>
+<tr>
+<td>&emsp;&emsp;↳ <code>ssh.user</code></td>
+<td>QEMU：虚拟机中的 SSH 用户名</td>
+<td>使用 QEMU 时填写</td>
+</tr>
+<tr>
+<td>&emsp;&emsp;↳ <code>ssh.python</code></td>
+<td>QEMU：虚拟机内的 Python 程序</td>
+<td>否，<code>python3</code></td>
+</tr>
+<tr>
+<td>&emsp;&emsp;↳ <code>vnc.password_env</code></td>
+<td>Docker：保存 VNC 密码的环境变量名称</td>
+<td>否</td>
+</tr>
+<tr>
+<td><code>context[]</code></td>
+<td>做题需要的输入文件或目录</td>
+<td>否，<code>[]</code></td>
+</tr>
+<tr>
+<td>&emsp;↳ <code>source</code></td>
+<td>材料路径，相对于 <code>task.json</code></td>
+<td>是</td>
+</tr>
+<tr>
+<td>&emsp;↳ <code>target</code></td>
+<td>材料在做题环境内的目标路径</td>
+<td>是</td>
+</tr>
+<tr>
+<td><code>cwd</code></td>
+<td>启动 Agent 时所在的目录，填写沙箱内的绝对路径，如 <code>/workspace/project</code>。目录可由 context 上传或 setup 创建，但启动 Agent 前必须存在</td>
+<td>是</td>
+</tr>
+<tr>
+<td><code>setup</code></td>
+<td>复制 context 后执行的准备操作</td>
+<td>否，省略时不执行</td>
+</tr>
+<tr>
+<td>&emsp;↳ <code>command</code></td>
+<td>沙箱内执行的命令字符串或参数列表；准备完成后以退出码 0 结束</td>
+<td>是</td>
+</tr>
+<tr>
+<td>&emsp;↳ <code>timeout</code></td>
+<td>准备命令最长运行秒数，大于 0</td>
+<td>是</td>
+</tr>
+<tr>
+<td><code>verifier_runtime_ref</code></td>
+<td>验证环境的镜像引用，字段同 <code>task_runtime_ref</code></td>
+<td>是</td>
+</tr>
+<tr>
+<td><code>verifier</code></td>
+<td>验证程序和执行要求</td>
+<td>是</td>
+</tr>
+<tr>
+<td>&emsp;↳ <code>entry</code></td>
+<td>验证程序的路径，相对于 <code>task.json</code></td>
+<td>是</td>
+</tr>
+<tr>
+<td>&emsp;↳ <code>timeout</code></td>
+<td>验证程序最长运行秒数，大于 0</td>
+<td>是</td>
+</tr>
+<tr>
+<td>&emsp;↳ <code>required_env[]</code></td>
+<td>下游需提供的环境变量名称</td>
+<td>否，<code>[]</code></td>
+</tr>
+<tr>
+<td>&emsp;↳ <code>requires_task_instance</code></td>
+<td>验证程序是否需要任务沙箱</td>
+<td>否，<code>true</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+<details>
+<summary>Docker 完整示例</summary>
+<pre><code class="language-json">{
+  &quot;version&quot;: 1,
+  &quot;name&quot;: &quot;sales-summary&quot;,
+  &quot;goal&quot;: [
+    {
+      &quot;type&quot;: &quot;text&quot;,
+      &quot;text&quot;: &quot;打开 /work/sales.xlsx，按下面的样式制作各地区销售额汇总表。&quot;
+    },
+    {
+      &quot;type&quot;: &quot;image&quot;,
+      &quot;path&quot;: &quot;goal/1.png&quot;
+    },
+    {
+      &quot;type&quot;: &quot;text&quot;,
+      &quot;text&quot;: &quot;保留原始数据，将结果保存为 /work/summary.xlsx。&quot;
+    }
+  ],
+  &quot;metadata&quot;: {
+    &quot;source&quot;: &quot;https://example.com/forum/posts/123&quot;,
+    &quot;software&quot;: &quot;LibreOffice&quot;,
+    &quot;tags&quot;: [
+      &quot;spreadsheet&quot;,
+      &quot;sales&quot;
+    ]
+  },
+  &quot;task_runtime_ref&quot;: {
+    &quot;backend&quot;: &quot;docker&quot;,
+    &quot;image&quot;: &quot;sha256:&lt;保存后的镜像 ID&gt;&quot;,
+    &quot;config&quot;: {
+      &quot;command&quot;: [
+        &quot;sleep&quot;,
+        &quot;infinity&quot;
+      ],
+      &quot;env&quot;: {
+        &quot;LANG&quot;: &quot;C.UTF-8&quot;
+      },
+      &quot;user&quot;: &quot;1000:1000&quot;,
+      &quot;memory&quot;: &quot;4g&quot;,
+      &quot;cpus&quot;: 2,
+      &quot;network&quot;: &quot;bridge&quot;,
+      &quot;shm_size&quot;: &quot;1g&quot;,
+      &quot;gpus&quot;: &quot;all&quot;,
+      &quot;args&quot;: [
+        &quot;--hostname&quot;,
+        &quot;desktop&quot;
+      ],
+      &quot;python&quot;: &quot;python3&quot;
+    },
+    &quot;connection&quot;: {}
+  },
+  &quot;context&quot;: [
+    {
+      &quot;source&quot;: &quot;context/0/sales.xlsx&quot;,
+      &quot;target&quot;: &quot;/work/sales.xlsx&quot;
+    },
+    {
+      &quot;source&quot;: &quot;context/1/setup.py&quot;,
+      &quot;target&quot;: &quot;/work/setup.py&quot;
+    }
+  ],
+  &quot;cwd&quot;: &quot;/work&quot;,
+  &quot;setup&quot;: {
+    &quot;command&quot;: [
+      &quot;python3&quot;,
+      &quot;/work/setup.py&quot;
+    ],
+    &quot;timeout&quot;: 120
+  },
+  &quot;verifier_runtime_ref&quot;: {
+    &quot;backend&quot;: &quot;docker&quot;,
+    &quot;image&quot;: &quot;registry.example.com/verifiers/spreadsheet:1.0&quot;,
+    &quot;config&quot;: {
+      &quot;command&quot;: [
+        &quot;sleep&quot;,
+        &quot;infinity&quot;
+      ],
+      &quot;env&quot;: {
+        &quot;LANG&quot;: &quot;C.UTF-8&quot;
+      },
+      &quot;memory&quot;: &quot;1g&quot;,
+      &quot;cpus&quot;: 1,
+      &quot;python&quot;: &quot;python3&quot;
+    },
+    &quot;connection&quot;: {}
+  },
+  &quot;verifier&quot;: {
+    &quot;entry&quot;: &quot;verifier/run.py&quot;,
+    &quot;timeout&quot;: 300,
+    &quot;required_env&quot;: [
+      &quot;LLM_BASE_URL&quot;,
+      &quot;LLM_API_KEY&quot;
+    ],
+    &quot;requires_task_instance&quot;: true
+  }
+}
+</code></pre>
+</details>
+<details>
+<summary>QEMU 完整示例</summary>
+<pre><code class="language-json">{
+  &quot;version&quot;: 1,
+  &quot;name&quot;: &quot;windows-sales-summary&quot;,
+  &quot;goal&quot;: [
+    {
+      &quot;type&quot;: &quot;text&quot;,
+      &quot;text&quot;: &quot;打开 C:\\Tasks\\sales.xlsx，按下面的样式制作各地区销售额汇总表。&quot;
+    },
+    {
+      &quot;type&quot;: &quot;image&quot;,
+      &quot;path&quot;: &quot;goal/1.png&quot;
+    },
+    {
+      &quot;type&quot;: &quot;text&quot;,
+      &quot;text&quot;: &quot;保留原始数据，将结果保存为 C:\\Tasks\\summary.xlsx。&quot;
+    }
+  ],
+  &quot;metadata&quot;: {
+    &quot;source&quot;: &quot;https://example.com/forum/posts/123&quot;,
+    &quot;software&quot;: &quot;LibreOffice&quot;,
+    &quot;tags&quot;: [
+      &quot;spreadsheet&quot;,
+      &quot;sales&quot;,
+      &quot;windows&quot;
+    ]
+  },
+  &quot;task_runtime_ref&quot;: {
+    &quot;backend&quot;: &quot;qemu&quot;,
+    &quot;image&quot;: &quot;/data/envweaver/disks/runtimes/&lt;环境 ID&gt;/disk.qcow2&quot;,
+    &quot;config&quot;: {
+      &quot;memory&quot;: 8192,
+      &quot;cpus&quot;: 4,
+      &quot;disk_interface&quot;: &quot;virtio&quot;,
+      &quot;network_device&quot;: &quot;virtio-net-pci&quot;,
+      &quot;format&quot;: &quot;qcow2&quot;,
+      &quot;machine&quot;: &quot;q35&quot;,
+      &quot;accel&quot;: &quot;kvm&quot;,
+      &quot;firmware&quot;: &quot;/data/envweaver/disks/runtimes/&lt;环境 ID&gt;/firmware.fd&quot;,
+      &quot;nvram&quot;: &quot;/data/envweaver/disks/runtimes/&lt;环境 ID&gt;/nvram.fd&quot;,
+      &quot;args&quot;: [
+        &quot;-vga&quot;,
+        &quot;std&quot;
+      ]
+    },
+    &quot;connection&quot;: {
+      &quot;ssh&quot;: {
+        &quot;user&quot;: &quot;worker&quot;,
+        &quot;python&quot;: &quot;python&quot;
+      }
+    }
+  },
+  &quot;context&quot;: [
+    {
+      &quot;source&quot;: &quot;context/0/sales.xlsx&quot;,
+      &quot;target&quot;: &quot;C:\\Tasks\\sales.xlsx&quot;
+    },
+    {
+      &quot;source&quot;: &quot;context/1/setup.py&quot;,
+      &quot;target&quot;: &quot;C:\\Tasks\\setup.py&quot;
+    }
+  ],
+  &quot;cwd&quot;: &quot;C:\\Tasks&quot;,
+  &quot;setup&quot;: {
+    &quot;command&quot;: [
+      &quot;python&quot;,
+      &quot;C:\\Tasks\\setup.py&quot;
+    ],
+    &quot;timeout&quot;: 120
+  },
+  &quot;verifier_runtime_ref&quot;: {
+    &quot;backend&quot;: &quot;docker&quot;,
+    &quot;image&quot;: &quot;registry.example.com/verifiers/spreadsheet:1.0&quot;,
+    &quot;config&quot;: {
+      &quot;command&quot;: [
+        &quot;sleep&quot;,
+        &quot;infinity&quot;
+      ],
+      &quot;env&quot;: {
+        &quot;LANG&quot;: &quot;C.UTF-8&quot;
+      },
+      &quot;memory&quot;: &quot;1g&quot;,
+      &quot;cpus&quot;: 1,
+      &quot;python&quot;: &quot;python3&quot;
+    },
+    &quot;connection&quot;: {}
+  },
+  &quot;verifier&quot;: {
+    &quot;entry&quot;: &quot;verifier/run.py&quot;,
+    &quot;timeout&quot;: 300,
+    &quot;required_env&quot;: [
+      &quot;LLM_BASE_URL&quot;,
+      &quot;LLM_API_KEY&quot;
+    ],
+    &quot;requires_task_instance&quot;: true
+  }
+}
+</code></pre>
+</details>
+<h2 id="taskpool">TaskPool：任务池管理器<a class="headerlink" href="#taskpool" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<a id="envweaver.TaskPool"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>root</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | <span title="pathlib.Path">Path</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>任务存储路径。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>runtime</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="envweaver.runtime.Runtime" href="../runtime/#envweaver.Runtime">Runtime</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>加载任务的 Verifier 使用的沙箱管理器。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div><pre><code class="language-python">from envweaver import TaskPool
+pool = TaskPool(root=&quot;./tasks&quot;, runtime=runtime)
+</code></pre>
+<h2 id="task_1">Task：任务<a class="headerlink" href="#task_1" title="Permanent link">&para;</a></h2>
+<div class="table-responsive">
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<a id="envweaver.models.Task"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.models.Task.name">name</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>任务名称。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.models.Task.task_ref">task_ref</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>task.json 路径。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.models.Task.goal">goal</span></code></td>
+            <td>
+                  <code><span title="list">list</span>[<span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>有序文字/图片列表；文字使用 text 字段，图片使用 path 字段。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.models.Task.metadata">metadata</span></code></td>
+            <td>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>自定义任务信息；tags 为标签字符串列表，与管理页面的 Task 标签共用。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.models.Task.task_runtime_ref">task_runtime_ref</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="envweaver.models.RuntimeRef" href="../runtime/#envweaver.models.RuntimeRef">RuntimeRef</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>任务环境的镜像引用。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.models.Task.context">context</span></code></td>
+            <td>
+                  <code><span title="list">list</span>[<span title="dict">dict</span>[<span title="str">str</span>, <span title="str">str</span>]]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>任务输入文件列表；source 是源文件，target 是环境内的目标路径。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.models.Task.setup">setup</span></code></td>
+            <td>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>复制 context 后执行的准备命令和超时；可传给 Runtime.start。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.models.Task.cwd">cwd</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>启动 Agent 时所在的目录，必填，填写沙箱内的绝对路径，如 /workspace/project。目录可由 context 上传或 setup 创建，但启动 Agent 前必须存在。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.models.Task.verifier_runtime_ref">verifier_runtime_ref</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="envweaver.models.RuntimeRef" href="../runtime/#envweaver.models.RuntimeRef">RuntimeRef</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>验证环境的镜像引用。</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="envweaver.models.Task.verifier">verifier</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="envweaver.verifier.Verifier" href="../verifier/#envweaver.Verifier">Verifier</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>任务验证器。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div></div>
+<h2 id="save">TaskPool.save：保存任务<a class="headerlink" href="#save" title="Permanent link">&para;</a></h2>
+<p>已有环境可直接复用 RuntimeRef；需要保留实例中的修改时，先调用 <a href="../runtime/#save">Runtime.save</a>，再传入返回的引用。</p>
+<div class="table-responsive">
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="envweaver.TaskPool.save"></a>
+    <div class="doc doc-contents first">
+
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>name</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>任务名称，要求同一 TaskPool 内唯一。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>goal</code>
+            </td>
+            <td>
+                  <code><span title="list">list</span>[<span title="dict">dict</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>任务要求，按顺序填写文字和图片。文字格式为 {"type": "text", "text": ...}，图片为
+{"type": "image", "path": ...}，path 填写图片路径。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>metadata</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>自定义任务信息，填写可保存为 JSON 的字典。tags 填标签字符串列表，默认无标签；每项去除首尾空白后须为 1–100 个字符。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>task_runtime_ref</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="envweaver.models.RuntimeRef" href="../runtime/#envweaver.models.RuntimeRef">RuntimeRef</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>任务初始环境的 <a href="../runtime/#runtimeref">RuntimeRef</a>，必填。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>context</code>
+            </td>
+            <td>
+                  <code><span title="list">list</span>[<span title="dict">dict</span>[<span title="str">str</span>, <span title="str">str</span>]] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>任务输入文件列表。source 填文件或目录路径；
+target 填容器或虚拟机内的目标路径。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>setup</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>准备命令和超时，格式同 <a href="../runtime/#start">Runtime.start</a> 的 setup。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>cwd</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>启动 Agent 时所在的目录，必填，填写沙箱内的绝对路径，如 /workspace/project。目录可由 context 上传或 setup 创建，但启动 Agent 前必须存在。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>verifier_runtime_ref</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="envweaver.models.RuntimeRef" href="../runtime/#envweaver.models.RuntimeRef">RuntimeRef</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>验证环境的 <a href="../runtime/#runtimeref">RuntimeRef</a>。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>verifier</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="envweaver.verifier.Verifier" href="../verifier/#envweaver.Verifier">Verifier</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>任务的<a href="../verifier/">验证器</a>。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>保存后的 <code>&lt;root&gt;/&lt;name&gt;/task.json</code> 路径，可传给 <code>load(task_ref=...)</code>。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div></div>
+<pre><code class="language-python">task_ref = pool.save(
+    name=&quot;sales-summary&quot;,
+    goal=[
+        {&quot;type&quot;: &quot;text&quot;, &quot;text&quot;: &quot;修改表格，按图中的样式完成销售额汇总。&quot;},
+        {&quot;type&quot;: &quot;image&quot;, &quot;path&quot;: &quot;./reference.png&quot;},
+    ],
+    metadata={&quot;software&quot;: &quot;LibreOffice&quot;, &quot;tags&quot;: [&quot;office&quot;, &quot;spreadsheet&quot;]},
+    task_runtime_ref=task_runtime_ref,
+    context=[
+        {&quot;source&quot;: &quot;./sales.xlsx&quot;, &quot;target&quot;: &quot;/work/sales.xlsx&quot;},
+        {&quot;source&quot;: &quot;./setup.py&quot;, &quot;target&quot;: &quot;/work/setup.py&quot;},
+    ],
+    setup={&quot;command&quot;: [&quot;python3&quot;, &quot;/work/setup.py&quot;], &quot;timeout&quot;: 120},
+    cwd=&quot;/work&quot;,
+    verifier_runtime_ref=verifier_runtime_ref,
+    verifier=checker,
+)
+</code></pre>
+<h2 id="load">TaskPool.load：读取任务<a class="headerlink" href="#load" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="envweaver.TaskPool.load"></a>
+    <div class="doc doc-contents first">
+
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>task_ref</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | <span title="pathlib.Path">Path</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>当前 Task Pool 内的 task.json 路径。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="envweaver.models.Task" href="#envweaver.models.Task">Task</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Task 对象；材料路径已转换为可直接使用的本地路径。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div><details>
+<summary>使用读取的任务</summary>
+<pre><code class="language-python">task = pool.load(task_ref=task_ref)
+</code></pre>
+<p><strong>Docker：启动任务沙箱</strong></p>
+<pre><code class="language-python">task_instance = runtime.start(
+    ref=task.task_runtime_ref,
+    context=task.context,
+    setup=task.setup,
+)
+</code></pre>
+<p><strong>QEMU：指定磁盘目录并启动任务沙箱</strong></p>
+<pre><code class="language-python">ref = runtime.create(
+    backend=&quot;qemu&quot;,
+    image=task.task_runtime_ref.image,
+    config={**task.task_runtime_ref.config, &quot;disk_dir&quot;: &quot;/data/task-runs&quot;},
+    connection=task.task_runtime_ref.connection,
+)
+task_instance = runtime.start(
+    ref=ref,
+    context=task.context,
+    setup=task.setup,
+)
+</code></pre>
+<p>服务器地址填在 <code>Runtime(host=...)</code>；QEMU 磁盘目录填在 <code>config.disk_dir</code>；虚拟机 SSH 私钥和 Docker VNC 地址通过 <code>start(connection=...)</code> 传入。</p>
+<p><strong>启动验证沙箱</strong></p>
+<p>Docker 直接使用任务中的验证镜像引用：</p>
+<pre><code class="language-python">verifier_instance = runtime.start(
+    ref=task.verifier_runtime_ref,
+)
+</code></pre>
+<p>QEMU 需要先补充磁盘目录：</p>
+<pre><code class="language-python">verifier_ref = runtime.create(
+    backend=&quot;qemu&quot;,
+    image=task.verifier_runtime_ref.image,
+    config={**task.verifier_runtime_ref.config, &quot;disk_dir&quot;: &quot;/data/verify-runs&quot;},
+    connection=task.verifier_runtime_ref.connection,
+)
+</code></pre>
+<pre><code class="language-python">verifier_instance = runtime.start(ref=verifier_ref)
+</code></pre>
+<p><strong>执行 Verify</strong></p>
+<pre><code class="language-python">result = task.verifier.run(
+    verifier_instance=verifier_instance,
+    task_instance=task_instance,
+    env={&quot;LLM_BASE_URL&quot;: base_url, &quot;LLM_API_KEY&quot;: api_key},
+)
+</code></pre>
+</details>
+<h2 id="search">TaskPool.search：检索任务<a class="headerlink" href="#search" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="envweaver.TaskPool.search"></a>
+    <div class="doc doc-contents first">
+
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>filters</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>按 metadata 字段的值精确筛选，如 {"software": "LibreOffice"}。
+多个条件需同时满足；不填或传 {} 返回全部任务。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="list">list</span>[<span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>匹配任务的 task_ref 列表，可传给 load。</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div><pre><code class="language-python">refs = pool.search(
+    filters={&quot;software&quot;: &quot;LibreOffice&quot;},
+)
+</code></pre></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+  
+        <script src="../js/bootstrap.bundle.min.js"></script>
+        <script>
+            var base_url = "..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../js/base.js"></script>
+        <script src="../javascripts/search.js"></script>
+  
+    <script id="docs-version-script" data-version="0.0.2" src="../javascripts/versions.js"></script>
+  
+
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title" id="searchModalLabel">搜索</h4>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+      </div>
+      <div class="modal-body">
+        <form>
+          <input type="search" class="form-control" id="mkdocs-search-query" placeholder="请输入搜索内容" aria-label="请输入搜索内容">
+        </form>
+        <div id="mkdocs-search-results" aria-live="polite"></div>
+      </div>
+    </div>
+  </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>
