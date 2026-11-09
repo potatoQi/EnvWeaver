@@ -9,13 +9,21 @@ from pathlib import Path
 
 
 def download(url, checksum, target, *, cancelled=None):
+    return _request({"url": url, "checksum": checksum}, target, cancelled=cancelled)
+
+
+def python_catalog(version, target, *, cancelled=None):
+    return _request({"python_catalog": version}, target, cancelled=cancelled)
+
+
+def _request(request, target, *, cancelled=None):
     root = os.environ.get("ENVWEAVER_DOWNLOAD_REQUESTS")
     if not root:
         return False
     directory = Path(root) / uuid.uuid4().hex
     directory.mkdir()
     temporary = directory / "request.tmp"
-    temporary.write_text(json.dumps({"url": url, "checksum": checksum}))
+    temporary.write_text(json.dumps(request))
     temporary.rename(directory / "request.json")
     try:
         deadline = time.monotonic() + 3600

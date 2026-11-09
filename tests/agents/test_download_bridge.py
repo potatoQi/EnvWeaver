@@ -201,3 +201,37 @@ def test_helper_cleanup_preserves_unrelated_files(bridge):
     bridge.close()
     assert not extra.exists()
     assert sorted(p.name for p in bytecode.iterdir()) == ['task_service.cpython-312.pyc']
+
+
+def test_python_catalog_requests_use_versioned_cache_through_pipe(bridge, monkeypatch, tmp_path):
+    from envweaver.agents.adapters._download_client import python_catalog
+
+    calls = []
+    body = json.dumps({'build': {'url': 'https://example.org/python', 'sha256': 'a' * 64}}).encode()
+    def retrieve(url, path, *a, **kw):
+        calls.append(url)
+        path.write_bytes(body)
+    monkeypatch.setattr(bridge.cache, '_retrieve', retrieve)
+    Path(bridge.directory).rmdir()
+    bridge.setup()
+    monkeypatch.setenv('ENVWEAVER_DOWNLOAD_REQUESTS', bridge.directory)
+    try:
+        with ThreadPoolExecutor(max_workers=24) as workers:
+            def receive(number):
+                target = tmp_path / f'catalog-{number}'
+                assert python_catalog('0.13.7', target)
+                assert target.read_bytes() == body
+            list(workers.map(receive, range(24)))
+        assert calls == ['https://raw.githubusercontent.com/astral-sh/uv/0.13.7/crates/uv-python-managed/download-metadata.json']
+        assert bridge._error is None
+        with pytest.raises(OSError, match='Invalid uv version'):
+            python_catalog('../main', tmp_path / 'invalid')
+    finally:
+        bridge.close()
+    assert not bridge._thread.is_alive()
+
+
+def test_catalog_can_include_builds_without_upstream_checksum():
+    from envweaver.agents.adapters._downloads import _validate_python_catalog
+    _validate_python_catalog({'unhashed': {'url': 'https://example.org/build', 'sha256': None},
+                              'hashed': {'url': 'https://example.org/other', 'sha256': 'a' * 64}})

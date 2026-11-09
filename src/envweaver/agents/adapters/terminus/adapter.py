@@ -37,7 +37,7 @@ class Terminus2Agent(CliAgent):
             TMUX_TMPDIR 由适配器设置为本次独立终端目录。
         options: Harbor 0.25.0 的 Terminus 2 参数字典，默认 None；例如 api_base、
             temperature、max_turns、model_info、llm_call_kwargs。
-        cache: 是否复用已缓存的安装包，默认 True。
+        cache: 是否复用安装包和按 uv 版本保存的官方 Python 校验信息，默认 True。
 
     Raises:
         ValueError: model、env 或 options 无效，或覆盖了适配器管理的参数。

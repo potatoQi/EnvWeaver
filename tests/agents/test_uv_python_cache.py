@@ -27,7 +27,7 @@ def test_uv_only_downloads_build_requested_by_uv_and_closes_mirror(tmp_path, mon
     catalog = {item['key']: {'url': item['url'], 'sha256': 'a'*64} for item in candidates}
     monkeypatch.setattr(uv.subprocess, 'run', lambda *a, **kw: SimpleNamespace(returncode=1))
     monkeypatch.setattr(uv.subprocess, 'check_output', lambda *a, **kw: json.dumps(candidates))
-    monkeypatch.setattr(uv, 'read_catalog', lambda command: catalog)
+    monkeypatch.setattr(uv, 'read_catalog', lambda command, **kwargs: catalog)
     downloads = []
     def download(url, checksum, target, **kwargs):
         downloads.append((url, checksum, target))
@@ -83,7 +83,7 @@ def test_uv_mirror_cancellation_stops_pending_download(tmp_path, monkeypatch):
     item = dict(key='cpython-test', implementation='cpython', url='https://example.org/build/python.tar.gz')
     monkeypatch.setattr(uv.subprocess, 'run', lambda *a, **kw: SimpleNamespace(returncode=1))
     monkeypatch.setattr(uv.subprocess, 'check_output', lambda *a, **kw: json.dumps([item]))
-    monkeypatch.setattr(uv, 'read_catalog', lambda command: {item['key']: {'url': item['url'], 'sha256': 'a'*64}})
+    monkeypatch.setattr(uv, 'read_catalog', lambda command, **kwargs: {item['key']: {'url': item['url'], 'sha256': 'a'*64}})
     started, stopped = threading.Event(), threading.Event()
     folders = []
     def download(url, checksum, target, *, cancelled):
@@ -102,3 +102,59 @@ def test_uv_mirror_cancellation_stops_pending_download(tmp_path, monkeypatch):
         with pytest.raises(RemoteDisconnected):
             future.result(timeout=2)
     assert not folders[0].exists()
+
+
+def test_official_catalog_uses_controller_and_removes_private_copy(tmp_path, monkeypatch):
+    monkeypatch.delenv('UV_PYTHON_DOWNLOADS_JSON_URL', raising=False)
+    monkeypatch.setattr(uv.subprocess, 'check_output', lambda *a, **kw: 'uv 0.13.7')
+    catalog = {'build': {'url': 'https://example.org/python', 'sha256': 'a' * 64}}
+    paths = []
+    def fetch(version, target, **kwargs):
+        assert version == '0.13.7'
+        paths.append(target)
+        target.write_text(json.dumps(catalog))
+        return True
+    monkeypatch.setitem(sys.modules, '_download_client', SimpleNamespace(python_catalog=fetch))
+    monkeypatch.setattr(uv.urllib.request, 'urlopen', lambda *a, **kw: pytest.fail('sandbox network'))
+    assert uv.read_catalog(['uv']) == catalog
+    assert not paths[0].parent.exists()
+
+
+def test_custom_catalog_is_not_permanently_cached(monkeypatch):
+    import io
+    monkeypatch.setenv('UV_PYTHON_DOWNLOADS_JSON_URL', 'https://custom.example/catalog')
+    seen = []
+    def fetch(url, **kwargs):
+        seen.append(url)
+        return io.BytesIO(json.dumps({'revision': len(seen)}).encode())
+    monkeypatch.setattr(uv.urllib.request, 'urlopen', fetch)
+    assert uv.read_catalog(['uv']) == {'revision': 1}
+    assert uv.read_catalog(['uv']) == {'revision': 2}
+    assert seen == ['https://custom.example/catalog'] * 2
+
+
+def test_truncated_catalog_response_does_not_crash_mirror(monkeypatch):
+    import http.client
+    item = dict(key='build', implementation='cpython', url='https://example.org/build/python.tar.gz')
+    monkeypatch.setattr(uv.subprocess, 'run', lambda *a, **kw: SimpleNamespace(returncode=1))
+    monkeypatch.setattr(uv.subprocess, 'check_output', lambda *a, **kw: json.dumps([item]))
+    def interrupted(*a, **kw):
+        raise http.client.IncompleteRead(b'partial', 10)
+    monkeypatch.setattr(uv, 'read_catalog', interrupted)
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, *a, **kw):
+            return None
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
+    with uv.python_downloads(['uv'], '3.12') as env:
+        with pytest.raises(urllib.error.HTTPError) as error:
+            opener.open(env['UV_PYTHON_INSTALL_MIRROR'] + '/build/python.tar.gz')
+        assert error.value.code == 307
+        assert error.value.headers['Location'] == item['url']
+
+
+def test_unavailable_official_catalog_does_not_repeat_sandbox_request(monkeypatch):
+    monkeypatch.delenv('UV_PYTHON_DOWNLOADS_JSON_URL', raising=False)
+    monkeypatch.setattr(uv.subprocess, 'check_output', lambda *a, **kw: 'uv 0.13.7')
+    monkeypatch.setitem(sys.modules, '_download_client', SimpleNamespace(python_catalog=lambda *a, **kw: False))
+    monkeypatch.setattr(uv.urllib.request, 'urlopen', lambda *a, **kw: pytest.fail('duplicate catalog request'))
+    assert uv.read_catalog(['uv']) == {}

@@ -1,5 +1,6 @@
 """Cache uv-selected Python builds and wheels without changing native resolution."""
 
+import http.client
 import json
 import os
 import re
@@ -15,7 +16,7 @@ from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
 
-def read_catalog(uv):
+def read_catalog(uv, *, cancelled=None):
     custom = os.environ.get("UV_PYTHON_DOWNLOADS_JSON_URL")
     if custom:
         with urllib.request.urlopen(custom, timeout=15) as response:
@@ -23,12 +24,13 @@ def read_catalog(uv):
     version = subprocess.check_output([*uv, "--version"], text=True).split()[1]
     if not re.fullmatch(r"\d+\.\d+\.\d+", version):
         return {}
-    url = (
-        f"https://raw.githubusercontent.com/astral-sh/uv/{version}"
-        "/crates/uv-python-managed/download-metadata.json"
-    )
-    with urllib.request.urlopen(url, timeout=15) as response:
-        return json.load(response)
+    from _download_client import python_catalog
+
+    with tempfile.TemporaryDirectory(prefix="envweaver-python-catalog-") as directory:
+        target = Path(directory) / "catalog.json"
+        if python_catalog(version, target, cancelled=cancelled):
+            return json.loads(target.read_text())
+    return {}
 
 
 def canonical_url(url):
@@ -75,10 +77,12 @@ def python_downloads(uv, request):
                 try:
                     if item and catalog is None:
                         try:
-                            catalog = read_catalog(uv)
+                            catalog = read_catalog(uv, cancelled=cancelled)
                             if not isinstance(catalog, dict):
                                 catalog = {}
-                        except (OSError, ValueError):
+                        except InterruptedError:
+                            raise
+                        except (OSError, ValueError, http.client.HTTPException):
                             # Missing metadata never changes uv's native download behavior.
                             catalog = {}
                     entry = (catalog or {}).get(item["key"], {}) if item else {}
@@ -99,7 +103,7 @@ def python_downloads(uv, request):
                     self.send_response(307)
                     self.send_header("Location", original)
                     self.end_headers()
-                except (OSError, ValueError):
+                except (OSError, ValueError, http.client.HTTPException):
                     if not cancelled.is_set():
                         self.send_error(502, "Python download failed")
 

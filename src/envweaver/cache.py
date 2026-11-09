@@ -2,6 +2,7 @@
 
 import hashlib
 import http.client
+import json
 import os
 import re
 import shutil
@@ -9,6 +10,7 @@ import tempfile
 import time
 import urllib.error
 import urllib.request
+from contextlib import contextmanager
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -61,8 +63,6 @@ class DownloadCache:
         self._download(url=url, checksum=checksum, target=target, proxies=proxies)
 
     def _download(self, *, url, checksum, target, proxies=None, cancelled=None):
-        import fcntl
-
         parsed = urlsplit(url)
         if (
             parsed.scheme not in {"http", "https"}
@@ -94,15 +94,7 @@ class DownloadCache:
             with artifact.open("rb") as stream:
                 return hashlib.file_digest(stream, algorithm).hexdigest() == digest
 
-        # Lock files are never unlinked: replacing a lock inode breaks interprocess exclusion.
-        with (self.root / (key + ".lock")).open("a") as lock:
-            while True:
-                check_cancelled()
-                try:
-                    fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                    break
-                except BlockingIOError:
-                    time.sleep(0.05)
+        with self._locked(key, check_cancelled):
             if not valid():
                 artifact.unlink(missing_ok=True)
                 for stale in self.root.glob(key + ".part-*"):
@@ -154,9 +146,10 @@ class DownloadCache:
                     length = response.headers.get("Content-Length")
                     if length is not None and count != int(length):
                         raise OSError("Incomplete download")
-                with path.open("rb") as stream:
-                    if hashlib.file_digest(stream, algorithm).hexdigest() != digest:
-                        raise ValueError("Download checksum mismatch")
+                if digest is not None:
+                    with path.open("rb") as stream:
+                        if hashlib.file_digest(stream, algorithm).hexdigest() != digest:
+                            raise ValueError("Download checksum mismatch")
                 return
             except InterruptedError:
                 raise
@@ -173,6 +166,77 @@ class DownloadCache:
                         check_cancelled()
                 else:
                     time.sleep(0.5 * 2**attempt)
+
+    def _metadata(self, *, url, target, validate, proxies=None, cancelled=None):
+        """Cache immutable public metadata; callers must supply a version-specific URL.
+
+        Metadata has no upstream digest. Validate its structure before publication
+        and retain a local digest to detect corruption on subsequent reads.
+        """
+        key = hashlib.sha256(("metadata\n" + url).encode()).hexdigest()
+        self.root.mkdir(parents=True, exist_ok=True, mode=0o700)
+        target = Path(target)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        artifact = self.root / (key + ".data")
+
+        def check_cancelled():
+            if cancelled is not None and cancelled.is_set():
+                raise InterruptedError("Download cancelled")
+
+        def cached():
+            try:
+                record = json.loads(artifact.read_text())
+                body = record["body"].encode()
+                if hashlib.sha256(body).hexdigest() != record["sha256"]:
+                    return None
+                validate(json.loads(body))
+                return body
+            except (FileNotFoundError, ValueError, KeyError, TypeError, AttributeError):
+                return None
+
+        with self._locked(key, check_cancelled):
+            body = cached()
+            if body is None:
+                artifact.unlink(missing_ok=True)
+                for stale in self.root.glob(key + ".part-*"):
+                    stale.unlink(missing_ok=True)
+                with tempfile.NamedTemporaryFile(dir=self.root, prefix=key + ".part-", delete=False) as stream:
+                    temporary = Path(stream.name)
+                try:
+                    self._retrieve(url, temporary, "sha256", None, proxies, check_cancelled, cancelled)
+                    body = temporary.read_bytes()
+                    validate(json.loads(body))
+                    record = {"body": body.decode(), "sha256": hashlib.sha256(body).hexdigest()}
+                    temporary.write_text(json.dumps(record))
+                    check_cancelled()
+                    temporary.replace(artifact)
+                finally:
+                    temporary.unlink(missing_ok=True)
+            check_cancelled()
+            with tempfile.NamedTemporaryFile(dir=target.parent, delete=False) as stream:
+                temporary = Path(stream.name)
+            try:
+                temporary.write_bytes(body)
+                temporary.replace(target)
+            finally:
+                temporary.unlink(missing_ok=True)
+            artifact.touch()
+        self._trim()
+
+    @contextmanager
+    def _locked(self, key, check_cancelled):
+        import fcntl
+
+        # Never unlink lock files: replacing their inode breaks interprocess exclusion.
+        with (self.root / (key + ".lock")).open("a") as lock:
+            while True:
+                check_cancelled()
+                try:
+                    fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    break
+                except BlockingIOError:
+                    time.sleep(0.05)
+            yield
 
     def _trim(self):
         import fcntl

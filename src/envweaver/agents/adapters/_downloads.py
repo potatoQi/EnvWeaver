@@ -13,6 +13,19 @@ from pathlib import Path, PurePosixPath
 from ...cache import DownloadCache
 
 
+def _validate_python_catalog(catalog):
+    if not isinstance(catalog, dict) or not catalog:
+        raise ValueError("Invalid Python download catalog")
+    for entry in catalog.values():
+        if (not isinstance(entry, dict)
+                or not isinstance(entry.get("url"), str)
+                or not entry["url"].startswith("https://")
+                or (entry.get("sha256") is not None and (
+                    not isinstance(entry["sha256"], str)
+                    or not re.fullmatch(r"[0-9a-fA-F]{64}", entry["sha256"])))):
+            raise ValueError("Invalid Python download catalog entry")
+
+
 class PreparationDownloads:
     def __init__(self, *, runtime, instance, directory, env, cancelled, redact, helpers):
         self.runtime = runtime
@@ -69,6 +82,18 @@ class PreparationDownloads:
 
     def _fetch(self, request, target):
         try:
+            if "python_catalog" in request:
+                version = request["python_catalog"]
+                if not isinstance(version, str) or not re.fullmatch(r"\d+\.\d+\.\d+", version):
+                    raise ValueError("Invalid uv version")
+                self.cache._metadata(
+                    url=f"https://raw.githubusercontent.com/astral-sh/uv/{version}"
+                    "/crates/uv-python-managed/download-metadata.json",
+                    target=target, validate=_validate_python_catalog,
+                    proxies=self.proxies or None,
+                    cancelled=self._cancelled if self._pipe else self.cancelled,
+                )
+                return {}
             self.cache._download(
                 url=request["url"], checksum=request["checksum"], target=target,
                 proxies=self.proxies or None,

@@ -4,6 +4,8 @@ Agent 为 [Eval](evaluation.md) 提供统一的执行接口。创建 Agent 对�
 
 内置 Agent 默认复用准备阶段有校验值的安装包；`cache=False` 关闭。缓存目录通过当前进程的 `ENVWEAVER_CACHE_DIR` 设置，默认 `~/.cache/envweaver/downloads`，容量为 30 GiB。
 
+Terminus 2 还会按 uv 版本复用官方 Python 校验信息，命中后不再访问其上游地址。自定义 `UV_PYTHON_DOWNLOADS_JSON_URL` 仍在沙箱读取，不做持久缓存。软件包索引和依赖解析仍可能需要联网。
+
 已支持的 Agent：[Codex CLI](#codex-agent)、[Pi](#pi-agent)、[mini-swe-agent](#mini-swe-agent)、[Terminus 2](#terminus-agent)、[自定义 Agent](#custom-agent)。
 
 ## CodexAgent {#codex-agent}

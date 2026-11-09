@@ -186,3 +186,81 @@ def test_rejects_non_http_and_credentials(tmp_path, url):
         DownloadCache(tmp_path).download(
             url=url, checksum="sha256:" + "0" * 64, target=tmp_path / "x"
         )
+
+
+def catalog_body():
+    import json
+    return json.dumps({'cpython-test': {'url': 'https://example.org/python.tar.gz',
+                                      'sha256': 'a' * 64}}).encode()
+
+
+def metadata(cache, url, target, **kwargs):
+    from envweaver.agents.adapters._downloads import _validate_python_catalog
+    cache._metadata(url=url, target=target, validate=_validate_python_catalog, proxies={}, **kwargs)
+
+
+def test_immutable_metadata_parallel_reuse_offline_and_version_isolation(tmp_path, origin):
+    url, handler = origin
+    handler.body = catalog_body()
+    cache = DownloadCache(tmp_path / 'cache')
+    with ThreadPoolExecutor(max_workers=24) as pool:
+        list(pool.map(lambda n: metadata(DownloadCache(cache.root), url, tmp_path / str(n)), range(24)))
+    assert handler.requests == 1
+    assert all((tmp_path / str(n)).read_bytes() == handler.body for n in range(24))
+    (tmp_path / '0').write_bytes(b'sandbox modification')
+    # Offline cache hit: fail immediately if any network retrieval is attempted.
+    original = cache._retrieve
+    cache._retrieve = lambda *a, **kw: pytest.fail('warm metadata accessed the network')
+    metadata(cache, url, tmp_path / 'warm')
+    assert (tmp_path / 'warm').read_bytes() == handler.body
+    cache._retrieve = original
+    metadata(cache, url + '?version=2', tmp_path / 'next-version')
+    assert handler.requests == 2
+
+
+def test_metadata_truncated_response_retries_before_publication(tmp_path, origin):
+    url, handler = origin
+    handler.body = catalog_body()
+    handler.truncated = True
+    cache = DownloadCache(tmp_path / 'cache')
+    metadata(cache, url, tmp_path / 'result')
+    assert handler.requests == 2
+    assert (tmp_path / 'result').read_bytes() == handler.body
+    assert not list(cache.root.glob('*.part-*'))
+
+
+@pytest.mark.parametrize('body', [b'{', b'{}', b'[]', b'{"build": {"url": "https://x", "sha256": "bad"}}'])
+def test_invalid_metadata_is_not_cached_or_delivered(tmp_path, origin, body):
+    url, handler = origin
+    handler.body = body
+    cache = DownloadCache(tmp_path / 'cache')
+    target = tmp_path / 'result'
+    target.write_bytes(b'previous')
+    with pytest.raises(ValueError):
+        metadata(cache, url, target)
+    assert target.read_bytes() == b'previous'
+    assert not list(cache.root.glob('*.data'))
+    assert not list(cache.root.glob('*.part-*'))
+
+
+def test_metadata_corruption_is_refetched_and_obeys_capacity(tmp_path, origin):
+    url, handler = origin
+    handler.body = catalog_body()
+    cache = DownloadCache(tmp_path / 'cache')
+    metadata(cache, url, tmp_path / 'result')
+    next(cache.root.glob('*.data')).write_bytes(b'corrupt')
+    metadata(cache, url, tmp_path / 'result')
+    assert handler.requests == 2
+    cache.max_bytes = 1
+    metadata(cache, url, tmp_path / 'result')
+    assert not list(cache.root.glob('*.data'))
+    assert (tmp_path / 'result').read_bytes() == handler.body
+
+
+def test_cancelled_metadata_never_requests_network(tmp_path, origin):
+    url, handler = origin
+    cancelled = threading.Event()
+    cancelled.set()
+    with pytest.raises(InterruptedError):
+        metadata(DownloadCache(tmp_path / 'cache'), url, tmp_path / 'result', cancelled=cancelled)
+    assert handler.requests == 0
