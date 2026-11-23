@@ -71,6 +71,19 @@ def test_native_eval(service_task, tmp_path, monkeypatch, kind, scenario):
         assert len(requests) == (1 if scenario == "context_text" else 2)
         if scenario == "stop_request":
             assert blocked.is_set()
+        if kind == "codex" and scenario == "normal":
+            directory, = (tmp_path / "run").glob("*/agent")
+            trajectory = json.loads((directory / "trajectory.json").read_text())
+            calls = [step for step in trajectory["steps"] if step["source"] == "agent"]
+            assert [json.loads((directory / s["extra"]["context"]["path"]).read_text())
+                    for s in calls] == requests
+            first, answer = calls
+            call, = first["tool_calls"]
+            observation, = first["observation"]["results"]
+            feedback, = (item for item in requests[1]["input"] if item.get("type") == "function_call_output")
+            assert feedback["call_id"] == call["tool_call_id"] == observation["source_call_id"]
+            assert feedback["output"] == observation["content"]
+            assert answer["message"] == [{"type": "text", "text": "done"}]
     finally:
         release.set()
         server.shutdown()

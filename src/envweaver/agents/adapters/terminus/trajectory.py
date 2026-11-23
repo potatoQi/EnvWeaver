@@ -2,7 +2,7 @@
 
 from copy import deepcopy
 
-from ...trajectory import ATIF_VERSION, context
+from ....trajectory.atif import ATIF_VERSION, context
 
 
 def convert(trajectories, events, output):

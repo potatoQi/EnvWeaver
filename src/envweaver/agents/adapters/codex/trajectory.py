@@ -1,11 +1,12 @@
-"""Convert Codex rollout trace v2; each inference keeps its actual request."""
+"""Convert Codex rollout traces v1–v3; each inference keeps its actual request."""
 
 import json
 from datetime import datetime, timezone
 from pathlib import PurePosixPath
 
-from ...trajectory import add_step, context, document
-from ...trajectory.capture import Media, json_lines
+from ....trajectory.atif import add_step, context, document
+from ...capture import Media, json_lines
+from .payloads import read_payload, relative_path
 
 
 def convert(files, output, read_remote=None):
@@ -15,6 +16,7 @@ def convert(files, output, read_remote=None):
     active_inferences, tool_owners = {}, {}
     results = []
     root_id = None
+    missing = set()
 
     def content(value):
         if isinstance(value, str):
@@ -34,28 +36,35 @@ def convert(files, output, read_remote=None):
         base = str(PurePosixPath(name).parent)
 
         def payload(ref):
-            if not ref:
-                return None
-            raw = files.get(base + "/" + ref["path"])
-            return json.loads(raw) if raw else None
+            return read_payload(files, base, ref, missing)
 
         for event in json_lines(text):
-            if event.get("schema_version") != 2:
-                raise ValueError("Unsupported Codex rollout trace schema")
+            if event.get("schema_version") not in (1, 2, 3):
+                raise ValueError(f"Unsupported Codex rollout trace schema {event.get('schema_version')!r}")
             data = event["payload"]
             kind = data["type"]
             if kind == "rollout_started":
                 root_id = root_id or data["root_thread_id"]
             tid = event.get("thread_id") or data.get("thread_id")
             if tid:
-                doc = documents.setdefault(tid, document(output.result["metadata"], tid))
+                if tid not in documents:
+                    documents[tid] = document(output.result["metadata"], tid)
+                doc = documents[tid]
             if kind == "thread_started":
                 doc["extra"] = {"codex": payload(data.get("metadata_payload"))}
             elif kind == "inference_started":
                 active_inferences[tid] = data["inference_call_id"]
-                request = payload(data.get("request_payload"))
-                if request is None:
-                    continue  # The trace and payload files are collected independently.
+                request_gaps = set()
+                request = read_payload(files, base, data["request_payload"], request_gaps)
+                if request_gaps:
+                    missing.update(request_gaps)
+                    step = add_step(doc, "agent", "", model_name=data.get("model"), extra={
+                        "inference_call_id": data["inference_call_id"],
+                        "response_status": "pending",
+                        "context": {"complete": False, "missing": sorted(request_gaps)},
+                    })
+                    requests[data["inference_call_id"]] = step
+                    continue
                 gaps = []
                 if request.get("previous_response_id"):
                     gaps.append("server_side_previous_response")
@@ -101,10 +110,14 @@ def convert(files, output, read_remote=None):
                 ref = data.get("partial_response_payload" if failed else "response_payload")
                 response = payload(ref)
                 if response is None:
+                    step["extra"]["response_incomplete"] = True
                     continue
                 if not failed:
                     step["extra"]["response_status"] = "completed"
-                step["extra"]["native_response"] = "logs/native/" + base + "/" + ref["path"]
+                step["extra"]["native_response"] = (
+                    output.save_file(json.dumps(response, ensure_ascii=False).encode(), ".json")
+                    if ref.get("parts") else f"logs/native/{base}/{relative_path(ref)}"
+                )
                 messages, reasoning, tools = [], [], []
                 for item in response.get("output_items", []):
                     kind = item.get("type")
@@ -186,6 +199,8 @@ def convert(files, output, read_remote=None):
     pending_threads = [key for key, child in documents.items() if not child["steps"]]
     documents = {key: child for key, child in documents.items() if child["steps"]}
     root.setdefault("extra", {})["pending_thread_ids"] = pending_threads
+    if missing:
+        root["extra"]["capture"] = {"complete": False, "missing": sorted(missing)}
     for child in documents.values():
         child["session_id"] = root["session_id"]
         if child is root:

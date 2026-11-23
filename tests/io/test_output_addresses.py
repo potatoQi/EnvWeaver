@@ -346,7 +346,7 @@ def test_remote_eval_preserves_interrupt_and_upload_failure(
 def test_atif_children_are_published_before_main_trajectory(tmp_path, ssh_files, monkeypatch):
     import envweaver._io.output as publication
     from envweaver import AgentOutput
-    from envweaver.agents.trajectory import add_step, document
+    from envweaver.trajectory.atif import add_step, document
 
     destination = tmp_path / "remote-atif"
     output = AgentOutput(

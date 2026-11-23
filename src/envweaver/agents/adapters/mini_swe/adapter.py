@@ -5,6 +5,7 @@ from ...._util import write_json
 from ....errors import AgentError, ErrorType
 from ..._redaction import redact_data
 from .._cli import CliAgent
+from ..sandbox import SANDBOX_SCRIPTS
 
 _ERROR_TYPES = {
     "LimitsExceeded": ErrorType.OTHER_LIMIT,
@@ -52,7 +53,7 @@ class MiniSweAgent(CliAgent):
         version: 安装的 mini-swe-agent 版本，仅支持 2.x；不填则使用已安装版本，未安装时安装最新的 2.x 版本。
         env: 环境变量字典，传入值覆盖沙箱同名变量；默认 None，不自动读取当前机器的变量。
         extra_args: 原生 mini 参数列表，如 ["-c", "/workspace/agent.yaml"]；配置文件须已在沙箱内。默认 None。
-        cache: 是否复用已缓存的安装包，默认 True。
+        cache: 是否使用 EnvWeaver 的安装缓存，默认 True。
     """
 
     executable = "mini"
@@ -80,7 +81,7 @@ class MiniSweAgent(CliAgent):
         self._snapshot = None
         super().prepare(runtime=runtime, instance=instance, output=output, cwd=cwd)
         for source, name in ((Path(__file__).with_name("runner.py"), "mini-runner.py"),
-                             (Path(__file__).parent.parent / "_model_capture.py", "model_capture.py"),
+                             (SANDBOX_SCRIPTS / "_model_capture.py", "model_capture.py"),
                              (Path(__file__).parents[2] / "_redaction.py", "_redaction.py")):
             runtime.upload(instance=instance, source=source, target=self._remote + "/" + name)
         if not self._output.result["metadata"]["agent_version"].startswith("2."):
@@ -88,18 +89,7 @@ class MiniSweAgent(CliAgent):
 
     def _install_command(self, version):
         package = "mini-swe-agent" + (f"=={version}" if version else ">=2,<3")
-        pip = [self._remote + "/_pip_install.py"] if self._downloads else ["-m", "pip"]
-        return [
-            self._python,
-            *pip,
-            "install",
-            "--target",
-            self._remote + "/packages",
-            "--no-compile",
-            "--no-warn-script-location",
-            package,
-            "mcp>=2.3,<3",
-        ]
+        return self._pip_install_command("--no-warn-script-location", package, "mcp>=2.3,<3")
 
     def _process_env(self):
         return {"MSWEA_CONFIGURED": "true", **super()._process_env()}
@@ -117,19 +107,19 @@ class MiniSweAgent(CliAgent):
             "--output",
             self._remote + "/mini.traj.json",
         ]
-        if self._output.result["metadata"]["model"]:
-            command += ["--model", self._output.result["metadata"]["model"]]
+        if model := self._output.result["metadata"]["model"]:
+            command += ["--model", model]
         return command + self._extra_args + ["--task", prompt]
 
     def _poll_native(self):
-        from ...trajectory.capture import json_lines
+        from ...capture import json_lines
         from .trajectory import convert
 
         self._native.poll({"mini": self._remote + "/model-calls.jsonl"})
         calls = self._native.files.get("mini/model-calls.jsonl", "")
 
-        def save_trajectory(native=None):
-            trajectory = convert(json_lines(calls), self._output, self._read_remote, native)
+        def save_trajectory():
+            trajectory = convert(json_lines(calls), self._output, self._read_remote, self._native_snapshot)
             if trajectory is not None:
                 self._output.save_trajectory(trajectory)
             return trajectory is None or not trajectory["extra"]["media_missing"]
@@ -138,14 +128,14 @@ class MiniSweAgent(CliAgent):
         snapshot = (body, calls)
         if snapshot == self._snapshot:
             return
+        if body is not None:
+            try:
+                native = redact_data(json.loads(body), self._redact)
+            except ValueError:
+                body = None  # A poll can catch a snapshot while mini is writing it.
         if body is None:
-            save_trajectory(self._native_snapshot)
+            self._snapshot = snapshot if save_trajectory() else None
             return
-        try:
-            native = redact_data(json.loads(body), self._redact)
-        except ValueError:
-            save_trajectory(self._native_snapshot)
-            return  # The next poll retries an in-progress native snapshot.
         messages = native.get("messages", [])
         if len(messages) < self._native_count:
             raise RuntimeError("mini-swe-agent trajectory was reset during a run")
@@ -168,7 +158,7 @@ class MiniSweAgent(CliAgent):
             self._run_error = _error(status, detail)
         filtered = {**native, "info": filtered_info}
         self._native_snapshot = filtered
-        media_complete = save_trajectory(filtered)
+        media_complete = save_trajectory()
         write_json(self._output.directory / "logs" / "mini.traj.json", filtered, private=True)
         paths = list(self._output.result["artifacts"]["logs"])
         if "logs/mini.traj.json" not in paths:

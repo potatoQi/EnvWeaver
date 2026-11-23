@@ -9,7 +9,7 @@ from unittest.mock import Mock
 import pytest
 
 from envweaver import CodexAgent
-from envweaver.agents.adapters import _process
+from envweaver.agents.adapters.sandbox import _process
 
 
 @pytest.mark.parametrize("finished", [True, False])

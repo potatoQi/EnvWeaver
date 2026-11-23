@@ -2,7 +2,7 @@ from io import StringIO
 
 from rich.console import Console
 
-from envweaver.evaluation.runner import _Panel
+from envweaver.evaluation.panel import _Panel
 
 
 def render(panel):

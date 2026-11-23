@@ -32,15 +32,15 @@ def _token_usage(directory, trajectory):
             if relative.is_absolute() or ".." in relative.parts or "\\" in value:
                 return unknown
             path = root / relative
-            if not path.resolve().is_relative_to(root) or any(
+            resolved = path.resolve()
+            if not resolved.is_relative_to(root) or any(
                 part.is_symlink() for part in [path, *path.parents] if part != root.parent
             ):
                 return unknown
-            path = path.resolve()
-            if path in files:
+            if resolved in files:
                 continue
-            files.add(path)
-            value = json.loads(path.read_text())
+            files.add(resolved)
+            value = json.loads(resolved.read_text())
         if not isinstance(value, dict) or not isinstance(value.get("steps"), list):
             return unknown
         documents.append(value)

@@ -7,6 +7,7 @@ from ...._util import write_json
 from ....errors import AgentError, ErrorType
 from ..._redaction import redact_data
 from .._cli import CliAgent
+from ..sandbox import SANDBOX_SCRIPTS
 
 _ERROR_TYPES = {
     "StepLimit": ErrorType.STEP_LIMIT,
@@ -37,7 +38,7 @@ class Terminus2Agent(CliAgent):
             TMUX_TMPDIR 由适配器设置为本次独立终端目录。
         options: Harbor 0.25.0 的 Terminus 2 参数字典，默认 None；例如 api_base、
             temperature、max_turns、model_info、llm_call_kwargs。
-        cache: 是否复用安装包和按 uv 版本保存的官方 Python 校验信息，默认 True。
+        cache: 是否使用 EnvWeaver 的安装缓存，默认 True。
 
     Raises:
         ValueError: model、env 或 options 无效，或覆盖了适配器管理的参数。
@@ -127,7 +128,7 @@ class Terminus2Agent(CliAgent):
         return [self._python, self._remote + "/terminus-install.py", self._remote]
 
     def _download_helpers(self):
-        return (*super()._download_helpers(), "_uv_install.py")
+        return (*super()._download_helpers(), Path(__file__).with_name("_uv_install.py"))
 
     def prepare(self, *, runtime, instance, output, cwd: str):
         super().prepare(runtime=runtime, instance=instance, output=output, cwd=cwd)
@@ -142,9 +143,10 @@ class Terminus2Agent(CliAgent):
             source=Path(__file__).with_name("monkey_patches"),
             target=self._remote + "/monkey_patches",
         )
-        runtime.upload(instance=instance, source=Path(__file__).parent.parent / "_model_capture.py", target=self._remote + "/model_capture.py")
+        runtime.upload(instance=instance, source=SANDBOX_SCRIPTS / "_model_capture.py", target=self._remote + "/model_capture.py")
         runtime.upload(instance=instance, source=Path(__file__).parents[2] / "_redaction.py", target=self._remote + "/_redaction.py")
-        self._upload_text("config.json", json.dumps(self.config))
+        settings = {key: self._config[key] for key in ("model", "env", "options")}
+        self._upload_text("config.json", json.dumps(settings))
         code, _ = self._execute(self._runner("prepare"), preparing=True)
         self._poll_native()
         if self._run_error:
@@ -163,7 +165,7 @@ class Terminus2Agent(CliAgent):
         return self._runner("run")
 
     def _poll_native(self):
-        from ...trajectory.capture import json_lines
+        from ...capture import json_lines
         from .trajectory import convert
 
         changed = self._native.poll({"terminus": self._remote + "/model-calls.jsonl"})
@@ -171,7 +173,7 @@ class Terminus2Agent(CliAgent):
         if body is None or (body == self._snapshot and not changed):
             return
         native = redact_data(json.loads(body), self._redact)
-        paths = list(self._output.result["artifacts"]["logs"])
+        paths = []
         for name, trajectory in native["trajectories"].items():
             if Path(name).name != name:
                 raise ValueError("Invalid Terminus trajectory filename")
@@ -184,8 +186,7 @@ class Terminus2Agent(CliAgent):
             self._counts[name] = len(steps)
             relative = "logs/terminus/" + name
             write_json(self._output.directory / relative, trajectory, private=True)
-            if relative not in paths:
-                paths.append(relative)
+            paths.append(relative)
         trajectories = convert(native["trajectories"], json_lines(self._native.files.get("terminus/model-calls.jsonl", "")), self._output)
         if trajectories is not None:
             self._output.save_trajectory(

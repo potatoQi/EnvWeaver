@@ -10,7 +10,7 @@ from typing import Any
 
 from .._io.output import OutputDirectory
 from .._util import write_json
-from .trajectory import validate_trajectory
+from ..trajectory.atif import validate_trajectory
 
 
 def validate_result(result, directory):
@@ -264,10 +264,9 @@ class AgentOutput:
             path.parent.mkdir(exist_ok=True)
             if not path.exists():
                 path.write_bytes(data)
-            paths = list(self._result["artifacts"]["files"])
+            paths = self._result["artifacts"]["files"]
             if relative not in paths:
-                paths.append(relative)
-                self.update(artifacts={"files": paths}, sync=False)
+                self.update(artifacts={"files": [*paths, relative]}, sync=False)
         self._output_store.sync()
         return relative
 
@@ -295,9 +294,8 @@ class AgentOutput:
             path.parent.mkdir(parents=True, exist_ok=True)
             with path.open("a", encoding="utf-8") as stream:
                 stream.write(text)
-            paths = list(self._result["artifacts"]["logs"])
+            paths = self._result["artifacts"]["logs"]
             relative = f"logs/{name}"
             if relative not in paths:
-                paths.append(relative)
-                self.update(artifacts={"logs": paths}, sync=False)
+                self.update(artifacts={"logs": [*paths, relative]}, sync=False)
         self._output_store.sync()

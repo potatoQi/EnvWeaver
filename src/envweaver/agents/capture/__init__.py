@@ -25,25 +25,36 @@ class NativeFiles:
         self.files = {}
         self._prefixes = {}
 
-    def poll(self, sources):
+    def poll(self, sources, *, archives=None):
         if not sources:
             return False
+        archives = archives or {}
         code, stdout, stderr = self.runtime.exec(
             instance=self.instance,
-            command=[self.python, "-c", _SCAN, json.dumps([sources, self.stamps])],
+            command=[self.python, "-c", _SCAN, json.dumps([sources, self.stamps, list(archives)])],
             timeout=30,
         )
         if code:
             raise RuntimeError(f"Cannot collect Agent native records: {self.redact(stderr)}")
         changed = json.loads(stdout)
         saved = []
-        for name, item in changed.items():
+
+        def records():
+            for name, item in changed.items():
+                data = base64.b64decode(item["data"])
+                unpack = archives.get(Path(name).suffix)
+                if unpack is None:
+                    yield name, item["start"], data
+                else:
+                    for member, body in unpack(name, data):
+                        if member not in self.files:
+                            yield member, 0, body
+                self.stamps[name] = item["stamp"]
+
+        for name, start, data in records():
             if Path(name).is_absolute() or ".." in Path(name).parts:
                 raise ValueError("Native artifact path escapes its directory")
-            # A concurrent append may end this snapshot inside a UTF-8 character.
-            data = base64.b64decode(item["data"])
             text = codecs.getincrementaldecoder("utf-8")().decode(data, final=False)
-            start = item["start"]
             prefix, written = self._prefixes.get(name, (0, 0)) if start else (0, 0)
             if name.endswith(".jsonl"):
                 # Only newline-terminated records are committed. A valid last record
@@ -70,7 +81,6 @@ class NativeFiles:
                 self._prefixes[name] = (
                     prefix + len(complete), written + len(complete.encode("utf-8")),
                 )
-            self.stamps[name] = item["stamp"]
         if saved:
             logs = self.output.result["artifacts"]["logs"]
             logs = list(dict.fromkeys([*logs, *("logs/native/" + n for n in saved)]))

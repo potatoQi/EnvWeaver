@@ -6,7 +6,7 @@ import pytest
 
 from envweaver import AgentOutput
 from envweaver.agents.adapters.mini_swe.trajectory import convert
-from envweaver.agents.trajectory import validate_trajectory
+from envweaver.trajectory.atif import validate_trajectory
 
 
 @pytest.mark.parametrize("reuse_id", [False, True])

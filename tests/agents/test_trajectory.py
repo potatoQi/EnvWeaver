@@ -12,8 +12,8 @@ from envweaver.agents.adapters.codex.trajectory import convert as codex
 from envweaver.agents.adapters.mini_swe.trajectory import convert as mini
 from envweaver.agents.adapters.pi.trajectory import convert as pi
 from envweaver.agents.adapters.terminus.trajectory import convert as terminus
-from envweaver.agents.trajectory import add_step, document, validate_trajectory
-from envweaver.agents.trajectory.capture import Media, NativeFiles, json_lines
+from envweaver.agents.capture import Media, NativeFiles, json_lines
+from envweaver.trajectory.atif import add_step, document, validate_trajectory
 
 
 @pytest.fixture
@@ -111,16 +111,21 @@ def test_partial_event_is_not_fabricated():
 
 
 class CodexTrace:
-    def __init__(self):
+    def __init__(self, schema=2):
+        self.schema = schema
         self.files = {}
         self.events = []
 
     def event(self, kind, tid="root", **data):
         self.events.append(
-            {"schema_version": 2, "thread_id": tid, "payload": {"type": kind, **data}}
+            {"schema_version": self.schema, "thread_id": tid, "payload": {"type": kind, **data}}
         )
 
     def payload(self, data):
+        if self.schema == 3:
+            index = len(self.files) + 1
+            self.files[f"trace/payloads/000001/{index}.json"] = json.dumps(data)
+            return {"raw_payload_id": f"raw_payload:{index}", "shard": 1}
         name = f"payloads/{len(self.files)}.json"
         self.files["trace/" + name] = json.dumps(data)
         return {"path": name}
@@ -146,8 +151,9 @@ class CodexTrace:
         }
 
 
-def test_codex_threads_images_encryption_and_actual_context(output, png):
-    trace = CodexTrace()
+@pytest.mark.parametrize("schema", [1, 2, 3])
+def test_codex_threads_images_encryption_and_actual_context(output, png, schema):
+    trace = CodexTrace(schema)
     trace.event("rollout_started", root_thread_id="root")
     for tid, parent in [("root", None), ("child", "root"), ("grandchild", "child")]:
         metadata = (
@@ -214,8 +220,30 @@ def test_codex_threads_images_encryption_and_actual_context(output, png):
     assert last["reasoning_content"] == "visible"
 
 
-def test_codex_pending_request_survives_interruption(output):
-    trace = CodexTrace()
+@pytest.mark.parametrize("schema", [0, 4])
+def test_codex_export_error_preserves_cli_stop_reason(output, schema):
+    from types import SimpleNamespace
+
+    from envweaver import CodexAgent, ErrorType
+
+    agent = CodexAgent()
+    agent._output = output
+    agent._remote = "/sandbox"
+    agent._native = SimpleNamespace(
+        poll=lambda sources, **kwargs: True,
+        files={"codex/trace.jsonl": json.dumps({"schema_version": schema})},
+    )
+    # Capture can run both before the terminal CLI event and in final cleanup.
+    agent._poll_native()
+    agent._on_event({"type": "turn.failed", "error": {"message": "Your input exceeds the context window"}})
+    agent._poll_native()
+    assert agent._run_error.type is ErrorType.CONTEXT_LIMIT
+    assert f"schema {schema}" in output.result["metadata"]["trajectory_export_error"]
+
+
+@pytest.mark.parametrize("schema", [1, 2, 3])
+def test_codex_pending_request_survives_interruption(output, schema):
+    trace = CodexTrace(schema)
     trace.event("rollout_started", root_thread_id="root")
     trace.event(
         "inference_started",
@@ -383,8 +411,8 @@ def test_model_capture_nested_calls_opaque_options_and_error(tmp_path, monkeypat
     import sys
     from types import SimpleNamespace
 
-    from envweaver.agents.adapters._model_capture import install
-    from envweaver.agents.trajectory import context
+    from envweaver.agents.adapters.sandbox._model_capture import install
+    from envweaver.trajectory.atif import context
 
     seen = []
 
@@ -516,8 +544,9 @@ def test_codex_waits_for_first_inference_snapshot(output):
     assert codex(trace.finish(), output) is None
 
 
-def test_codex_tool_result_can_precede_completed_inference(output):
-    trace = CodexTrace()
+@pytest.mark.parametrize("schema", [1, 2, 3])
+def test_codex_tool_result_can_precede_completed_inference(output, schema):
+    trace = CodexTrace(schema)
     trace.event("rollout_started", root_thread_id="root")
     trace.event(
         "inference_started", inference_call_id="c", request_payload=trace.payload({"input": []})
@@ -746,8 +775,9 @@ def test_mini_partial_snapshot_still_exports_new_model_calls(output, monkeypatch
 
 
 @pytest.mark.parametrize("late_payload", [False, True])
-def test_codex_failed_inference_keeps_partial_response(output, late_payload):
-    trace = CodexTrace()
+@pytest.mark.parametrize("schema", [1, 2, 3])
+def test_codex_failed_inference_keeps_partial_response(output, late_payload, schema):
+    trace = CodexTrace(schema)
     trace.event("rollout_started", root_thread_id="root")
     trace.event(
         "inference_started",
@@ -768,6 +798,7 @@ def test_codex_failed_inference_keeps_partial_response(output, late_payload):
         "token_usage": None,
     }
     ref = trace.payload(response)
+    response_path = next(reversed(trace.files))
     trace.event(
         "inference_failed",
         inference_call_id="partial",
@@ -781,7 +812,7 @@ def test_codex_failed_inference_keeps_partial_response(output, late_payload):
     )
     files = trace.finish()
     if late_payload:
-        pending = codex({k: v for k, v in files.items() if k != "trace/" + ref["path"]}, output)
+        pending = codex({k: v for k, v in files.items() if k != response_path}, output)
         validate_trajectory(pending)
         assert pending["steps"][0]["extra"]["response_status"] == "failed"
         assert pending["steps"][0]["extra"]["response_incomplete"] is True
@@ -791,7 +822,7 @@ def test_codex_failed_inference_keeps_partial_response(output, late_payload):
     assert step["extra"]["response_status"] == "failed"
     assert step["extra"]["response_incomplete"] is True
     assert step["extra"]["failure"]["error"] == "stream interrupted"
-    assert step["extra"]["native_response"] == "logs/native/trace/" + ref["path"]
+    assert step["extra"]["native_response"] == "logs/native/" + response_path
     assert step["message"] == [{"type": "text", "text": "already received"}]
     assert step["reasoning_content"] == "visible reasoning"
     assert step["tool_calls"][0]["tool_call_id"] == "tool"
@@ -864,8 +895,9 @@ def test_non_object_tool_arguments_are_preserved(output, raw, adapter):
     assert call["arguments"] == {}
 
 
-def test_codex_reused_tool_ids_keep_results_on_their_inference(output):
-    trace = CodexTrace()
+@pytest.mark.parametrize("schema", [1, 2, 3])
+def test_codex_reused_tool_ids_keep_results_on_their_inference(output, schema):
+    trace = CodexTrace(schema)
     trace.event("rollout_started", root_thread_id="root")
     request = {"input": []}
     response = {
@@ -903,3 +935,72 @@ def test_duplicate_tool_id_in_one_step_is_rejected(output):
     add_step(doc, "agent", "", tool_calls=[call, call.copy()])
     with pytest.raises(ValueError, match="Duplicate ATIF tool_call_id"):
         validate_trajectory(doc)
+
+
+def test_codex_live_shard_and_nested_fragments(output, tmp_path):
+    import struct
+    import sys
+
+    import zstandard
+
+    from envweaver.agents.adapters.codex.payloads import read_payload, unpack_shard
+    from tests.agents.test_cli_agents import LocalTransport
+
+    def record(i, obj):
+        identity = f"raw_payload:{i}".encode()
+        data = json.dumps(obj).encode()
+        return struct.pack("<HQ", len(identity), len(data)) + identity + data
+
+    def ref(i, *parts):
+        return {"raw_payload_id": f"raw_payload:{i}", "shard": 1, "parts": list(parts)}
+
+    folder = tmp_path / "bundle"
+    (folder / "payloads").mkdir(parents=True)
+    shard = folder / "payloads/000001.zst"
+    request = ref(1, ref(2, ref(3)), ref(4))
+    compressor = zstandard.ZstdCompressor().compressobj()
+    first = record(1, ['{"model":"demo","input":[', ",", "]}"]) + record(2, ['{"text":', "}"])
+    shard.write_bytes(compressor.compress(first) + compressor.flush(zstandard.COMPRESSOBJ_FLUSH_BLOCK))
+    collector = NativeFiles(
+        runtime=LocalTransport(), instance=None, python=sys.executable,
+        output=output, redact=lambda s: s.replace("SECRET", "redacted"),
+    )
+
+    def snapshot():
+        return collector.poll({"bundle": str(folder)}, archives={".zst": unpack_shard})
+
+    assert snapshot()
+    missing = set()
+    assert read_payload(collector.files, "bundle", request, missing) is None and missing
+    with shard.open("ab") as stream:
+        stream.write(compressor.compress(record(3, "SECRET\n测试") + record(4, None)))
+        stream.write(compressor.flush())
+    assert snapshot()
+    missing.clear()
+    assert read_payload(collector.files, "bundle", request, missing) == {
+        "model": "demo", "input": [{"text": "redacted\n测试"}, None],
+    }
+    assert not missing and not snapshot()
+    for status in ("truncated", "omitted"):
+        part = {**ref(3), "capture": {"status": status}}
+        assert read_payload(collector.files, "bundle", ref(1, ref(2, part), ref(4)), missing) is None
+        assert "raw_payload:3" in missing
+    damaged = zstandard.ZstdCompressor().compress(record(1, {})[:-1])
+    with pytest.raises(ValueError, match="Partial record"):
+        list(unpack_shard("000001.zst", damaged))
+
+def test_codex_omitted_request_keeps_the_observed_answer(output):
+    trace = CodexTrace(3)
+    trace.event("inference_started", inference_call_id="short",
+                request_payload={"raw_payload_id": "raw_payload:8", "shard": None,
+                                 "capture": {"status": "omitted", "original_bytes": 1024}})
+    trace.event("inference_completed", inference_call_id="short", response_payload=trace.payload({
+        "output_items": [{"type": "message", "content": [{"type": "output_text", "text": "ok"}]}],
+    }))
+    doc = codex(trace.finish(), output)
+    validate_trajectory(doc)
+    step, = doc["steps"]
+    assert doc["extra"]["capture"] == step["extra"]["context"] == {
+        "complete": False, "missing": ["raw_payload:8"],
+    }
+    assert step["message"] == [{"type": "text", "text": "ok"}]

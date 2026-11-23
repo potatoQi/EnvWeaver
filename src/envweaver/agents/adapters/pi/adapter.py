@@ -5,6 +5,7 @@ from pathlib import Path
 
 from ....errors import AgentError, ErrorType
 from .._cli import CliAgent
+from .._provider_errors import context_limit_message, provider_error_type
 
 
 def _error(message):
@@ -21,13 +22,7 @@ def _error(message):
     code = body.get("code") if isinstance(body, dict) else None
     if code == "context_length_exceeded" and number in (None, 400):
         return AgentError(ErrorType.CONTEXT_LIMIT, message)
-    kind = {
-        "invalid_api_key": ErrorType.AUTHENTICATION,
-        "insufficient_quota": ErrorType.CONFIGURATION,
-        "model_not_found": ErrorType.CONFIGURATION,
-        "rate_limit_exceeded": ErrorType.PROVIDER_TRANSIENT,
-    }.get(code) if isinstance(code, str) else None
-    if kind is not None:
+    if (kind := provider_error_type(code)) is not None:
         return AgentError(kind, message)
     if number in (401, 403):
         return AgentError(ErrorType.AUTHENTICATION, message)
@@ -39,11 +34,7 @@ def _error(message):
     )):
         return AgentError(ErrorType.PROVIDER_TRANSIENT, message)
     explanation = body.get("message") if isinstance(body, dict) else message
-    if number in (None, 400) and isinstance(explanation, str) and re.search(
-        r"context[_ ]length[_ ]exceeded|prompt (?:is )?too long"
-        r"|prompt exceeds max length|exceeds the context window",
-        explanation, re.IGNORECASE,
-    ):
+    if number in (None, 400) and context_limit_message(explanation):
         return AgentError(ErrorType.CONTEXT_LIMIT, message)
     if number in (400, 404, 422):
         return AgentError(ErrorType.CONFIGURATION, message)
@@ -59,7 +50,7 @@ class PiAgent(CliAgent):
         version: 安装的 Pi 版本；不填则使用已安装版本，未安装时安装最新版。
         env: 环境变量字典，传入值覆盖沙箱同名变量；默认 None，不自动读取当前机器的变量。
         extra_args: 原生 pi 参数列表，如 ["--thinking", "high"]；默认 None。
-        cache: 是否复用已缓存的安装包，默认 True。
+        cache: 是否使用 EnvWeaver 的安装缓存，默认 True。
     """
 
     executable = "pi"
@@ -76,11 +67,11 @@ class PiAgent(CliAgent):
         return {**super()._process_env(), "ENVWEAVER_PI_TRACE": self._remote + "/trace/events.jsonl"}
 
     def _poll_native(self):
-        from ...trajectory.capture import json_lines
+        from ...capture import json_lines
         from .trajectory import convert
 
         if self._native.poll({"pi": self._remote + "/trace"}):
-            trajectory = convert(json_lines(self._native.files.get("pi/events.jsonl", "")), self._output, self._read_remote)
+            trajectory = convert(json_lines(self._native.files.get("pi/events.jsonl", "")), self._output)
             if trajectory is not None:
                 self._output.save_trajectory(trajectory)
 
@@ -88,8 +79,8 @@ class PiAgent(CliAgent):
         # A prompt file preserves literal @file text in user instructions.
         prompt_path = self._upload_text("prompt.txt", prompt)
         command = ["pi", "--mode", "json", "--print", "--session", self._remote + "/trace/session.jsonl"]
-        if self._output.result["metadata"]["model"]:
-            command += ["--model", self._output.result["metadata"]["model"]]
+        if model := self._output.result["metadata"]["model"]:
+            command += ["--model", model]
         return command + self._extra_args + ["-e", self._remote + "/capture.ts", "@" + prompt_path] + ["@" + path for path in images]
 
     def _on_event(self, event):

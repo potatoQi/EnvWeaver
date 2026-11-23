@@ -10,6 +10,8 @@ import tarfile
 import urllib.request
 from pathlib import Path
 
+NODE_MAJOR = 22
+
 
 def download(url, target, checksum=None):
     if checksum is not None and os.environ.get("ENVWEAVER_DOWNLOAD_REQUESTS"):
@@ -27,7 +29,12 @@ def node_ready():
         result = subprocess.run(["node", "--version"], capture_output=True, text=True, timeout=30)
         version = tuple(int(part) for part in result.stdout.strip().lstrip("v").split("."))
         npm = subprocess.run(["npm", "--version"], capture_output=True, timeout=30)
-        return result.returncode == npm.returncode == 0 and version >= (22, 19, 0)
+        supported = (
+            version >= (22, 19, 0)
+            if NODE_MAJOR == 22
+            else (24, 16, 0) <= version < (25,) or version >= (26, 1, 0)
+        )
+        return result.returncode == npm.returncode == 0 and supported
     except (OSError, ValueError):
         return False
 
@@ -67,7 +74,7 @@ def install_node(root):
         architecture = {"x86_64": "x64", "aarch64": "arm64"}.get(platform.machine())
         if architecture is None:
             raise RuntimeError(f"Automatic Node installation does not support {platform.machine()}")
-        base = "https://nodejs.org/dist/latest-v22.x/"
+        base = f"https://nodejs.org/dist/latest-v{NODE_MAJOR}.x/"
         checksums = root / "SHASUMS256.txt"
         download(base + checksums.name, checksums)
         suffix = f"-linux-{architecture}.tar.gz"
@@ -75,7 +82,7 @@ def install_node(root):
             line.split() for line in checksums.read_text().splitlines() if line.endswith(suffix)
         ]
         if len(matches) != 1:
-            raise RuntimeError("Cannot identify a Node 22 Linux distribution")
+            raise RuntimeError(f"Cannot identify a Node {NODE_MAJOR} Linux distribution")
         checksum, filename = matches[0]
         if Path(filename).name != filename:
             raise RuntimeError("Invalid Node distribution filename")
@@ -93,7 +100,7 @@ def install_node(root):
         archive.unlink()
     if not node_ready():
         raise RuntimeError(
-            "Node.js 22.19+ and npm are required; automatic installation did not provide them"
+            f"Automatic installation did not provide a supported Node.js {NODE_MAJOR} and npm"
         )
 
 
@@ -118,6 +125,8 @@ def install_pip(root):
 
 
 if __name__ == "__main__":
+    if len(sys.argv) > 3:
+        NODE_MAJOR = int(sys.argv[3])
     root = Path(sys.argv[2])
     root.mkdir(parents=True, exist_ok=True)
     {"node": install_node, "pip": install_pip}[sys.argv[1]](root)

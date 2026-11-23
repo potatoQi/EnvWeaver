@@ -2,13 +2,14 @@ import importlib
 import json
 from dataclasses import replace
 from pathlib import Path
+from unittest.mock import Mock, call
 
 import pytest
 
 from envweaver import TrajPool, eval
 from envweaver._util import read_json
-from envweaver.agents.trajectory import add_step, document
 from envweaver.errors import AgentError, ErrorType
+from envweaver.trajectory.atif import add_step, document
 from tests.evaluation.test_eval import GoodAgent, config
 from tests.evaluation.test_eval import task as task
 
@@ -60,7 +61,7 @@ def test_eval_pool_resume_and_zero_score(tmp_path, task):
     assert json.loads((tmp_path / "run/000001/result.json").read_text()) == results[0]
 
 
-def test_retry_records_are_independent(tmp_path, task):
+def test_retry_records_are_independent(tmp_path, task, monkeypatch):
     calls = []
 
     class Flaky(TracedAgent):
@@ -72,16 +73,22 @@ def test_retry_records_are_independent(tmp_path, task):
             return result
 
     pool = TrajPool(tmp_path / "pool", completed_only=False)
-    (result,) = eval(
+    save = Mock(wraps=pool.save)
+    monkeypatch.setattr(pool, "save", save)
+    kwargs = dict(
         tasks=task,
         agent=Flaky(),
         config=config(max_retries=1, retry_delay=0.001),
         output_dir=tmp_path / "run",
         traj_pool=pool,
     )
+    (result,) = eval(**kwargs)
     records = [
         read_json(ref) for ref in sorted(str(path) for path in pool.root.glob("*/result.json"))
     ]
+    first = tmp_path / "run/000001"
+    attempts = [call(output_dir=first), call(output_dir=first / "attempt-000002")]
+    assert save.call_args_list == attempts
     assert len(records) == 2 and len({r["id"] for r in records}) == 2
     assert {r["agent_stop_reason"] for r in records} == {"error", "completed"}
     assert not any("attempt" in r or "sample_id" in r for r in records)
@@ -90,6 +97,9 @@ def test_retry_records_are_independent(tmp_path, task):
         Path(sorted(str(path) for path in pool.root.glob("*/result.json"))[0]).parent
         / "attempt-000002"
     ).exists()
+    save.reset_mock()
+    assert eval(**kwargs, resume=True) == [result]
+    assert save.call_args_list == attempts
 
 
 def test_pool_failure_preserves_eval_and_can_resume(tmp_path, task, monkeypatch):

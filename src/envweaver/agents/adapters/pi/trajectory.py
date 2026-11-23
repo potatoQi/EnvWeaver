@@ -1,28 +1,18 @@
 """Pi provider-boundary capture and native message events."""
 
-from ...trajectory import add_step, context, document
-from ...trajectory.capture import Media
+from ....trajectory.atif import add_step, context, document
+from ....trajectory.pi_messages import add_message
+from ...capture import Media
 
 
-def convert(events, output, read_remote=None):
+def convert(events, output):
     doc = document(output.result["metadata"], "pi")
-    media = Media(output, read_remote)
+    media = Media(output)
     pending, calls = {}, {}
     compactions = []
     compact_steps = {}
     transport_calls = {}
     active_compaction = None
-
-    def content(value):
-        if isinstance(value, str):
-            return value
-        parts = []
-        for block in value or []:
-            if block["type"] == "text":
-                parts.append({"type": "text", "text": block["text"]})
-            elif block["type"] == "image":
-                parts.append(media.image("data:" + block["mimeType"] + ";base64," + block["data"]))
-        return parts or ""
 
     for event in events:
         data, kind = event["data"], event["type"]
@@ -104,63 +94,7 @@ def convert(events, output, read_remote=None):
                 extra=extra,
             )
         elif kind == "message":
-            role = data.get("role")
-            if role in ("user", "system"):
-                add_step(doc, role, content(data.get("content")), extra={"native_message": data})
-            elif role == "assistant":
-                step = pending.get(event["call_id"])
-                if step is None:
-                    step = add_step(
-                        doc,
-                        "agent",
-                        "",
-                        extra={"context": {"complete": False, "missing": ["provider_request"]}},
-                    )
-                step["message"] = content(data.get("content"))
-                step["extra"].update(response_status=data.get("stopReason"), native_message=data)
-                thinking = []
-                for block in data.get("content") or []:
-                    if block.get("type") == "thinking":
-                        thinking.append(block.get("thinking", ""))
-                    elif block.get("type") == "toolCall":
-                        step.setdefault("tool_calls", []).append(
-                            {
-                                "tool_call_id": block["id"],
-                                "function_name": block["name"],
-                                "arguments": block["arguments"],
-                            }
-                        )
-                        calls[block["id"]] = step
-                if thinking:
-                    step["reasoning_content"] = "\n".join(thinking)
-                usage = data.get("usage") or {}
-                if usage:
-                    step["metrics"] = {
-                        "prompt_tokens": sum(
-                            usage.get(k, 0) for k in ("input", "cacheRead", "cacheWrite")
-                        ),
-                        "completion_tokens": usage.get("output", 0),
-                        "cached_tokens": usage.get("cacheRead", 0),
-                    }
-            elif role == "toolResult":
-                call_id = data.get("toolCallId")
-                result = {
-                    "content": content(data.get("content")),
-                    "extra": {"is_error": data.get("isError", False)},
-                }
-                if call_id in calls:
-                    result["source_call_id"] = call_id
-                    calls[call_id].setdefault("observation", {"results": []})["results"].append(
-                        result
-                    )
-                else:
-                    add_step(
-                        doc,
-                        "system",
-                        "",
-                        observation={"results": [result]},
-                        extra={"unresolved_tool_call_id": call_id},
-                    )
+            add_message(doc, data, media, calls, pending.get(event["call_id"]))
         elif kind == "compaction":
             extra = {"pi_compaction": data}
             if active_compaction is not None and active_compaction["steps"]:

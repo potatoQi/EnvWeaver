@@ -6,7 +6,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from envweaver.agents.adapters import _dependencies as deps
+from envweaver.agents.adapters.sandbox import _dependencies as deps
 
 
 def test_existing_node_and_npm_require_no_install(tmp_path, monkeypatch):

@@ -46,6 +46,8 @@ from pathlib import Path
 if '--version' in sys.argv:
     print('test-cli 1.0'); raise SystemExit(0)
 Path('argv.json').write_text(json.dumps(sys.argv[1:]))
+if sys.argv[-1] == '-':
+    Path('stdin.txt').write_text(sys.stdin.read())
 if os.environ.get('EVENTS'):
     for event in json.loads(os.environ['EVENTS']):
         print(json.dumps(event), flush=True)
@@ -81,12 +83,15 @@ def test_real_process_streams_and_outputs(tmp_path, sandbox, adapter, answer):
     agent = adapter(
         model="test-model", env=env
     )
+    prompt = "literal $HOME `x` \n second line"
+    if adapter is CodexAgent:
+        prompt += "x" * (200 * 1024)
     agent_execution = AgentExecution(agent)
     directory = tmp_path / "artifacts"
     agent_execution.prepare(runtime=runtime, instance=instance, output_dir=directory, cwd=str(tmp_path))
     try:
         result = agent_execution.run(
-            goal=[{"type": "text", "text": "literal $HOME `x` \n second line"}],
+            goal=[{"type": "text", "text": prompt}],
             runtime=runtime,
             instance=instance,
             output_dir=directory,
@@ -101,7 +106,8 @@ def test_real_process_streams_and_outputs(tmp_path, sandbox, adapter, answer):
         assert (directory / "logs/stdout.log").read_text()
         if adapter is CodexAgent:
             argv = json.loads((tmp_path / "argv.json").read_text())
-            assert argv[-1] == "literal $HOME `x` \n second line"
+            assert argv[-1] == "-"
+            assert (tmp_path / "stdin.txt").read_text() == prompt
     finally:
         agent_execution.stop()
         shutil.rmtree(agent._remote, ignore_errors=True)
@@ -249,7 +255,7 @@ path.write_text(json.dumps({'info':{'exit_status':os.environ['EXIT_STATUS'],'sub
 
 
 def test_cancel_before_process_launch_has_terminal_status(tmp_path):
-    from envweaver.agents.adapters import _process
+    from envweaver.agents.adapters.sandbox import _process
 
     directory = tmp_path / "process"
     _process.main("stop", directory, {})
@@ -259,7 +265,7 @@ def test_cancel_before_process_launch_has_terminal_status(tmp_path):
 
 @pytest.mark.parametrize("offsets", [{}, {"stdout": 2}, {"stdout": 2, "stderr": 0}])
 def test_process_poll_reads_only_requested_streams(tmp_path, monkeypatch, offsets):
-    from envweaver.agents.adapters import _process
+    from envweaver.agents.adapters.sandbox import _process
 
     contents = {"stdout": b"output", "stderr": b"error"}
     for name, data in contents.items():

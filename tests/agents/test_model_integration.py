@@ -156,7 +156,7 @@ def check_artifacts(directory, result):
     assert isinstance(agent["output"], list)
     assert agent["metadata"]["model"]
     assert json.loads((directory / "agent/result.json").read_text()) == agent
-    from envweaver.agents.trajectory import validate_trajectory
+    from envweaver.trajectory.atif import validate_trajectory
 
     trajectory = json.loads((directory / "agent" / agent["artifacts"]["trajectory"]).read_text())
     validate_trajectory(trajectory)

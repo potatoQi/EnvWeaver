@@ -1,4 +1,4 @@
-"""ATIF storage rules shared by adapters; native event decoding stays in adapters."""
+"""Build and validate EnvWeaver's ATIF trajectory documents."""
 
 import json
 from datetime import datetime
@@ -23,13 +23,13 @@ def validate_trajectory(value):
     json.dumps(value, allow_nan=False)
     if value.get("schema_version") != ATIF_VERSION:
         raise ValueError(f"Expected {ATIF_VERSION}")
-    errors = sorted(_validator().iter_errors(value), key=lambda e: str(e.path))
-    if errors:
-        raise ValueError(f"Invalid ATIF trajectory at {list(errors[0].path)}: {errors[0].message}")
+    error = min(_validator().iter_errors(value), key=lambda e: str(e.path), default=None)
+    if error is not None:
+        raise ValueError(f"Invalid ATIF trajectory at {list(error.path)}: {error.message}")
 
     def check(document):
         steps = document["steps"]
-        if [s["step_id"] for s in steps] != list(range(1, len(steps) + 1)):
+        if any(step["step_id"] != index for index, step in enumerate(steps, start=1)):
             raise ValueError("ATIF step_id must be consecutive, starting at 1")
         children = document.get("subagent_trajectories") or []
         ids = [child.get("trajectory_id") for child in children]
@@ -52,7 +52,7 @@ def validate_trajectory(value):
         for step in steps:
             check_content(step["message"])
             if step.get("timestamp"):
-                datetime.fromisoformat(step["timestamp"].replace("Z", "+00:00"))
+                datetime.fromisoformat(step["timestamp"])
             if step["source"] != "agent" and any(
                 step.get(key) is not None
                 for key in (
@@ -127,6 +127,6 @@ def context(output, request, *, source, missing=()):
             "path": path,
             "source": source,
             "complete": not missing,
-            "missing": list(missing),
+            "missing": missing,
         }
     }

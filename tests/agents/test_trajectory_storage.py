@@ -8,7 +8,7 @@ import pytest
 from PIL import Image
 
 from envweaver import AgentOutput, MiniSweAgent
-from envweaver.agents.trajectory import add_step, document
+from envweaver.trajectory.atif import add_step, document
 
 
 @pytest.fixture
@@ -72,7 +72,9 @@ def request(agent, call_id):
     agent._native.files[key] = agent._native.files.get(key, "") + json.dumps(event) + "\n"
 
 
-def test_mini_skips_unchanged_but_keeps_new_calls(mini, output, monkeypatch):
+@pytest.mark.parametrize("body", [b'{"messages": []}', None, b'{"messages":'])
+def test_mini_skips_unchanged_but_keeps_new_calls(mini, output, monkeypatch, body):
+    mini._read_remote = lambda path: body
     request(mini, "first")
     mini._poll_native()
     path = output.directory / "trajectory.json"

@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from envweaver.agents.adapters import _uv_install as uv
+from envweaver.agents.adapters.terminus import _uv_install as uv
 
 
 def test_uv_keeps_existing_python(monkeypatch):

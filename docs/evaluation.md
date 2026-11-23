@@ -24,8 +24,8 @@ from envweaver.errors import AgentStopReason
 def evaluate(task, agent, config, output_dir):
     execution = AgentExecution(agent.new())  # 为本次尝试创建独立 Agent，并管理其执行流程。
     # 此处 output_dir 是当前机器上的工作目录。
-    # 使用 Verifier 已绑定的 Runtime，用来操作沙箱。
-    runtime = task.verifier.runtime
+    # 每次尝试单独登记由 start 启动的实例，使用原 Runtime 的后端。
+    runtime = 本次尝试的运行环境(task.verifier.runtime)
 
     # 先建立结果记录，便于中途失败时仍能保存任务信息和错误。
     result = {
@@ -120,13 +120,17 @@ def evaluate(task, agent, config, output_dir):
             result["agent_stop_reason"] = reason.value
             if not reason.should_verify:
                 raise
-            result["errors"].append(_error_record("agent", error))
             stop_attempted = True
             try:
                 execution.stop(timeout=30)
             except Exception as stop_error:
+                result["errors"].append(_error_record("agent", error))
                 result["errors"].append(_error_record("cleanup", stop_error, operation="stop"))
                 return result  # finally 仍会保存结果并关闭沙箱。
+            if 阶段时限已到且停止后确认模型服务临时故障:
+                result["agent_stop_reason"] = AgentStopReason.ERROR.value
+                raise 已确认的模型服务错误
+            result["errors"].append(_error_record("agent", error))
         else:
             result["agent_stop_reason"] = AgentStopReason.COMPLETED.value
 
@@ -152,6 +156,7 @@ def evaluate(task, agent, config, output_dir):
             raise
 
     finally:
+        runtime.停止接受新实例()
         # 停止本次 Agent
         if not stop_attempted:
             try:
@@ -169,13 +174,8 @@ def evaluate(task, agent, config, output_dir):
             except Exception as error:
                 result["errors"].append(_error_record("cleanup", error, operation="snapshot"))
 
-        # 关闭验证实例和做题实例
-        for instance in (verifier_instance, task_instance):
-            if instance is not None:
-                try:
-                    runtime.close(instance=instance)
-                except Exception as error:
-                    result["errors"].append(_error_record("cleanup", error, operation="close"))
+        # 按启动顺序逆序回收仍在登记的实例，将清理错误追加到结果。
+        runtime.回收本次实例(result["errors"])
 
         result["score_valid"] = (
             result["verification_result"] is not None

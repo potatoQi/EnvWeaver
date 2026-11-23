@@ -78,6 +78,28 @@ def test_pi_error(message, expected):
     assert_error(pi._error(message), expected)
 
 
+@pytest.mark.parametrize("code", [None, 400])
+@pytest.mark.parametrize("explanation,expected", [
+    (
+        "This model's maximum context length is 262144 tokens. However, you requested "
+        "0 output tokens and your prompt contains at least 262145 input tokens, for a "
+        "total of at least 262145 tokens. Please reduce the length of the input prompt "
+        "or the number of requested output tokens. (parameter=input_tokens, value=262145)",
+        ErrorType.CONTEXT_LIMIT,
+    ),
+    ("Unsupported parameter: context_window", ErrorType.CONFIGURATION),
+    ("This model's maximum context length is 262144 tokens. Invalid temperature.", ErrorType.CONFIGURATION),
+])
+def test_context_overflow_and_ordinary_bad_request(code, explanation, expected):
+    body = {"message": explanation, "type": "BadRequestError", "param": "input_tokens"}
+    if code is not None:
+        body["code"] = code
+    codex_body = json.dumps({"error": body})
+    assert_error(codex._error(codex_body), expected)
+    assert_error(codex._error("unexpected status 400 Bad Request: " + codex_body), expected)
+    assert_error(pi._error("400: " + json.dumps(body)), expected)
+
+
 @pytest.mark.parametrize("status,detail,expected", [
     ("AuthenticationError", "context length exceeded", ErrorType.AUTHENTICATION),
     ("PermissionDeniedError", "HTTP 503", ErrorType.AUTHENTICATION),

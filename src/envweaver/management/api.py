@@ -87,9 +87,8 @@ def create_app(*, environment_files=None) -> FastAPI:
 
     app = FastAPI(title="EnvWeaver Management API", version=version("envweaver"), lifespan=lifespan)
     app.add_middleware(ApiCompression)
-    app.state.store, app.state.jobs = store, jobs
-    app.state.tasks, app.state.runtimes = tasks, runtimes
-    app.state.deletion = deletion
+    app.state.store = store
+    app.state.tasks = tasks
     app.state.pools = pools
     actor = getpass.getuser()
 
@@ -224,34 +223,27 @@ def create_app(*, environment_files=None) -> FastAPI:
         path = trajectories.export(value)
         return FileResponse(path, filename="trajectories.zip", background=BackgroundTask(shutil.rmtree, path.parent))
 
-    @app.get("/api/trajectories/{asset_id}/files", response_model=list[Material])
-    def trajectory_files(asset_id: str):
-        return tasks.files(asset_id)
-
-    @app.get("/api/trajectories/{asset_id}/file")
-    def trajectory_file(asset_id: str, path: str):
-        with tasks.file_path(asset_id, path) as local:
-            return Response(local.read_bytes(), media_type="application/octet-stream")
-
     @app.post(
         "/api/assets/{asset_id}/copy",
         response_model=Asset,
         summary="复制资产；环境复制仅新建引用记录",
     )
     def copy(asset_id: str, value: Copy):
-        if store.get(asset_id)["kind"] == "trajectory":
+        kind = store.get(asset_id)["kind"]
+        if kind == "trajectory":
             raise ValueError("轨迹不支持复制")
-        service = tasks if store.get(asset_id)["kind"] == "task" else runtimes
+        service = tasks if kind == "task" else runtimes
         return service.copy(asset_id, value, actor)
 
+    @app.get("/api/trajectories/{asset_id}/files", response_model=list[Material], name="trajectory_files")
     @app.get("/api/tasks/{asset_id}/files", response_model=list[Material], summary="列出任务材料")
     def files(asset_id: str):
         return tasks.files(asset_id)
 
+    @app.get("/api/trajectories/{asset_id}/file", name="trajectory_file")
     @app.get("/api/tasks/{asset_id}/file", summary="下载任务材料；path 相对于任务目录")
     def file(asset_id: str, path: str):
-        with tasks.file_path(asset_id, path) as local:
-            return Response(local.read_bytes(), media_type="application/octet-stream")
+        return Response(tasks.read_file(asset_id, path), media_type="application/octet-stream")
 
     @app.put(
         "/api/tasks/{asset_id}/file", response_model=Asset, summary="新增或覆盖材料；最多 16 MiB"

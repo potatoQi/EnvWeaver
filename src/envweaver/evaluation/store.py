@@ -106,20 +106,18 @@ def inspect_task(task):
 class EvalStore:
     def __init__(self, address, resume):
         self.lock = threading.RLock()
-        previous = _dispatch(join_address(address, "manifest.json"), {"action": "read_json"}) if resume else None
-        if resume and previous is None:
+        manifest = join_address(address, "manifest.json")
+        if resume and not _dispatch(manifest, {"action": "exists"}):
             raise ValueError("resume requires an existing Eval manifest")
         self.store = OutputDirectory(address, exist_ok=resume)
         self._lease = output_lock(join_address(address, ".eval.lock"))
         self._writer = self._lease.__enter__()
         try:
-            # Read again under the lock: another writer may have just completed.
             if resume:
-                previous = _dispatch(join_address(address, "manifest.json"), {"action": "read_json"})
-                self._validate(previous)
-            self.data = previous or {"format": 1, "tasks": {}, "count": None}
-            self.previous_count = self.data["count"]
-            self.previous_indices = set(self.data["tasks"])
+                self.data = _dispatch(manifest, {"action": "read_json"})
+                self._validate(self.data)
+            else:
+                self.data = {"format": 1, "tasks": {}, "count": None}
             self._save()
         except BaseException:
             self._lease.__exit__(*sys.exc_info())
@@ -208,7 +206,7 @@ class EvalStore:
                 if entry["task"] != task_signature:
                     raise ValueError(f"Task changed at index {index}")
             else:
-                if self.previous_count is not None and index >= self.previous_count:
+                if self.data["count"] is not None and index >= self.data["count"]:
                     raise ValueError("Task count differs from the saved batch")
                 entry = self.data["tasks"][key] = {
                     "task": task_signature,
@@ -242,9 +240,9 @@ class EvalStore:
 
     def exhausted(self, count):
         with self.lock:
-            if any(int(index) >= count for index in self.previous_indices):
-                raise ValueError("Task count differs from the saved batch")
-            if self.previous_count is not None and count != self.previous_count:
+            if self.data["count"] not in (None, count) or any(
+                int(index) >= count for index in self.data["tasks"]
+            ):
                 raise ValueError("Task count differs from the saved batch")
             self.data["count"] = count
             self._save()

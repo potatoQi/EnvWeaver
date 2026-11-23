@@ -10,7 +10,7 @@ import pytest
 from PIL import Image
 
 from envweaver import AgentOutput, PiAgent
-from envweaver.agents.trajectory.capture import Media, NativeFiles
+from envweaver.agents.capture import Media, NativeFiles
 from tests.agents.test_cli_agents import LocalTransport
 
 
@@ -77,7 +77,7 @@ def test_pi_stdout_image_survives_credential_collision(output, picture):
 
 
 def test_model_capture_keeps_image_payload(tmp_path, monkeypatch, picture):
-    from envweaver.agents.adapters._model_capture import install
+    from envweaver.agents.adapters.sandbox._model_capture import install
 
     encoded = base64.b64encode(picture).decode()
     monkeypatch.setenv("TEST_API_KEY", encoded[:8])

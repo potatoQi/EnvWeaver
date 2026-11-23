@@ -10,7 +10,7 @@ import pytest
 
 from envweaver import AgentOutput, TrajPool
 from envweaver._util import read_json, write_json
-from envweaver.agents.trajectory import add_step, document
+from envweaver.trajectory.atif import add_step, document
 from envweaver.trajectory.pool import completed
 
 

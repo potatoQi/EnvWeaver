@@ -13,9 +13,8 @@ from .._io.output_lock import output_lock
 from .._io.paths import join_address, normalize_address
 from .._io.storage import _dispatch, local_source
 from .._util import metadata_tags, read_json, write_json
-from ..agents.output import validate_result
-from ..agents.trajectory import validate_trajectory
 from ..errors import AgentStopReason, ErrorType
+from .atif import validate_trajectory
 
 
 def completed(result):
@@ -58,6 +57,8 @@ def validate_artifacts(result, directory):
     agent = result.get("agent_result")
     if agent is None:
         return
+    from ..agents.output import validate_result
+
     validate_result(agent, directory)
     trajectory = agent["artifacts"]["trajectory"]
     seen = set()
@@ -141,7 +142,6 @@ class TrajPool:
             return None
         destination = join_address(self.root, result["id"])
         ref = join_address(destination, "result.json")
-        _dispatch(self.root, {"action": "mkdir", "exist_ok": True})
         locks = join_address(self.root, ".envweaver/trajectory-locks")
         _dispatch(locks, {"action": "mkdir", "exist_ok": True})
         with output_lock(join_address(locks, result["id"]), wait=True):

@@ -2,11 +2,31 @@
 
 Agent 为 [Eval](evaluation.md) 提供统一的执行接口。创建 Agent 对象时配置模型、环境变量和原生参数，再将对象传给 `eval(agent=...)`。
 
-内置 Agent 默认复用准备阶段有校验值的安装包；`cache=False` 关闭。缓存目录通过当前进程的 `ENVWEAVER_CACHE_DIR` 设置，默认 `~/.cache/envweaver/downloads`，容量为 30 GiB。
+内置 Agent 默认复用准备阶段有校验值的安装包，可传 `cache=False` 关闭。缓存目录通过当前进程的 `ENVWEAVER_CACHE_DIR` 设置，默认 `~/.cache/envweaver/downloads`，容量为 30 GiB。
 
-Terminus 2 还会按 uv 版本复用官方 Python 校验信息，命中后不再访问其上游地址。自定义 `UV_PYTHON_DOWNLOADS_JSON_URL` 仍在沙箱读取，不做持久缓存。软件包索引和依赖解析仍可能需要联网。
+已支持的 Agent：[Claude Code](#claude-code-agent)、[Codex CLI](#codex-agent)、[Pi](#pi-agent)、[OpenClaw](#openclaw-agent)、[mini-swe-agent](#mini-swe-agent)、[Claw-Eval](#claw-eval-agent)、[Terminus 2](#terminus-agent)、[自定义 Agent](#custom-agent)。
 
-已支持的 Agent：[Codex CLI](#codex-agent)、[Pi](#pi-agent)、[mini-swe-agent](#mini-swe-agent)、[Terminus 2](#terminus-agent)、[自定义 Agent](#custom-agent)。
+## ClaudeCodeAgent {#claude-code-agent}
+
+<div class="table-responsive" markdown="1">
+
+::: envweaver.ClaudeCodeAgent
+    options:
+      show_root_heading: false
+      members: []
+      show_bases: false
+
+</div>
+
+```python
+from envweaver import ClaudeCodeAgent, eval
+
+agent = ClaudeCodeAgent(
+    model=model_name,
+    env={"ANTHROPIC_BASE_URL": gateway_url, "ANTHROPIC_API_KEY": api_key},
+)
+results = eval(tasks=tasks, agent=agent, output_dir="outputs/claude")
+```
 
 ## CodexAgent {#codex-agent}
 
@@ -44,6 +64,33 @@ from envweaver import PiAgent
 agent = PiAgent(model=model_name, env=agent_env)
 ```
 
+## OpenClawAgent {#openclaw-agent}
+
+<div class="table-responsive" markdown="1">
+
+::: envweaver.OpenClawAgent
+    options:
+      show_root_heading: false
+      members: []
+      show_bases: false
+
+</div>
+
+```python
+from envweaver import OpenClawAgent, eval
+
+agent = OpenClawAgent(
+    model="openai/gpt-4.1",
+    env={"OPENAI_API_KEY": api_key},
+)
+results = eval(tasks=tasks, agent=agent, output_dir="outputs/openclaw")
+```
+
+题面支持文本。每次尝试在 `Task.cwd` 下执行，使用独立会话目录，无需启动 OpenClaw Gateway。评分时仍需访问的预置服务可在 `Task.setup` 中启动。
+`agent/trajectory.json` 保存主会话轨迹。HTTP 请求可按回复 ID 或唯一的回复内容关联。使用 WebSocket 或无法确定对应请求时，该步骤的 `extra.context.complete` 为 `false`。触发子会话但未导出其轨迹时，`extra.capture.missing` 包含 `subagent_sessions`。
+
+做题超时后通常继续评分。若采集到的多次请求全部因限流或服务端临时故障失败，Eval 将其记为 `provider_transient`，按 `max_retries` 重试。
+
 ## MiniSweAgent {#mini-swe-agent}
 
 <div class="table-responsive" markdown="1">
@@ -60,6 +107,40 @@ agent = PiAgent(model=model_name, env=agent_env)
 from envweaver import MiniSweAgent
 
 agent = MiniSweAgent(model=model_name, env=agent_env)
+```
+
+## ClawEvalAgent {#claw-eval-agent}
+
+ClawEvalAgent 仅适用于用来作为评测 Claw-Eval 时候的 Harness。将 Claw-Eval 题目的 `task.yaml` 和 `sandbox_files` 引用的材料放在 `Task.cwd` 下。
+
+<div class="table-responsive" markdown="1">
+
+::: envweaver.ClawEvalAgent
+    options:
+      show_root_heading: false
+      members: []
+      show_bases: false
+
+</div>
+
+```python
+from envweaver import ClawEvalAgent, eval
+
+agent = ClawEvalAgent(
+    model={
+        "model": "Qwen3.8-27B",
+        "base_url": base_url,
+        "api_key": api_key,
+        "context_window": 262144,  # 按部署的上下文窗口填写，单位为 token。
+        "temperature": 0.0,
+        # 可选，按所用模型服务设置。
+        # "top_p": 0.95,
+        # "top_k": 20,
+        "reasoning_effort": "high",
+    },
+    cache=True,
+)
+results = eval(tasks=task, agent=agent)
 ```
 
 ## Terminus2Agent {#terminus-agent}
@@ -194,6 +275,8 @@ agent/
 轨迹使用 [Harbor ATIF](https://harborframework.com/docs/atif) v1.8，`schema_version` 为 `ATIF-v1.8`；可通过 `envweaver.ATIF_VERSION` 读取当前版本。
 
 模型步骤的 `extra.context.path` 指向该次调用的上下文快照；`source` 标明采集位置，`complete` 和 `missing` 标明是否存在已知缺失。图片、上下文和子轨迹文件路径均相对于 Agent 的产物目录。
+
+Codex 的 ATIF 导出支持原生 rollout trace v1、v2 和 v3。导出失败时，可在 `agent/result.json` 的 `metadata.trajectory_export_error` 查看原因，在 `agent/logs/native/codex/` 查看已采集的原始记录。Eval 仍按做题的停止原因决定是否评分。
 
 Codex 子 Agent 使用独立子轨迹；Terminus 的压缩和续接沿用 Harbor 的轨迹引用。加密内容保存在原生记录中，不还原为推理文字。未采集到原生模型调用时，轨迹中的 `extra.capture` 会注明缺失。
 

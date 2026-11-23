@@ -12,6 +12,7 @@ import pytest
 from envweaver import ErrorType, EvalConfig, Instance, RuntimeRef, Task, Verifier, eval
 from envweaver.errors import AgentError, AgentStopReason
 from envweaver.evaluation.failure import can_retry
+from envweaver.evaluation.panel import _Panel
 from tests.agents.helpers import CooperativeAgent
 
 evaluation = importlib.import_module("envweaver.evaluation.runner")
@@ -172,6 +173,19 @@ def test_timeout_stops_agent_before_verifying_and_sandbox_close(tmp_path, task):
     assert not any(error["stage"] == "cleanup" for error in result["errors"])
     assert result["agent_result"] is not None
     assert not task.verifier.runtime.active
+
+
+def test_deadline_during_repeated_provider_failure_skips_verifier(tmp_path, task):
+    class ThrottledAgent(GoodAgent):
+        def run(self, goal, *, runtime, instance, output, cwd):
+            self._cancelled.wait(5)
+            raise AgentError(ErrorType.PROVIDER_TRANSIENT, "provider repeatedly returned 429")
+
+    (result,) = eval(tasks=task, agent=ThrottledAgent(), config=config(agent_timeout=0.05),
+                     output_dir=tmp_path / "result")
+    assert result["agent_stop_reason"] == "error"
+    assert [error["type"] for error in result["errors"]] == ["provider_transient"]
+    assert not result["score_valid"] and not task.verifier.calls
 
 
 @pytest.mark.parametrize("reason", [
@@ -398,8 +412,8 @@ def test_progress_uses_final_valid_scores_and_keeps_elapsed_time_live(monkeypatc
     from rich.console import Console
 
     clock = [0.0]
-    monkeypatch.setattr(evaluation.time, "monotonic", lambda: clock[0])
-    panel = evaluation._Panel(total=96)
+    monkeypatch.setattr(time, "monotonic", lambda: clock[0])
+    panel = _Panel(total=96)
     console = Console(width=160, color_system=None)
 
     def render():
@@ -430,7 +444,7 @@ def test_progress_uses_final_valid_scores_and_keeps_elapsed_time_live(monkeypatc
 def test_progress_without_scores_and_cancelled_attempt():
     from rich.console import Console
 
-    panel = evaluation._Panel()
+    panel = _Panel()
     panel.finish(0, {"agent_stop_reason": "cancelled", "errors": []})
     console = Console(width=160, color_system=None)
     with console.capture() as capture:
@@ -544,8 +558,38 @@ def test_eval_runs_real_verifier_subprocess(tmp_path, task):
     assert not list(root.iterdir())
 
 
+def test_auxiliary_instance_survives_until_verify_and_is_fresh_on_retry(tmp_path, task):
+    tools = []
+    runtime = task.verifier.runtime
+
+    class ToolAgent(GoodAgent):
+        def prepare(self, *, runtime, instance, output, cwd):
+            tool = runtime.start(ref=RuntimeRef("fake", "tools"))
+            assert all(previous not in runtime.active for previous in tools)
+            tools.append(tool.id)
+
+        def run(self, **kwargs):
+            if len(tools) == 1:
+                raise AgentError(ErrorType.PROVIDER_TRANSIENT, "retry")
+            raise AgentError(ErrorType.STEP_LIMIT)
+
+    def verify(**kwargs):
+        assert tools[-1] in runtime.active
+        return {"score": 1}
+
+    task.verifier.run = verify
+    result, = eval(tasks=task, agent=ToolAgent(), config=config(max_retries=1, retry_delay=0.001),
+                   output_dir=tmp_path / "result")
+    assert result["score_valid"] and result["verification_result"]["score"] == 1
+    assert len(set(tools)) == 2
+    assert not runtime.active
+
+
 def test_keyboard_interrupt_persists_result_and_cleans_resources(tmp_path, task):
     class InterruptedAgent(GoodAgent):
+        def prepare(self, *, runtime, instance, output, cwd):
+            runtime.start(ref=RuntimeRef("fake", "tools"))
+
         def run(self, goal, *, runtime, instance, output, cwd: str):
             raise KeyboardInterrupt()
 
@@ -560,6 +604,75 @@ def test_keyboard_interrupt_persists_result_and_cleans_resources(tmp_path, task)
     assert result["errors"][-1]["type"] == "cancelled"
     assert json.loads((tmp_path / "result/results.json").read_text()) == [result]
     assert not task.verifier.runtime.active
+
+
+def test_parallel_attempts_clean_only_their_own_tools(tmp_path, task, monkeypatch):
+    both_preparing = threading.Barrier(2)
+    failed_tool_closed = threading.Event()
+    raw = task.verifier.runtime
+    close = raw.close
+    tools = {}
+
+    def record_close(instance):
+        close(instance)
+        if instance == tools.get("/fail"):
+            failed_tool_closed.set()
+
+    monkeypatch.setattr(raw, "close", record_close)
+
+    class ToolAgent(GoodAgent):
+        def prepare(self, *, runtime, instance, output, cwd):
+            tools[cwd] = runtime.start(ref=RuntimeRef("fake", "tools"))
+            both_preparing.wait(timeout=5)
+            if cwd == "/fail":
+                raise ValueError("prepare failed after starting tools")
+            assert failed_tool_closed.wait(5)
+
+    def verify(**kwargs):
+        assert tools["/fail"].id not in raw.active
+        assert tools["/ok"].id in raw.active
+        return {"score": 1}
+
+    task.verifier.run = verify
+    failed, ok = eval(
+        tasks=[replace(task, name=name, cwd="/" + name) for name in ("fail", "ok")],
+        agent=ToolAgent(), config=config(), output_dir=tmp_path / "parallel", concurrency=2,
+    )
+    assert failed["errors"][0]["message"] == "prepare failed after starting tools"
+    assert not failed["score_valid"]
+    assert ok["errors"] == [] and ok["verification_result"]["score"] == 1
+    assert len(raw.closed) == 6 and not raw.active
+
+
+def test_attempt_close_and_connect(tmp_path, task, monkeypatch):
+    raw = task.verifier.runtime
+    external = raw.start(ref=RuntimeRef("fake", "external"))
+    monkeypatch.setattr(raw, "connect", lambda path: external, raising=False)
+    close = raw.close
+    failed = []
+
+    def fail_first_close(instance):
+        if not failed:
+            failed.append(instance)
+            raise OSError("close failed")
+        close(instance)
+
+    monkeypatch.setattr(raw, "close", fail_first_close)
+
+    class ToolAgent(GoodAgent):
+        def run(self, *, runtime, **kwargs):
+            assert isinstance(runtime, FakeRuntime)
+            assert runtime.connect("external") == external
+            with pytest.raises(OSError, match="close failed"):
+                runtime.close(runtime.start(ref=RuntimeRef("fake", "retry-close")))
+            runtime.close(runtime.start(ref=RuntimeRef("fake", "close-early")))
+            return super().run(runtime=runtime, **kwargs)
+
+    result, = eval(tasks=task, agent=ToolAgent(), config=config(), output_dir=tmp_path / "run")
+    assert result["errors"] == []
+    assert raw.active == {external.id}
+    assert len(raw.closed) == len(set(raw.closed)) == 4
+    close(external)
 
 
 def test_second_sandbox_failure_closes_first(tmp_path, task):

@@ -302,7 +302,7 @@ class Store:
             bounds = []
             for suffix in ("after", "before"):
                 value = getattr(selection, f"{field}_{suffix}")
-                parsed = datetime.fromisoformat(value.replace("Z", "+00:00")) if value else None
+                parsed = datetime.fromisoformat(value) if value else None
                 if parsed is not None and parsed.tzinfo is None:
                     raise ValueError("筛选时间须包含时区")
                 bounds.append(parsed)

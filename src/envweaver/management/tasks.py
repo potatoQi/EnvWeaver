@@ -78,16 +78,12 @@ class Tasks:
         self.store, self.runtimes = store, runtimes
 
     def link(self, asset_id, manifest, host, actor):
-        existing = {r["role"]: r["asset"] for r in self.store.relations(asset_id)}
-        self.store.links[asset_id] = {}
+        links = self.store.links.setdefault(asset_id, {})
         for role in ("task_runtime_ref", "verifier_runtime_ref"):
-            old = existing.get(role)
-            runtime = (
-                old
-                if old and same_environment(old["spec"], manifest[role]) and old["host"] == host
-                else self.runtimes.ensure(manifest[role], host, actor)
-            )
-            self.store.links[asset_id][role] = runtime["id"]
+            old = self.store.assets.get(links.get(role))
+            if old and old["host"] == host and same_environment(old["spec"], manifest[role]):
+                continue
+            links[role] = self.runtimes.ensure(manifest[role], host, actor)["id"]
 
     @contextmanager
     def replacement(self, asset_id, revision):
@@ -127,8 +123,7 @@ class Tasks:
             )
             self.store.set_tags(asset_id, metadata_tags(manifest.get("metadata", {})))
             self.store.touch(asset_id, actor)
-            result = self.store.record(asset_id)
-            return result
+            return self.store.record(asset_id)
 
     def copy(self, asset_id, value, actor):
         with self.store.transaction():
@@ -182,22 +177,16 @@ class Tasks:
                 path.write_bytes(body)
             check_manifest(stage, row["spec"])
             self.store.touch(asset_id, actor)
-            result = self.store.record(asset_id)
-        return result
+            return self.store.record(asset_id)
 
-    @contextmanager
-    def file_path(self, asset_id, relative):
+    def read_file(self, asset_id, relative):
         row = self.store.get(asset_id)
         if row["kind"] not in {"task", "trajectory"}:
             raise Conflict("不是 Task 或轨迹")
         with self.store.read():
             files, source = self.store.source(asset_id)
         if isinstance(files.root, Path):
-            files.call("resolve", directory=source["directory"], relative=relative)
-            yield files.root / source["directory"] / relative
-        else:
-            body = files.call("read", directory=source["directory"], relative=relative)
-            with tempfile.TemporaryDirectory(prefix="envweaver-file-") as temporary:
-                path = Path(temporary) / PurePosixPath(relative).name
-                path.write_bytes(base64.b64decode(body, validate=True))
-                yield path
+            path = files.call("resolve", directory=source["directory"], relative=relative)
+            return (files.root / source["directory"] / path).read_bytes()
+        body = files.call("read", directory=source["directory"], relative=relative)
+        return base64.b64decode(body, validate=True)

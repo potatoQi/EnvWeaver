@@ -124,7 +124,7 @@ def _dispatch(root, payload):
             host,
             ["python3", "-c", source],
             {**payload, "root": path},
-        ), replay=payload["action"] in {"read", "read_json", "fingerprint", "write", "publish", "remove"})
+        ), replay=payload["action"] in {"exists", "read", "read_json", "fingerprint", "write", "publish", "remove"})
         return json.loads(output)
 
 

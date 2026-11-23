@@ -436,9 +436,9 @@ def test_result_write_failure_preserves_verified_score(tmp_path, task, monkeypat
 
 
 def test_interrupt_during_backoff_leaves_task_resumable(tmp_path, task, monkeypatch):
-    from tests.evaluation.test_eval import evaluation
+    from envweaver.evaluation.panel import _Panel
 
-    original = evaluation._Panel.update
+    original = _Panel.update
     interrupted = False
 
     def update(self, key, name, stage, result=None):
@@ -454,7 +454,7 @@ def test_interrupt_during_backoff_leaves_task_resumable(tmp_path, task, monkeypa
                 raise ConnectionResetError("connection reset")
             return super().run(goal=goal, runtime=runtime, instance=instance, output=output, cwd=cwd)
 
-    monkeypatch.setattr(evaluation._Panel, "update", update)
+    monkeypatch.setattr(_Panel, "update", update)
     output = tmp_path / "batch"
     kwargs = dict(tasks=task, agent=FlakyAgent(), config=config(max_retries=2), output_dir=output)
     with pytest.raises(KeyboardInterrupt):

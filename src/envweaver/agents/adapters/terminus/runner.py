@@ -80,7 +80,7 @@ class Environment:
         return Path(path).is_dir()
 
 
-async def stop_terminal(environment, session, timeout=10):
+async def stop_terminal(environment, session):
     """Interrupt foreground work while retaining the terminal's background services."""
     result = await environment.exec(
         shlex.join(["tmux", "list-panes", "-s", "-t", session, "-F", "#{pane_pid}"]),
@@ -94,7 +94,7 @@ async def stop_terminal(environment, session, timeout=10):
             return
         raise TerminalError(f"Cannot inspect Terminus terminal: {message}")
     shells = [int(pid) for pid in result.stdout.split()]
-    deadline = time.monotonic() + timeout
+    deadline = time.monotonic() + 10
     seen = {}
     while time.monotonic() < deadline:
         groups = set()

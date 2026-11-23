@@ -82,7 +82,7 @@ class Agent(ABC):
     ) -> None:
         """
         Args:
-            runtime: 用来操作沙箱的 Runtime。
+            runtime: Eval 传入的 Runtime。用它启动的辅助实例由本次尝试回收，也可用 close 提前关闭。
             instance: 已完成 context 上传和 task.setup 的做题实例。
             output: 本次产物写入器，output.directory 是当前机器上的产物目录。
             cwd: 沙箱内已存在的工作目录绝对路径。
@@ -103,7 +103,7 @@ class Agent(ABC):
         """
         Args:
             goal: 题目的文字和图片列表；图片 path 已转换为当前机器上的路径。
-            runtime: 用来操作沙箱的 Runtime。
+            runtime: 与 prepare 相同的 Runtime。
             instance: 做题实例。
             output: 与 prepare 相同的产物写入器。
             cwd: 沙箱内已存在的工作目录绝对路径。

@@ -14,8 +14,8 @@ from fastapi.testclient import TestClient
 
 from envweaver import EvalConfig, Runtime, RuntimeRef, Task, TrajPool, Verifier, eval
 from envweaver._util import read_json
-from envweaver.agents.trajectory import add_step, document
 from envweaver.management.api import create_app
+from envweaver.trajectory.atif import add_step, document
 from tests.agents.helpers import CooperativeAgent
 from tests.trajectory.test_management import choose, listing
 from tests.trajectory.test_pool import rollout

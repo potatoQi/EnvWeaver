@@ -11,7 +11,7 @@ import uuid
 from pathlib import Path
 
 if __package__:
-    from .._redaction import redact_data
+    from ..._redaction import redact_data
 else:
     from _redaction import redact_data
 

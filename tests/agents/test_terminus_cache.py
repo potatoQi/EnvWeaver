@@ -7,8 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from envweaver.agents.adapters import _uv_install
-from envweaver.agents.adapters.terminus import install
+from envweaver.agents.adapters.terminus import _uv_install, install
 
 
 @pytest.mark.parametrize("enabled", [True, False])

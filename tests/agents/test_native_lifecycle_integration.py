@@ -115,7 +115,8 @@ def start_api(kind, scenario, command):
                     tool = first or kind == "mini"
                     if tool:
                         message["tool_calls"] = [{"id": f"call{len(requests)}", "type": "function", "function": {
-                            "name": "bash", "arguments": json.dumps({"command": tool_command}),
+                            "name": "exec" if kind == "openclaw" else "bash",
+                            "arguments": json.dumps({"command": tool_command}),
                         }}]
                     finish = "tool_calls" if tool else "stop"
                     if request.get("stream"):
@@ -123,9 +124,9 @@ def start_api(kind, scenario, command):
                         if tool:
                             delta["tool_calls"] = [{"index": 0, **message["tool_calls"][0]}]
                         chunks = [
-                            {"id": "chat", "object": "chat.completion.chunk", "model": "mock", "choices": [
+                            {"id": f"chat{len(requests)}", "object": "chat.completion.chunk", "model": "mock", "choices": [
                                 {"index": 0, "delta": delta, "finish_reason": None}]},
-                            {"id": "chat", "object": "chat.completion.chunk", "model": "mock", "choices": [
+                            {"id": f"chat{len(requests)}", "object": "chat.completion.chunk", "model": "mock", "choices": [
                                 {"index": 0, "delta": {}, "finish_reason": finish}],
                              "usage": {"prompt_tokens": 10, "completion_tokens": 10, "total_tokens": 20}},
                         ]

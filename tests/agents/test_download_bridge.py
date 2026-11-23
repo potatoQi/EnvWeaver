@@ -12,6 +12,7 @@ import pytest
 
 from envweaver import Instance
 from envweaver.agents.adapters._downloads import PreparationDownloads
+from envweaver.agents.adapters.sandbox import SANDBOX_SCRIPTS
 from tests.agents.test_cli_agents import LocalTransport
 
 
@@ -32,7 +33,7 @@ def bridge(tmp_path, monkeypatch):
     downloads = PreparationDownloads(
         runtime=Transport(), instance=Instance("local", "fake", data={"python": sys.executable}),
         directory=str(remote / "downloads"), env={}, cancelled=threading.Event(),
-        redact=lambda text: text, helpers=("_pip_install.py",),
+        redact=lambda text: text, helpers=(SANDBOX_SCRIPTS / "_pip_install.py",),
     )
     Path(downloads.directory).mkdir()
     return downloads
@@ -120,7 +121,7 @@ def test_cancelled_batch_does_not_publish_or_upload(bridge):
 
 @pytest.mark.parametrize("body", [b"", b"a\n\x00b" * 400000], ids=["empty", "binary"] )
 def test_pipe_streams_concurrent_files_without_runtime_calls(bridge, monkeypatch, tmp_path, body):
-    from envweaver.agents.adapters._download_client import download
+    from envweaver.agents.adapters.sandbox._download_client import download
 
     Path(bridge.directory).rmdir()
     bridge.setup()
@@ -197,14 +198,14 @@ def test_helper_cleanup_preserves_unrelated_files(bridge):
     (bytecode / '_uv_install.cpython-312.pyc').write_bytes(b'helper')
     (bytecode / '_download_client.cpython-312.pyc').write_bytes(b'helper')
     (bytecode / 'task_service.cpython-312.pyc').write_bytes(b'keep')
-    bridge.helpers += ('_uv_install.py',)
+    bridge.helpers += (extra,)
     bridge.close()
     assert not extra.exists()
     assert sorted(p.name for p in bytecode.iterdir()) == ['task_service.cpython-312.pyc']
 
 
 def test_python_catalog_requests_use_versioned_cache_through_pipe(bridge, monkeypatch, tmp_path):
-    from envweaver.agents.adapters._download_client import python_catalog
+    from envweaver.agents.adapters.sandbox._download_client import python_catalog
 
     calls = []
     body = json.dumps({'build': {'url': 'https://example.org/python', 'sha256': 'a' * 64}}).encode()

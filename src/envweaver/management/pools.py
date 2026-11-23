@@ -257,6 +257,7 @@ class Pools:
             for key in ("task_runtime_ref", "verifier_runtime_ref"):
                 spec[key] = normalize_ref(spec[key])
             name, metadata, host = spec["name"], spec.get("metadata", {}), None
+            metadata_tags(metadata)
         elif pool["kind"] == "trajectory":
             validate_record(spec)
             if spec["id"] != directory:
@@ -267,7 +268,6 @@ class Pools:
             metadata = spec["metadata"]
             location = item.get("metadata", {})
             host, name = location.get("host"), spec["name"]
-        metadata_tags(metadata)
         annotation = saved["data"]["assets"].get(directory, {})
         if old:
             asset_id = old["asset_id"]

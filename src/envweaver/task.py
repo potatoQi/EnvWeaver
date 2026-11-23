@@ -347,7 +347,7 @@ class TaskPool:
         Raises:
             TypeError: filters 不是字典。
             OSError: 任务文件无法读取。
-            ValueError: 任务文件不是有效 JSON。
+            ValueError: 任务文件不是有效的 JSON 对象。
             KeyError: 任务文件缺少必要字段。
             envweaver.errors.RuntimeError: SSH 连接失败。
             TimeoutError: SSH 操作超时。
@@ -355,21 +355,16 @@ class TaskPool:
         if filters is not None and not isinstance(filters, dict):
             raise TypeError("filters must be a dictionary")
         if isinstance(self.root, Path):
-            entries = (
-                (str(Path(item["path"]).resolve()), item["data"]) for item in list_tasks(self.root)
-            )
+            host = None
+            entries = list_tasks(self.root)
         else:
             host, _ = _location(self.root)
-            entries = (
-                (host + quote(item["path"], safe="/"), item["data"])
-                for item in self._remote("list")
-            )
+            entries = self._remote("list")
         found = []
-        for path, data in entries:
-            metadata = data.get("metadata", {})
+        for path, metadata in entries:
             if filters and any(
                 key not in metadata or metadata[key] != value for key, value in filters.items()
             ):
                 continue
-            found.append(path)
+            found.append(str(Path(path).resolve()) if host is None else host + quote(path, safe="/"))
         return found

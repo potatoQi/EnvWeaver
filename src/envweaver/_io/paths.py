@@ -33,5 +33,4 @@ def join_address(root: str | Path, name: str) -> str | Path:
     root = normalize_address(root)
     if isinstance(root, Path):
         return root / name
-    host, path = _location(root)
-    return host + quote(path.rstrip("/") + "/" + name, safe="/")
+    return root.rstrip("/") + "/" + quote(name, safe="/")

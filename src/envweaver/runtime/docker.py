@@ -265,12 +265,12 @@ class DockerBackend:
             RuntimeRef.from_dict(instance.data["ref"]),
             image=image_id, config=config, connection=connection,
         )
-        records = {
-            "runtime.json": ref.to_dict(),
-            "metadata.json": {"tag": tag, "host": instance.host},
-        }
         if self.root is not None:
-            write_records(self.root, f"runtimes/{identity}", records)
+            write_records(
+                self.root,
+                f"runtimes/{identity}",
+                {"runtime.json": ref.to_dict(), "metadata.json": {"tag": tag, "host": instance.host}},
+            )
         return ref
 
     def close(self, instance: Instance) -> None:

@@ -57,7 +57,10 @@ def list_tasks(root):
             resolve_task_path(root, path)
         except ValueError:
             continue
-        yield {"path": str(path), "data": json.loads(path.read_text(encoding="utf-8"))}
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(manifest, dict):
+            raise ValueError(f"Task manifest must be a JSON object: {path}")
+        yield str(path), manifest.get("metadata", {})
 
 
 def operate(payload):

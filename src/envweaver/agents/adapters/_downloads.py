@@ -11,6 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path, PurePosixPath
 
 from ...cache import DownloadCache
+from .sandbox import SANDBOX_SCRIPTS
 
 
 def _validate_python_catalog(catalog):
@@ -47,8 +48,8 @@ class PreparationDownloads:
         self._cancelled = threading.Event()
         self._write_lock = threading.Lock()
         self.helpers = (
-            "_download_client.py",
-            "_download_pipe.py",
+            SANDBOX_SCRIPTS / "_download_client.py",
+            SANDBOX_SCRIPTS / "_download_pipe.py",
             *helpers,
         )
 
@@ -57,11 +58,11 @@ class PreparationDownloads:
         return self._pipe is not None
 
     def setup(self):
-        for name in self.helpers:
+        for source in self.helpers:
             self.runtime.upload(
                 instance=self.instance,
-                source=Path(__file__).with_name(name),
-                target=str(PurePosixPath(self.directory).parent / name),
+                source=source,
+                target=str(PurePosixPath(self.directory).parent / source.name),
             )
         code, _, error = self.runtime.exec(
             instance=self.instance,
@@ -233,7 +234,7 @@ class PreparationDownloads:
                 " (root/name).unlink(missing_ok=True)\n"
                 " for p in root.glob('__pycache__/'+pathlib.Path(name).stem+'.*.pyc'): p.unlink()",
                 self.directory,
-                *self.helpers,
+                *(source.name for source in self.helpers),
             ],
             timeout=30,
         )

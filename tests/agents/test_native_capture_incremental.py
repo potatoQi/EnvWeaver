@@ -8,7 +8,7 @@ import sys
 import pytest
 
 from envweaver import AgentOutput
-from envweaver.agents.trajectory.capture import NativeFiles, json_lines
+from envweaver.agents.capture import NativeFiles, json_lines
 from tests.agents.test_cli_agents import LocalTransport
 
 

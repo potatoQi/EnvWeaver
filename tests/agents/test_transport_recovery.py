@@ -18,7 +18,7 @@ recovery = importlib.import_module("envweaver._io.retry")
 @pytest.mark.parametrize("adapter", [CodexAgent, PiAgent, MiniSweAgent])
 @pytest.mark.parametrize("action", ["poll", "read", "stop"])
 def test_agent_rpc_recovers_after_lost_reply(tmp_path, monkeypatch, adapter, action):
-    from envweaver.agents.adapters import _process
+    from envweaver.agents.adapters.sandbox import _process
 
     agent = adapter()
     runtime = LocalTransport()

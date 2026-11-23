@@ -13,8 +13,9 @@ from ..._io.retry import retry
 from ...errors import AgentError, ErrorType
 from .._redaction import redact_data
 from ..base import Agent
-from ..trajectory.capture import NativeFiles
+from ..capture import NativeFiles
 from ._downloads import PreparationDownloads
+from .sandbox import SANDBOX_SCRIPTS
 
 _POLL_INTERVAL = 2.0
 
@@ -25,6 +26,8 @@ class CliAgent(Agent):
     executable = ""
     package = ""
     dependency = ""
+    node_major = None
+    prompt_on_stdin = False
     stdout_events = False
     supports_images = True
     managed_options = ()
@@ -84,6 +87,10 @@ class CliAgent(Agent):
             raise ValueError("extra_args cannot override adapter output or execution options")
 
     def _rpc(self, action, directory, payload=None):
+        encoded = json.dumps(payload or {})
+        if action == "start" and len(encoded) > 32 * 1024:
+            filename = "rpc-" + uuid.uuid4().hex + ".json"
+            encoded = "@" + self._upload_text(filename, encoded)
         try:
             code, stdout, stderr = retry(lambda: self._runtime.exec(
                 instance=self._instance,
@@ -92,7 +99,7 @@ class CliAgent(Agent):
                     self._remote + "/process.py",
                     action,
                     directory,
-                    json.dumps(payload or {}),
+                    encoded,
                 ],
                 timeout=30,
             ), replay=action in {"poll", "read", "stop"},
@@ -146,7 +153,7 @@ class CliAgent(Agent):
         self._check_stopped()
         self._runtime.upload(
             instance=self._instance,
-            source=Path(__file__).with_name("_process.py"),
+            source=SANDBOX_SCRIPTS / "_process.py",
             target=self._remote + "/process.py",
         )
         code, output = self._execute(
@@ -191,7 +198,8 @@ class CliAgent(Agent):
         return [self.executable, "--version"]
 
     def _download_helpers(self):
-        return ("_npm_download.cjs",) if self.dependency == "node" else ("_pip_install.py",)
+        helper = "_npm_download.cjs" if self.dependency == "node" else "_pip_install.py"
+        return (SANDBOX_SCRIPTS / helper,)
 
     def _install_command(self, version):
         return [
@@ -200,6 +208,13 @@ class CliAgent(Agent):
             "--prefix",
             self._remote + "/npm",
             self.package + (f"@{version}" if version else ""),
+        ]
+
+    def _pip_install_command(self, *args):
+        pip = [self._remote + "/_pip_install.py"] if self._downloads else ["-m", "pip"]
+        return [
+            self._python, *pip, "install", "--target", self._remote + "/packages", "--no-compile",
+            *args,
         ]
 
     def _ensure_dependencies(self):
@@ -217,16 +232,17 @@ class CliAgent(Agent):
             )
         self._runtime.upload(
             instance=self._instance,
-            source=Path(__file__).with_name("_dependencies.py"),
+            source=SANDBOX_SCRIPTS / "_dependencies.py",
             target=self._remote + "/dependencies.py",
         )
         code, _ = self._execute(
-            [self._python, self._remote + "/dependencies.py", kind, root], preparing=True
+            [self._python, self._remote + "/dependencies.py", kind, root,
+             *([str(self.node_major)] if self.node_major else [])], preparing=True
         )
         if code:
             raise RuntimeError(f"Cannot prepare {kind} dependencies; see logs/prepare.log")
 
-    def _execute(self, command, *, preparing=False, capture_stdout=False):
+    def _execute(self, command, *, preparing=False, capture_stdout=False, stdin_path=None):
         self._check_stopped()
         directory = self._remote + "/process-" + uuid.uuid4().hex
         with self._process_lock:
@@ -248,7 +264,7 @@ class CliAgent(Agent):
             response = self._rpc(
                 "start",
                 directory,
-                {"command": command, "env": environment, "cwd": self._cwd},
+                {"command": command, "env": environment, "cwd": self._cwd, "stdin_path": stdin_path},
             )
             if not response["started"]:
                 raise InterruptedError("Agent stopped before process launch")
@@ -365,7 +381,7 @@ class CliAgent(Agent):
                 self._runtime.upload(instance=self._instance, source=source, target=target)
                 images.append(target)
                 prompt.append(f"[Image {len(images)}: {target}]")
-        from ..trajectory import add_step, document
+        from ...trajectory.atif import add_step, document
 
         initial = document(output.result["metadata"], Path(self._remote).name)
         parts = []
@@ -375,7 +391,7 @@ class CliAgent(Agent):
             else:
                 import mimetypes
 
-                from ..trajectory.capture import Media
+                from ..capture import Media
 
                 path = Path(block["path"])
                 saved = output.save_file(path.read_bytes(), path.suffix)
@@ -384,16 +400,19 @@ class CliAgent(Agent):
         initial["extra"] = {"capture": {"complete": False, "missing": ["native_model_calls"]}}
         output.save_trajectory(initial)
         try:
-            code, _ = self._execute(self._command("\n".join(prompt), images))
-            self._finish()
+            text = "\n".join(prompt)
+            command = self._command(text, images)
+            stdin_path = self._upload_text("prompt.txt", text) if self.prompt_on_stdin else None
+            code, _ = self._execute(command, stdin_path=stdin_path)
         finally:
             original_error = sys.exception()
             try:
-                self._poll_native()
+                self._finalize_native()
             except Exception as error:
                 if original_error is None:
                     raise
                 original_error.add_note(f"Final trajectory capture failed: {error}")
+        self._finish()
         if self._run_error is not None and code >= 0:
             raise self._run_error
         if code:
@@ -404,6 +423,9 @@ class CliAgent(Agent):
                 f"{self.executable} exited without a completed response; see Agent logs",
             )
         return self._output.result
+
+    def _finalize_native(self):
+        self._poll_native()
 
     def _finish(self):
         pass

@@ -10,9 +10,9 @@ import uvicorn
 from playwright.sync_api import expect, sync_playwright
 
 from envweaver import TrajPool
-from envweaver.agents.trajectory import add_step, document, validate_trajectory
 from envweaver.management.api import create_app
 from envweaver.management.models import PoolInput
+from envweaver.trajectory.atif import add_step, document, validate_trajectory
 from tests.trajectory.test_pool import rollout
 
 pytestmark = [

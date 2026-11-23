@@ -7,6 +7,7 @@ import signal
 import subprocess
 import sys
 import time
+from contextlib import nullcontext
 from pathlib import Path
 
 
@@ -39,6 +40,7 @@ def supervise(directory):
             finish(directory, -1)
             return
         with (
+            (open(request["stdin_path"], "rb") if request.get("stdin_path") else nullcontext(subprocess.DEVNULL)) as stdin,
             (directory / "stdout").open("wb") as stdout,
             (directory / "stderr").open("wb") as stderr,
         ):
@@ -46,7 +48,7 @@ def supervise(directory):
                 request["command"],
                 cwd=request["cwd"],
                 env={**os.environ, **request.get("env", {})},
-                stdin=subprocess.DEVNULL,
+                stdin=stdin,
                 stdout=stdout,
                 stderr=stderr,
                 start_new_session=True,
@@ -142,4 +144,11 @@ if __name__ == "__main__":
     if sys.argv[1] == "supervise":
         supervise(Path(sys.argv[2]))
     else:
-        print(json.dumps(main(sys.argv[1], sys.argv[2], json.loads(sys.argv[3]))))
+        value = sys.argv[3]
+        if value.startswith("@"):
+            path = Path(value[1:])
+            try:
+                value = path.read_text(encoding="utf-8")
+            finally:
+                path.unlink(missing_ok=True)
+        print(json.dumps(main(sys.argv[1], sys.argv[2], json.loads(value))))

@@ -4,8 +4,8 @@ import json
 from collections import defaultdict, deque
 from datetime import datetime, timezone
 
-from ...trajectory import add_step, context, document
-from ...trajectory.capture import Media
+from ....trajectory.atif import add_step, context, document
+from ...capture import Media
 
 
 def convert(events, output, read_remote=None, native=None):

@@ -5,6 +5,7 @@ import shutil
 import tempfile
 import threading
 import weakref
+from contextlib import nullcontext
 from pathlib import Path
 
 from .paths import join_address, normalize_address
@@ -14,16 +15,15 @@ from .storage import _dispatch
 class OutputDirectory:
     def __init__(self, address, *, exist_ok=False, sentinel=None, source_lock=None):
         self.address = normalize_address(address)
-        self._lock = threading.RLock()
-        self._source_lock = source_lock or threading.RLock()
-        self._published = {}
-        self._cleanup = None
         if isinstance(self.address, Path):
             self.path = self.address.resolve()
             if sentinel and (self.path / sentinel).exists():
                 raise FileExistsError(self.path / sentinel)
             self.path.mkdir(parents=True, exist_ok=exist_ok)
         else:
+            self._lock = threading.RLock()
+            self._source_lock = source_lock or nullcontext()
+            self._published = {}
             created = _dispatch(
                 self.address,
                 {"action": "mkdir", "exist_ok": exist_ok, "sentinel": sentinel},

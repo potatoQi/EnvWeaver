@@ -88,6 +88,19 @@ def test_missing_resume_does_not_create_directory(tmp_path):
     assert not output.exists()
 
 
+def test_resume_before_task_count_is_known(tmp_path, task):
+    output = tmp_path / "batch"
+    with EvalStore(output, False) as batch:
+        batch.register(1, task)
+
+    with EvalStore(output, True) as batch:
+        with pytest.raises(ValueError, match="Task count differs"):
+            batch.exhausted(1)
+        batch.exhausted(2)
+        # A worker for the first task may register after the iterator ends.
+        batch.register(0, task)
+
+
 @pytest.mark.parametrize("target", ["result", "attempt"])
 @pytest.mark.parametrize("invalid_errors", [
     None, {}, "failed", ["failure"],
