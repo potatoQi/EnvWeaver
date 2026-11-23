@@ -113,6 +113,10 @@
             
             <li class="nav-item" data-bs-level="1"><a href="#agent" class="nav-link">Agent</a>
               <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="2"><a href="#claude-code-agent" class="nav-link">ClaudeCodeAgent</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
             <li class="nav-item" data-bs-level="2"><a href="#codex-agent" class="nav-link">CodexAgent</a>
               <ul class="nav flex-column">
               </ul>
@@ -121,7 +125,15 @@
               <ul class="nav flex-column">
               </ul>
             </li>
+            <li class="nav-item" data-bs-level="2"><a href="#openclaw-agent" class="nav-link">OpenClawAgent</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
             <li class="nav-item" data-bs-level="2"><a href="#mini-swe-agent" class="nav-link">MiniSweAgent</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#claw-eval-agent" class="nav-link">ClawEvalAgent</a>
               <ul class="nav flex-column">
               </ul>
             </li>
@@ -138,9 +150,153 @@
 
 <h1 id="agent">Agent<a class="headerlink" href="#agent" title="Permanent link">&para;</a></h1>
 <p>Agent 为 <a href="../evaluation/">Eval</a> 提供统一的执行接口。创建 Agent 对象时配置模型、环境变量和原生参数，再将对象传给 <code>eval(agent=...)</code>。</p>
-<p>内置 Agent 默认复用准备阶段有校验值的安装包；<code>cache=False</code> 关闭。缓存目录通过当前进程的 <code>ENVWEAVER_CACHE_DIR</code> 设置，默认 <code>~/.cache/envweaver/downloads</code>，容量为 30 GiB。</p>
-<p>Terminus 2 还会按 uv 版本复用官方 Python 校验信息，命中后不再访问其上游地址。自定义 <code>UV_PYTHON_DOWNLOADS_JSON_URL</code> 仍在沙箱读取，不做持久缓存。软件包索引和依赖解析仍可能需要联网。</p>
-<p>已支持的 Agent：<a href="#codex-agent">Codex CLI</a>、<a href="#pi-agent">Pi</a>、<a href="#mini-swe-agent">mini-swe-agent</a>、<a href="#terminus-agent">Terminus 2</a>、<a href="#custom-agent">自定义 Agent</a>。</p>
+<p>内置 Agent 默认复用准备阶段有校验值的安装包，可传 <code>cache=False</code> 关闭。缓存目录通过当前进程的 <code>ENVWEAVER_CACHE_DIR</code> 设置，默认 <code>~/.cache/envweaver/downloads</code>，容量为 30 GiB。</p>
+<p>已支持的 Agent：<a href="#claude-code-agent">Claude Code</a>、<a href="#codex-agent">Codex CLI</a>、<a href="#pi-agent">Pi</a>、<a href="#openclaw-agent">OpenClaw</a>、<a href="#mini-swe-agent">mini-swe-agent</a>、<a href="#claw-eval-agent">Claw-Eval</a>、<a href="#terminus-agent">Terminus 2</a>、<a href="#custom-agent">自定义 Agent</a>。</p>
+<h2 id="claude-code-agent">ClaudeCodeAgent<a class="headerlink" href="#claude-code-agent" title="Permanent link">&para;</a></h2>
+<div class="table-responsive">
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<a id="envweaver.ClaudeCodeAgent"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>model</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Claude Code 的模型名或别名，默认使用 CLI 配置。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>version</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>npm 包版本。默认使用沙箱中的 claude，缺失时安装 npm 默认版本。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>env</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="str">str</span>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>传给沙箱内 Claude Code 的环境变量字典，默认 None。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>extra_args</code>
+            </td>
+            <td>
+                  <code><span title="list">list</span>[<span title="str">str</span>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>传给 Claude Code 的额外非交互式命令行参数列表，默认 None。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>cache</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>是否使用 EnvWeaver 的安装缓存，默认 True。</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div></div>
+<pre><code class="language-python">from envweaver import ClaudeCodeAgent, eval
+
+agent = ClaudeCodeAgent(
+    model=model_name,
+    env={&quot;ANTHROPIC_BASE_URL&quot;: gateway_url, &quot;ANTHROPIC_API_KEY&quot;: api_key},
+)
+results = eval(tasks=tasks, agent=agent, output_dir=&quot;outputs/claude&quot;)
+</code></pre>
 <h2 id="codex-agent">CodexAgent<a class="headerlink" href="#codex-agent" title="Permanent link">&para;</a></h2>
 <div class="table-responsive">
 
@@ -240,7 +396,7 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>是否复用已缓存的安装包，默认 True。</p>
+                <p>是否使用 EnvWeaver 的安装缓存，默认 True。</p>
               </div>
             </td>
             <td>
@@ -381,7 +537,7 @@ agent = CodexAgent(model=model_name, env=agent_env)
             </td>
             <td>
               <div class="doc-md-description">
-                <p>是否复用已缓存的安装包，默认 True。</p>
+                <p>是否使用 EnvWeaver 的安装缓存，默认 True。</p>
               </div>
             </td>
             <td>
@@ -423,6 +579,155 @@ agent = CodexAgent(model=model_name, env=agent_env)
 
 agent = PiAgent(model=model_name, env=agent_env)
 </code></pre>
+<h2 id="openclaw-agent">OpenClawAgent<a class="headerlink" href="#openclaw-agent" title="Permanent link">&para;</a></h2>
+<div class="table-responsive">
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<a id="envweaver.OpenClawAgent"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>model</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>OpenClaw 模型名，格式为 provider/model；默认使用沙箱中的 OpenClaw 配置。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>version</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>openclaw npm 版本，须支持 agent exec。默认使用已安装版本，缺失时安装最新版。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>env</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="str">str</span>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>传给沙箱内 CLI 的环境变量，如模型凭据。默认 None。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>extra_args</code>
+            </td>
+            <td>
+                  <code><span title="list">list</span>[<span title="str">str</span>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>原生 agent exec 参数列表，如 ["--config", "/etc/openclaw.json"]。
+路径位于做题沙箱中。默认 None。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>cache</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>是否使用 EnvWeaver 的安装缓存，默认 True。</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div></div>
+<pre><code class="language-python">from envweaver import OpenClawAgent, eval
+
+agent = OpenClawAgent(
+    model=&quot;openai/gpt-4.1&quot;,
+    env={&quot;OPENAI_API_KEY&quot;: api_key},
+)
+results = eval(tasks=tasks, agent=agent, output_dir=&quot;outputs/openclaw&quot;)
+</code></pre>
+<p>题面支持文本。每次尝试在 <code>Task.cwd</code> 下执行，使用独立会话目录，无需启动 OpenClaw Gateway。评分时仍需访问的预置服务可在 <code>Task.setup</code> 中启动。
+<code>agent/trajectory.json</code> 保存主会话轨迹。HTTP 请求可按回复 ID 或唯一的回复内容关联。使用 WebSocket 或无法确定对应请求时，该步骤的 <code>extra.context.complete</code> 为 <code>false</code>。触发子会话但未导出其轨迹时，<code>extra.capture.missing</code> 包含 <code>subagent_sessions</code>。</p>
+<p>做题超时后通常继续评分。若采集到的多次请求全部因限流或服务端临时故障失败，Eval 将其记为 <code>provider_transient</code>，按 <code>max_retries</code> 重试。</p>
 <h2 id="mini-swe-agent">MiniSweAgent<a class="headerlink" href="#mini-swe-agent" title="Permanent link">&para;</a></h2>
 <div class="table-responsive">
 
@@ -522,7 +827,7 @@ agent = PiAgent(model=model_name, env=agent_env)
             </td>
             <td>
               <div class="doc-md-description">
-                <p>是否复用已缓存的安装包，默认 True。</p>
+                <p>是否使用 EnvWeaver 的安装缓存，默认 True。</p>
               </div>
             </td>
             <td>
@@ -563,6 +868,114 @@ agent = PiAgent(model=model_name, env=agent_env)
 <pre><code class="language-python">from envweaver import MiniSweAgent
 
 agent = MiniSweAgent(model=model_name, env=agent_env)
+</code></pre>
+<h2 id="claw-eval-agent">ClawEvalAgent<a class="headerlink" href="#claw-eval-agent" title="Permanent link">&para;</a></h2>
+<p>ClawEvalAgent 仅适用于用来作为评测 Claw-Eval 时候的 Harness。将 Claw-Eval 题目的 <code>task.yaml</code> 和 <code>sandbox_files</code> 引用的材料放在 <code>Task.cwd</code> 下。</p>
+<div class="table-responsive">
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<a id="envweaver.ClawEvalAgent"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>model</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>必填，做题模型配置。填写模型名 <code>model</code> 和沙箱可访问的服务地址 <code>base_url</code>，需要鉴权时填写 <code>api_key</code>。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>cache</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>是否使用 EnvWeaver 的安装缓存，默认 True。</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div></div>
+<pre><code class="language-python">from envweaver import ClawEvalAgent, eval
+
+agent = ClawEvalAgent(
+    model={
+        &quot;model&quot;: &quot;Qwen3.8-27B&quot;,
+        &quot;base_url&quot;: base_url,
+        &quot;api_key&quot;: api_key,
+        &quot;context_window&quot;: 262144,  # 按部署的上下文窗口填写，单位为 token。
+        &quot;temperature&quot;: 0.0,
+        # 可选，按所用模型服务设置。
+        # &quot;top_p&quot;: 0.95,
+        # &quot;top_k&quot;: 20,
+        &quot;reasoning_effort&quot;: &quot;high&quot;,
+    },
+    cache=True,
+)
+results = eval(tasks=task, agent=agent)
 </code></pre>
 <h2 id="terminus-agent">Terminus2Agent<a class="headerlink" href="#terminus-agent" title="Permanent link">&para;</a></h2>
 <div class="table-responsive">
@@ -649,7 +1062,7 @@ temperature、max_turns、model_info、llm_call_kwargs。</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>是否复用安装包和按 uv 版本保存的官方 Python 校验信息，默认 True。</p>
+                <p>是否使用 EnvWeaver 的安装缓存，默认 True。</p>
               </div>
             </td>
             <td>
@@ -866,7 +1279,7 @@ agent = CustomAgent(model=model_name, endpoint=base_url, temperature=0.7)
             </td>
             <td>
               <div class="doc-md-description">
-                <p>用来操作沙箱的 Runtime。</p>
+                <p>Eval 传入的 Runtime。用它启动的辅助实例由本次尝试回收，也可用 close 提前关闭。</p>
               </div>
             </td>
             <td>
@@ -1000,7 +1413,7 @@ agent = CustomAgent(model=model_name, endpoint=base_url, temperature=0.7)
             </td>
             <td>
               <div class="doc-md-description">
-                <p>用来操作沙箱的 Runtime。</p>
+                <p>与 prepare 相同的 Runtime。</p>
               </div>
             </td>
             <td>
@@ -1140,6 +1553,7 @@ agent = CustomAgent(model=model_name, endpoint=base_url, temperature=0.7)
 </code></pre>
 <p>轨迹使用 <a href="https://harborframework.com/docs/atif">Harbor ATIF</a> v1.8，<code>schema_version</code> 为 <code>ATIF-v1.8</code>；可通过 <code>envweaver.ATIF_VERSION</code> 读取当前版本。</p>
 <p>模型步骤的 <code>extra.context.path</code> 指向该次调用的上下文快照；<code>source</code> 标明采集位置，<code>complete</code> 和 <code>missing</code> 标明是否存在已知缺失。图片、上下文和子轨迹文件路径均相对于 Agent 的产物目录。</p>
+<p>Codex 的 ATIF 导出支持原生 rollout trace v1、v2 和 v3。导出失败时，可在 <code>agent/result.json</code> 的 <code>metadata.trajectory_export_error</code> 查看原因，在 <code>agent/logs/native/codex/</code> 查看已采集的原始记录。Eval 仍按做题的停止原因决定是否评分。</p>
 <p>Codex 子 Agent 使用独立子轨迹；Terminus 的压缩和续接沿用 Harbor 的轨迹引用。加密内容保存在原生记录中，不还原为推理文字。未采集到原生模型调用时，轨迹中的 <code>extra.capture</code> 会注明缺失。</p>
 </details>
 <h3 class="mt-4" id="agent-stop">Agent.stop：停止 Agent<a class="headerlink" href="#agent-stop" title="Permanent link">&para;</a></h3>
