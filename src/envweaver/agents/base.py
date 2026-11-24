@@ -2,6 +2,7 @@
 
 import json
 from abc import ABC, abstractmethod
+from contextlib import nullcontext
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
@@ -55,6 +56,10 @@ class Agent(ABC):
             配置相同、尚未准备的独立 Agent 对象。Eval 为每道题和每次重试自动调用；原对象可用于多个批次。
         """
         return type(self)(**self.config)
+
+    def _batch_agents(self):
+        """Provide the attempt factory for one Eval invocation."""
+        return nullcontext(self.new)
 
     def _identity(self):
         """Describe the adapter and its complete constructor configuration."""

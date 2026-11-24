@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+from contextlib import contextmanager
 from pathlib import Path
 
 from ....errors import AgentError, ErrorType
@@ -41,7 +42,7 @@ class AleClawAgent(Agent):
         options: AleClawConfig 的其余参数，如 base_url、api_key、max_turns。默认空表。
         port: 做题实例内的 CUA 服务端口，默认 8000。
         version: Git 提交或标签。默认复用当前 Python 环境安装的 ale-claw；
-            未安装时用 uv 从 GitHub 安装已验证的提交。
+            未安装时用 uv 从 GitHub 安装已验证的提交。Eval 在派题前准备一次，同批任务和重试共用安装环境。
 
     Raises:
         ValueError: 端口、版本或 options 无效。
@@ -66,6 +67,35 @@ class AleClawAgent(Agent):
         self._lock = threading.Lock()
         self._stopped = False
         self._process = None
+        self._controller = None
+        cfg = self.config
+        options = cfg["options"]
+        if cfg["model"]:
+            options["model"] = cfg["model"]
+        self._options = options
+        settings = options.get("extra_generation_kwargs")
+        sources = [os.environ, options]
+        if isinstance(settings, dict):
+            sources.extend(
+                settings[k]
+                for k in ("headers", "extra_headers")
+                if isinstance(settings.get(k), dict)
+            )
+        self._secrets = sorted(
+            {
+                value
+                for source in sources
+                for key, value in source.items()
+                if isinstance(value, str)
+                and value
+                and any(
+                    word in key.lower()
+                    for word in ("key", "token", "secret", "password", "authorization")
+                )
+            },
+            key=len,
+            reverse=True,
+        )
 
     def preflight(self, goal):
         if any(block["type"] != "text" for block in goal):
@@ -96,6 +126,13 @@ class AleClawAgent(Agent):
                 self._process = process
             try:
                 data, _ = process.communicate(data)
+            except BaseException:
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                process.wait()
+                raise
             finally:
                 with self._lock:
                     self._process = None
@@ -115,33 +152,6 @@ class AleClawAgent(Agent):
             raise AgentError(
                 ErrorType.CONFIGURATION, "AleClawAgent requires a Docker or QEMU instance"
             )
-        options = cfg["options"]
-        if cfg["model"]:
-            options["model"] = cfg["model"]
-        self._options = options
-        settings = options.get("extra_generation_kwargs")
-        sources = [os.environ, options]
-        if isinstance(settings, dict):
-            sources.extend(
-                settings[k]
-                for k in ("headers", "extra_headers")
-                if isinstance(settings.get(k), dict)
-            )
-        self._secrets = sorted(
-            {
-                value
-                for source in sources
-                for key, value in source.items()
-                if isinstance(value, str)
-                and value
-                and any(
-                    word in key.lower()
-                    for word in ("key", "token", "secret", "password", "authorization")
-                )
-            },
-            key=len,
-            reverse=True,
-        )
         python = instance.data.get("python", "python3")
         code, name, err = runtime.exec(
             instance=instance,
@@ -163,38 +173,58 @@ class AleClawAgent(Agent):
                 + self._clean(err),
             )
         self._os = name.strip()
-        cmd = [sys.executable]
+        if self._controller is None:
+            # Direct prepare/run callers own a single controller for the life of the Agent.
+            env = tempfile.TemporaryDirectory(prefix="envweaver-ale-host-")
+            try:
+                self._controller = self._prepare_controller(env.name)
+            except BaseException:
+                env.cleanup()
+                raise
+            self._host_env = env
+        _, version, model = self._controller
+        output.update(metadata={"agent_version": version, "model": model})
+
+    @contextmanager
+    def _batch_agents(self):
+        with tempfile.TemporaryDirectory(prefix="envweaver-ale-host-") as directory:
+            # Concurrent batches may use the same original Agent.
+            controller = self.new()._prepare_controller(directory)
+
+            def create():
+                agent = self.new()
+                agent._controller = controller
+                return agent
+
+            yield create
+
+    def _prepare_controller(self, directory):
+        cfg = self.config
+        python = sys.executable
         if cfg["version"] or not importlib.util.find_spec("ale_claw"):
             if not shutil.which("uv"):
                 raise AgentError(
                     ErrorType.CONFIGURATION, "Install uv or install ale-claw from GitHub"
                 )
             revision = cfg["version"] or _REVISION
-            # The source archive omits unrelated harness submodules from the monorepo.
             requirement = (
                 f"ale-claw @ {_REPO}/archive/{revision}.tar.gz#subdirectory=ale_run/agents/ale_claw"
             )
-            cmd = [
-                "uv",
-                "run",
-                "--no-project",
-                "--python",
-                "3.12",
-                "--with",
-                requirement,
-                "python",
-            ]
-        with tempfile.TemporaryDirectory() as temp:
-            version, model = json.loads(
-                self._execute(
-                    [*cmd, str(Path(__file__).with_name("worker.py")), "prepare"],
-                    temp,
-                    options,
-                    preparing=True,
-                )
+            venv = Path(directory) / "venv"
+            python = str(venv / "bin/python")
+            self._execute(["uv", "venv", "--python", "3.12", str(venv)], directory, preparing=True)
+            self._execute(
+                ["uv", "pip", "install", "--python", python, requirement], directory, preparing=True
             )
-        self._command = cmd
-        output.update(metadata={"agent_version": version, "model": model})
+        version, model = json.loads(
+            self._execute(
+                [python, str(Path(__file__).with_name("worker.py")), "prepare"],
+                directory,
+                self._options,
+                preparing=True,
+            )
+        )
+        return python, version, model
 
     def run(self, *, goal, runtime, instance, output, cwd):
         self.preflight(goal)
@@ -209,7 +239,9 @@ class AleClawAgent(Agent):
                 try:
                     report = json.loads(
                         self._execute(
-                            [*self._command, str(Path(__file__).with_name("worker.py"))], root, job
+                            [self._controller[0], str(Path(__file__).with_name("worker.py"))],
+                            root,
+                            job,
                         )
                     )
                 finally:

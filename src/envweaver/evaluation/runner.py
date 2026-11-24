@@ -8,6 +8,7 @@ import uuid
 import warnings
 from collections.abc import Iterable, Sized
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
+from contextlib import ExitStack
 from copy import copy, deepcopy
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
@@ -415,6 +416,7 @@ def eval(
         TypeError: tasks 不是 Task 或可迭代对象、包含非 Task 元素，或 agent、config、traj_pool 类型错误。
         ValueError: concurrency、config 或输出地址无效，或续跑记录缺失、无效及任务与原批次不一致。
         OSError: 输出目录已存在、正在被其他 eval 使用、无法创建，或评测结果无法保存。
+        envweaver.errors.AgentError: 批次所需的宿主机 Agent 环境准备失败。
         envweaver.errors.RuntimeError: SSH 产物目录无法访问或写入。
         TimeoutError: SSH 操作或获取产物目录锁超时。
         KeyboardInterrupt: 用户中断；取消未开始的任务，保存已有结果并清理正在执行的评测。
@@ -444,7 +446,8 @@ def _run_batch(iterator, agent, config, batch, concurrency, traj_pool, total):
     saved_results = {}
     saved_lock = threading.Lock()
     iterator = enumerate(iterator)
-    with _Panel(total if total is not None else batch.data["count"]) as panel:
+    with ExitStack() as resources, _Panel(total if total is not None else batch.data["count"]) as panel:
+        factory = None
         for index, entry in batch.data["tasks"].items():
             if entry["complete"]:
                 panel.finish(int(index), entry["result"])
@@ -532,7 +535,7 @@ def _run_batch(iterator, agent, config, batch, concurrency, traj_pool, total):
                 return result
 
         def create_agent():
-            current_agent = agent.new()
+            current_agent = factory()
             if not isinstance(current_agent, Agent):
                 raise TypeError("Agent.new() must return an Agent")
             if current_agent is agent:
@@ -594,7 +597,7 @@ def _run_batch(iterator, agent, config, batch, concurrency, traj_pool, total):
         exhausted = False
 
         def submit():
-            nonlocal submitted, exhausted
+            nonlocal submitted, exhausted, factory
             if exhausted:
                 return
             item = next(iterator, None)
@@ -607,6 +610,8 @@ def _run_batch(iterator, agent, config, batch, concurrency, traj_pool, total):
             index, task = item
             if not isinstance(task, Task):
                 raise TypeError("tasks must contain Task objects")
+            if factory is None and not batch.data["tasks"].get(str(index), {}).get("complete"):
+                factory = resources.enter_context(agent._batch_agents())
             submitted += 1
             pending[executor.submit(run, index, task)] = index
 

@@ -991,3 +991,53 @@ def test_cancellation_interrupts_stage_queue_without_starting_work():
         limits.start('verify', fail, cancelled).wait(timeout=1)
     limits.start('verify', entered.set, cancelled).wait(timeout=1)
     assert entered.is_set()
+
+
+def test_ale_batch_install_failure_and_resume(tmp_path, task, monkeypatch):
+    from envweaver import AleClawAgent
+
+    directory = tmp_path / "batch"
+    agent = AleClawAgent(version="test-version")
+    attempts = []
+    workers = []
+    fail_install = True
+    host_dirs = []
+
+    def install(self, cmd, cwd, payload=None, *, preparing=False):
+        assert preparing
+        attempts.append(cmd)
+        if cmd[:3] == ["uv", "pip", "install"]:
+            host_dirs.append(Path(cwd))
+            if fail_install:
+                raise AgentError(ErrorType.CONFIGURATION, "install failed")
+            time.sleep(0.6)  # Longer than the per-task setup timeout.
+        return '["0.1.0", "test-model"]'
+
+    def prepare(self, **kwargs):
+        assert host_dirs[-1].is_dir()
+        workers.append(self)
+
+    monkeypatch.setattr("shutil.which", lambda name: "/usr/bin/uv")
+    monkeypatch.setattr(AleClawAgent, "_execute", install)
+    monkeypatch.setattr(AleClawAgent, "prepare", prepare)
+    monkeypatch.setattr(AleClawAgent, "run", GoodAgent.run)
+    task = replace(task, setup=None)
+    arguments = dict(tasks=[task] * 3, agent=agent, config=config(setup_timeout=0.5),
+                     output_dir=directory, concurrency=3)
+    with pytest.raises(AgentError, match="install failed"):
+        eval(**arguments)
+    assert [cmd[:2] for cmd in attempts] == [["uv", "venv"], ["uv", "pip"]]
+    assert not task.verifier.runtime.starts
+    assert not list(directory.glob("000*"))
+
+    fail_install = False
+    attempts.clear()
+    assert all(row["score_valid"] for row in eval(**arguments, resume=True))
+    assert len(attempts) == 3  # create venv, install package, validate controller
+    assert len(set(workers)) == 3
+    assert len({worker._controller for worker in workers}) == 1
+    assert all(not path.exists() for path in host_dirs)
+
+    attempts.clear()
+    eval(**arguments, resume=True)
+    assert not attempts

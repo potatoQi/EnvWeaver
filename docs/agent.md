@@ -119,7 +119,9 @@ results = eval(tasks=tasks, agent=agent, output_dir="outputs/ale-claw")
 
 `max_turns` 限制完成的做题步数。同一步连续溢出时最多压缩重试两次，仍然溢出则以 `context_limit` 结束并进入评分。可用 `EvalConfig(agent_timeout=...)` 限制做题总时长。
 
-默认由 uv 准备控制器。也可在运行 Eval 的 Python 3.12 或 3.13 环境中提前安装：
+每批 Eval 在首道待评测任务开始前准备一次宿主机控制器，所有题目和重试共用该环境。安装时间不计入单题 `setup_timeout`。准备失败时 Eval 直接报错，修好后用 `resume=True` 继续。
+
+默认由 uv 安装。也可在运行 Eval 的 Python 3.12 或 3.13 环境中提前安装：
 
 ```bash
 pip install 'ale-claw @ https://github.com/potatoQi/agents-last-exam/archive/aca4b133daf19f0c8d520976b1f2027aa3ed192b.tar.gz#subdirectory=ale_run/agents/ale_claw'

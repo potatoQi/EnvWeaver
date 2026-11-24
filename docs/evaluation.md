@@ -216,6 +216,8 @@ result = evaluate(task=task, agent=agent, config=config, output_dir=output_dir)
 
 </div>
 
+AleClaw 的宿主机环境在首道待执行任务派发前准备。准备失败时 `eval()` 抛出异常；修复后可用同一输出目录续跑。
+
 ```python
 from envweaver import eval
 

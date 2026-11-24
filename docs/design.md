@@ -16,7 +16,7 @@ Eval 组件通过统一的 `eval(tasks, agent, ...)` 组织单题和并发评测
 
 Agent 基类只保存配置并声明公开的 preflight、prepare、run、stop 接口，用户直接实现这些方法。AgentExecution 通过组合调用适配对象，负责调用顺序、停止等待、输入图片处理和最终结果校验；AgentOutput 负责原子结果快照、ATIF 校验与保存、JSONL 原始事件序号和产物同步，作为 output 参数显式传给 prepare、run；执行器和 Eval 从同一个 output.directory 定位产物与失败快照。公共层不设置适配对象的沙箱或目录属性。Eval 通过 AgentExecution 的生命周期方法取消执行，不直接修改它的内部事件。Task 保存与 Agent 执行共用 goal 格式校验，非文字或图片对象统一抛出 ValueError；内置适配还检查图片支持、原生参数冲突及 mini 的版本要求。Eval 在启动沙箱前检查 setup、context、验证器必需变量及输入文件可读性；模型凭据是否有效仍由模型服务验证。内置 CodexAgent、PiAgent、MiniSweAgent 在 Linux 沙箱运行 CLI：Codex/Pi 读取 JSONL 事件，mini-swe-agent 2.x 增量读取原生轨迹快照。原始事件保留在 data 中，不要求不同厂商具有相同内部字段。依赖类型和 stdout 是否包含 JSONL 事件由各适配类声明；公共 CLI 不根据 Agent 名称选择执行路径。Pi 的图片事件解析与归档保留在 Pi 适配代码中，按原生 type、data、mimeType 字段读取，不推测其他框架的字段。
 
-AleClawAgent 在 Eval 宿主机运行独立控制器进程，按尝试转发到本题实例内的 CUA 端口。平台从实例探测，工作目录随题面传入。准备阶段按 AleClaw 的工具调用配置校验实际选中的后端及其依赖。每次模型 HTTP 调用独立登记，保存脱敏后的实际请求，包括发给模型的截图。ATIF 主会话步骤按响应 ID 或唯一的回答与工具调用匹配；失败请求保留状态码。无法关联的步骤和未导出的子会话标注缺失。
+AleClawAgent 在 Eval 宿主机运行独立控制器进程，按尝试转发到本题实例内的 CUA 端口。平台从实例探测，工作目录随题面传入。首次派发未完成任务前，Eval 在宿主机为本批准备一次控制器并校验模型后端依赖。未预装或指定版本时，uv 在批次临时目录安装对应版本；该目录在批次结束时清理。每次尝试使用独立的控制器进程，逐题准备只探测实例平台和桌面服务。每次模型 HTTP 调用独立登记，保存脱敏后的实际请求，包括发给模型的截图。ATIF 主会话步骤按响应 ID 或唯一的回答与工具调用匹配；失败请求保留状态码。无法关联的步骤和未导出的子会话标注缺失。
 
 OpenClawAgent 安装时使用 Node 24.16+（24.x）或 26.1+，缺失时在 glibc Linux 下载 Node 24。通过本地 `agent exec` 单次执行。通过 OpenClaw 的 sessions 目录和 transcript SDK 读取主会话。HTTP 请求优先按唯一回复 ID 关联，缺失或重复时核对回复内容和工具历史。空错误和内部续答提示记为系统步骤，部分回复标为 incomplete。执行错误结合 CLI 结论、模型服务响应和原生连接诊断分类。中断前已采集的请求随轨迹保留。Eval 统一控制时限和评分。
 
