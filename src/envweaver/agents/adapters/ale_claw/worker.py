@@ -16,14 +16,24 @@ def prepare(config):
 
     if not {"error_type", "status_code"} <= RunResult.__dataclass_fields__.keys():
         raise ValueError(
-            "AleClaw must support structured run results; install the documented revision"
+            "AleClaw must support structured run results; update the installed ale-claw package"
         )
     backend = config.tool_loop_override or find_agent_config(config.model)
     if backend is None:
         raise ValueError(f"No CUA backend registered for {config.model}")
     if issubclass(backend.agent_class, GenericVlmConfig):
-        from qwen_agent.llm.fncall_prompts.nous_fncall_prompt import NousFnCallPrompt  # noqa: F401
-        from qwen_vl_utils import smart_resize  # noqa: F401
+        try:
+            from qwen_agent.llm.fncall_prompts.nous_fncall_prompt import NousFnCallPrompt  # noqa: F401
+            from qwen_vl_utils import smart_resize  # noqa: F401
+        except ImportError as error:
+            error.add_note(
+                "Prompt-based tool calling requires additional dependencies. "
+                "Install AleClaw in the Python environment that runs Eval, then run "
+                f"`python -m pip install 'cua-agent[qwen]=={version('cua-agent')}' "
+                "torch torchvision soundfile` there. Omit AleClawAgent(version=...) "
+                "to use that environment."
+            )
+            raise
     return [version("ale-claw"), config.model]
 
 

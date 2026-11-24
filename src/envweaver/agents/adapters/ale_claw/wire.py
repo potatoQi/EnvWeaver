@@ -30,7 +30,7 @@ def capture(path):
             return await original(client, request, **kwargs)
         try:
             payload = json.loads(await request.aread())
-        except (UnicodeDecodeError, ValueError):
+        except ValueError:
             return await original(client, request, **kwargs)
         if not isinstance(payload, dict) or not payload.get("model"):
             return await original(client, request, **kwargs)

@@ -993,11 +993,12 @@ def test_cancellation_interrupts_stage_queue_without_starting_work():
     assert entered.is_set()
 
 
-def test_ale_batch_install_failure_and_resume(tmp_path, task, monkeypatch):
+@pytest.mark.parametrize("version", [None, "test-version"])
+def test_ale_batch_install_failure_and_resume(tmp_path, task, monkeypatch, version):
     from envweaver import AleClawAgent
 
     directory = tmp_path / "batch"
-    agent = AleClawAgent(version="test-version")
+    agent = AleClawAgent(version=version)
     attempts = []
     workers = []
     fail_install = True
@@ -1006,7 +1007,12 @@ def test_ale_batch_install_failure_and_resume(tmp_path, task, monkeypatch):
     def install(self, cmd, cwd, payload=None, *, preparing=False):
         assert preparing
         attempts.append(cmd)
+        head = "a" * 40 if fail_install else "b" * 40
+        if cmd[:2] == ["git", "ls-remote"]:
+            assert cmd[-1] == "refs/heads/standalone-ale-claw"
+            return f"{head}\t{cmd[-1]}"
         if cmd[:3] == ["uv", "pip", "install"]:
+            assert f"/archive/{version or head}.tar.gz#" in cmd[-1]
             host_dirs.append(Path(cwd))
             if fail_install:
                 raise AgentError(ErrorType.CONFIGURATION, "install failed")
@@ -1018,6 +1024,7 @@ def test_ale_batch_install_failure_and_resume(tmp_path, task, monkeypatch):
         workers.append(self)
 
     monkeypatch.setattr("shutil.which", lambda name: "/usr/bin/uv")
+    monkeypatch.setattr("importlib.util.find_spec", lambda name: None)
     monkeypatch.setattr(AleClawAgent, "_execute", install)
     monkeypatch.setattr(AleClawAgent, "prepare", prepare)
     monkeypatch.setattr(AleClawAgent, "run", GoodAgent.run)
@@ -1026,14 +1033,16 @@ def test_ale_batch_install_failure_and_resume(tmp_path, task, monkeypatch):
                      output_dir=directory, concurrency=3)
     with pytest.raises(AgentError, match="install failed"):
         eval(**arguments)
-    assert [cmd[:2] for cmd in attempts] == [["uv", "venv"], ["uv", "pip"]]
+    install_commands = ([["git", "ls-remote"]] if version is None else []) + [["uv", "venv"], ["uv", "pip"]]
+    assert [cmd[:2] for cmd in attempts] == install_commands
     assert not task.verifier.runtime.starts
     assert not list(directory.glob("000*"))
 
     fail_install = False
     attempts.clear()
     assert all(row["score_valid"] for row in eval(**arguments, resume=True))
-    assert len(attempts) == 3  # create venv, install package, validate controller
+    assert [cmd[:2] for cmd in attempts[:-1]] == install_commands
+    assert attempts[-1][-1] == "prepare"
     assert len(set(workers)) == 3
     assert len({worker._controller for worker in workers}) == 1
     assert all(not path.exists() for path in host_dirs)

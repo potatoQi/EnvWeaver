@@ -21,7 +21,7 @@ from .desktop import desktop
 from .trajectory import export, read_calls
 
 _REPO = "https://github.com/potatoQi/agents-last-exam"
-_REVISION = "aca4b133daf19f0c8d520976b1f2027aa3ed192b"
+_BRANCH = "standalone-ale-claw"
 
 
 def _failure(report, calls):
@@ -45,11 +45,11 @@ def _kill_group(process):
 class AleClawAgent(Agent):
     """
     Args:
-        model: LiteLLM 模型名，默认使用 AleClaw 的模型。
+        model: 做题模型，格式为 `provider/model`，例如 `openai/Qwen3.8-27B`。
         options: AleClawConfig 的其余参数，如 base_url、api_key、max_turns。默认空表。
         port: 做题实例内的 CUA 服务端口，默认 8000。
-        version: Git 提交或标签。默认复用当前 Python 环境安装的 ale-claw；
-            未安装时用 uv 从 GitHub 安装已验证的提交。Eval 在派题前准备一次，同批任务和重试共用安装环境。
+        version: Git 提交或标签。省略时优先使用当前 Python 环境中的 ale-claw；
+            未安装时使用 Git 和 uv 安装 potatoQi/agents-last-exam 的 standalone-ale-claw 分支最新提交。
 
     Raises:
         ValueError: 端口、版本或 options 无效。
@@ -151,7 +151,6 @@ class AleClawAgent(Agent):
             return data.decode().strip()
 
     def prepare(self, *, runtime, instance, output, cwd):
-        cfg = self.config
         if instance.backend not in ("docker", "qemu"):
             raise AgentError(
                 ErrorType.CONFIGURATION, "AleClawAgent requires a Docker or QEMU instance"
@@ -165,7 +164,7 @@ class AleClawAgent(Agent):
                 "import platform,socket,sys; "
                 "socket.create_connection(('127.0.0.1',int(sys.argv[1])),5).close(); "
                 "print(platform.system().lower())",
-                str(cfg["port"]),
+                str(self._config["port"]),
             ],
             cwd=cwd,
             timeout=15,
@@ -203,14 +202,20 @@ class AleClawAgent(Agent):
             yield create
 
     def _prepare_controller(self, directory):
-        cfg = self.config
+        revision = self._config["version"]
         python = sys.executable
-        if cfg["version"] or not importlib.util.find_spec("ale_claw"):
+        if revision is not None or not importlib.util.find_spec("ale_claw"):
             if not shutil.which("uv"):
                 raise AgentError(
                     ErrorType.CONFIGURATION, "Install uv or install ale-claw from GitHub"
                 )
-            revision = cfg["version"] or _REVISION
+            if revision is None:
+                head = self._execute(
+                    ["git", "ls-remote", "--exit-code", _REPO, f"refs/heads/{_BRANCH}"],
+                    directory,
+                    preparing=True,
+                )
+                revision = head.split()[0]
             requirement = (
                 f"ale-claw @ {_REPO}/archive/{revision}.tar.gz#subdirectory=ale_run/agents/ale_claw"
             )
@@ -232,13 +237,12 @@ class AleClawAgent(Agent):
 
     def run(self, *, goal, runtime, instance, output, cwd):
         self.preflight(goal)
-        cfg = self.config
         prompt = f"Task working directory on the remote desktop: {cwd}\n\n" + "\n".join(
             b["text"] for b in goal
         )
         with tempfile.TemporaryDirectory(prefix="envweaver-ale-") as directory:
             root = Path(directory)
-            with desktop(runtime, instance, cfg["port"]) as url:
+            with desktop(runtime, instance, self._config["port"]) as url:
                 job = {"agent": self._options, "prompt": prompt, "url": url, "os": self._os}
                 try:
                     report = json.loads(

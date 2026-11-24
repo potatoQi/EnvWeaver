@@ -86,11 +86,6 @@ agent = OpenClawAgent(
 results = eval(tasks=tasks, agent=agent, output_dir="outputs/openclaw")
 ```
 
-题面支持文本。每次尝试在 `Task.cwd` 下执行，使用独立会话目录，无需启动 OpenClaw Gateway。评分时仍需访问的预置服务可在 `Task.setup` 中启动。
-`agent/trajectory.json` 保存主会话轨迹。HTTP 请求可按回复 ID 或唯一的回复内容关联。使用 WebSocket 或无法确定对应请求时，该步骤的 `extra.context.complete` 为 `false`。触发子会话但未导出其轨迹时，`extra.capture.missing` 包含 `subagent_sessions`。
-
-做题超时后通常继续评分。若采集到的多次请求全部因限流或服务端临时故障失败，Eval 将其记为 `provider_transient`，按 `max_retries` 重试。
-
 ## AleClawAgent {#ale-claw-agent}
 
 <div class="table-responsive" markdown="1">
@@ -103,9 +98,9 @@ results = eval(tasks=tasks, agent=agent, output_dir="outputs/openclaw")
 
 </div>
 
-做题实例须已启动 CUA computer-server，可使用带桌面的 Linux Docker 或 Linux / Windows QEMU。控制器在执行 Eval 的 Linux 宿主机上访问模型；模型网关地址和凭据以该机器为准。题面支持文本，桌面文件通过 `Task.context` 提供。
+做题实例须已启动 CUA computer-server。控制器在执行 Eval 的 Linux 宿主机上访问模型。
 
-`options["tool_calling"]` 控制主 Agent 和 GUI 子 Agent 如何调用工具。默认 `auto` 按模型选择；`function_calling` 通过 Chat Completions 的 `tools` 字段传入工具；`prompt` 在提示词中描述工具。使用 `prompt` 时，须在执行 Eval 的 Python 环境安装下方指定的 AleClaw，再执行 `pip install 'cua-agent[qwen]==0.7.38' torch torchvision soundfile`。
+`options["tool_calling"]` 控制 Agent 如何调用工具。默认 `auto` 按模型选择；`function_calling` 通过 Chat Completions 的 `tools` 字段传入工具；`prompt` 在提示词中描述工具。
 
 ```python
 from envweaver import AleClawAgent, eval
@@ -115,16 +110,6 @@ agent = AleClawAgent(
     options={"tool_calling": "function_calling", "base_url": model_base_url, "api_key": api_key},
 )
 results = eval(tasks=tasks, agent=agent, output_dir="outputs/ale-claw")
-```
-
-`max_turns` 限制完成的做题步数。同一步连续溢出时最多压缩重试两次，仍然溢出则以 `context_limit` 结束并进入评分。可用 `EvalConfig(agent_timeout=...)` 限制做题总时长。
-
-每批 Eval 在首道待评测任务开始前准备一次宿主机控制器，所有题目和重试共用该环境。安装时间不计入单题 `setup_timeout`。准备失败时 Eval 直接报错，修好后用 `resume=True` 继续。
-
-默认由 uv 安装。也可在运行 Eval 的 Python 3.12 或 3.13 环境中提前安装：
-
-```bash
-pip install 'ale-claw @ https://github.com/potatoQi/agents-last-exam/archive/aca4b133daf19f0c8d520976b1f2027aa3ed192b.tar.gz#subdirectory=ale_run/agents/ale_claw'
 ```
 
 ## MiniSweAgent {#mini-swe-agent}
