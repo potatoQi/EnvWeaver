@@ -31,6 +31,15 @@ body::before {
   vertical-align: middle;
 }
 
+/* Reserve room for short union types and wrap long parameter descriptions. */
+.table-responsive .doc-section-item:has(> td:nth-child(4)) > td:nth-child(2) {
+  min-width: 7.5rem;
+}
+
+.table-responsive .doc-section-item:has(> td:nth-child(4)) > td:nth-child(3) {
+  max-width: 48rem;
+}
+
 #task-fields :is(th, td):nth-child(2) {
   max-width: 40rem;
 }
