@@ -35,6 +35,13 @@ def _failure(report, calls):
     return provider_failure({"status": report.get("status_code")}) or ErrorType.UNKNOWN
 
 
+def _kill_group(process):
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+
+
 class AleClawAgent(Agent):
     """
     Args:
@@ -127,10 +134,7 @@ class AleClawAgent(Agent):
             try:
                 data, _ = process.communicate(data)
             except BaseException:
-                try:
-                    os.killpg(process.pid, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
+                _kill_group(process)
                 process.wait()
                 raise
             finally:
@@ -263,10 +267,7 @@ class AleClawAgent(Agent):
             self._stopped = True
             process = self._process
             if process is not None and process.poll() is None:
-                try:
-                    os.killpg(process.pid, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
+                _kill_group(process)
         if process is not None:
             try:
                 process.wait(timeout=timeout)

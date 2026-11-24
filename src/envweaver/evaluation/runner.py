@@ -460,7 +460,7 @@ def _run_batch(iterator, agent, config, batch, concurrency, traj_pool, total):
                 result = item["result"]
                 if result is None:
                     continue
-                directory = join_address(batch.address, item["output_dir"])
+                directory = join_address(output_store.address, item["output_dir"])
                 reference = traj_pool.save(output_dir=directory)
                 if reference is not None:
                     with batch.lock:
@@ -485,7 +485,7 @@ def _run_batch(iterator, agent, config, batch, concurrency, traj_pool, total):
             result["duration_seconds"] = max(0, (
                 datetime.fromisoformat(result["ended_at"]) - datetime.fromisoformat(result["started_at"])
             ).total_seconds())
-            store = OutputDirectory(join_address(batch.address, result["output_dir"]), exist_ok=exist_ok)
+            store = OutputDirectory(join_address(output_store.address, result["output_dir"]), exist_ok=exist_ok)
             write_json(store.path / "result.json", result, private=True)
             store.sync()
             with saved_lock:
@@ -499,7 +499,7 @@ def _run_batch(iterator, agent, config, batch, concurrency, traj_pool, total):
                     saved_results[index]["traj_ref"] = reference
 
         def attempt(index, task, current_agent, relative, input_error):
-            directory = join_address(batch.address, relative)
+            directory = join_address(output_store.address, relative)
 
             def record_result(result):
                 result["output_dir"] = relative

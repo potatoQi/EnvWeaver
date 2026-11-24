@@ -293,8 +293,15 @@ class Store:
             rollout_id=spec["id"], started_at=spec.get("started_at"),
         )
 
+    def _pool_rows(self, kind, pool_id):
+        pool_id = self.resolve_pool(kind, pool_id)
+        return (
+            row for row in self.assets.values()
+            if row["pool_id"] == pool_id and row["kind"] == kind and not row["deleted"]
+        )
+
     def matching(self, selection):
-        pool_id = self.resolve_pool(selection.kind, selection.pool_id)
+        rows = self._pool_rows(selection.kind, selection.pool_id)
         if selection.score_min is not None and selection.score_max is not None and selection.score_min > selection.score_max:
             raise ValueError("分数下限不能大于上限")
         ranges = {}
@@ -317,9 +324,7 @@ class Store:
             raise ValueError("只有 Traj Pool 支持按 Task 分组选择")
         ids, excluded = set(selection.ids), set(selection.exclude_ids)
         groups, excluded_groups = set(selection.task_groups), set(selection.exclude_task_groups)
-        for row in self.assets.values():
-            if row["pool_id"] != pool_id or row["kind"] != selection.kind or row["deleted"]:
-                continue
+        for row in rows:
             group = self.task_group(row) if selection.kind == "trajectory" else None
             if not selection.include_all and (ids or groups) and row["id"] not in ids and group not in groups:
                 continue
@@ -333,7 +338,7 @@ class Store:
             if selection.creators and row["created_by"] not in selection.creators:
                 continue
             if selection.kind == "trajectory":
-                if selection.task_group is not None and self.task_group(row) != selection.task_group:
+                if selection.task_group is not None and group != selection.task_group:
                     continue
                 info = self.rollout(row)
                 if selection.agents and info["agent"] not in selection.agents:
@@ -427,31 +432,19 @@ class Store:
                 self.touch(asset_id, actor)
         return {"updated": len(ids)}
 
-    def backends(self, kind, pool_id=None):
-        from .models import Selection
-
+    def filter_options(self, kind, pool_id):
+        options = {key: set() for key in ("backends", "creators", "agents", "models")}
         with self.read():
-            return sorted(
-                {
-                    self.backend(r)
-                    for r in self.matching(Selection(kind=kind, pool_id=pool_id))
-                }
-            )
-
-    def rollout_values(self, field, kind, pool_id=None):
-        from .models import Selection
-
-        if kind != "trajectory":
-            return []
-        return sorted({self.rollout(r)[field] for r in self.matching(Selection(kind=kind, pool_id=pool_id)) if self.rollout(r)[field]})
-
-    def creators(self, kind, pool_id=None):
-        from .models import Selection
-
-        with self.read():
-            return sorted(
-                {r["created_by"] for r in self.matching(Selection(kind=kind, pool_id=pool_id))}
-            )
+            for row in self._pool_rows(kind, pool_id):
+                options["backends"].add(self.backend(row))
+                options["creators"].add(row["created_by"])
+                if kind == "trajectory":
+                    rollout = self.rollout(row)
+                    if rollout["agent"]:
+                        options["agents"].add(rollout["agent"])
+                    if rollout["model"]:
+                        options["models"].add(rollout["model"])
+        return {key: sorted(values) for key, values in options.items()}
 
     def tag_counts(self, kind, pool_id=None):
         with self.read():

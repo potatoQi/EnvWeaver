@@ -116,9 +116,10 @@ class EvalStore:
             if resume:
                 self.data = _dispatch(manifest, {"action": "read_json"})
                 self._validate(self.data)
+                self._check_lock()
             else:
                 self.data = {"format": 1, "tasks": {}, "count": None}
-            self._save()
+                self._save()
         except BaseException:
             self._lease.__exit__(*sys.exc_info())
             raise
@@ -183,18 +184,13 @@ class EvalStore:
         if not valid:
             raise ValueError("Invalid Eval manifest")
 
-    @property
-    def address(self):
-        return self.store.address
-
-    @property
-    def path(self):
-        return self.store.path
-
-    def _save(self):
+    def _check_lock(self):
         if self._writer.poll() is not None:
             raise OSError("Eval output lock was lost")
-        write_json(self.path / "manifest.json", self.data, private=True)
+
+    def _save(self):
+        self._check_lock()
+        write_json(self.store.path / "manifest.json", self.data, private=True)
         self.store.sync()
 
     def register(self, index, task):
@@ -244,5 +240,8 @@ class EvalStore:
                 int(index) >= count for index in self.data["tasks"]
             ):
                 raise ValueError("Task count differs from the saved batch")
-            self.data["count"] = count
-            self._save()
+            if self.data["count"] is None:
+                self.data["count"] = count
+                self._save()
+            else:
+                self._check_lock()

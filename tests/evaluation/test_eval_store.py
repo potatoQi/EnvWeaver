@@ -1,4 +1,5 @@
 import json
+import os
 from dataclasses import replace
 from pathlib import Path
 
@@ -40,12 +41,12 @@ def test_output_lock_released_on_exception(tmp_path):
 
 def test_lost_lock_stops_manifest_writes(tmp_path):
     with EvalStore(tmp_path / "batch", False) as store:
-        before = (store.path / "manifest.json").read_bytes()
+        before = (tmp_path / "batch" / "manifest.json").read_bytes()
         store._writer.kill()
         store._writer.wait()
         with pytest.raises(OSError, match="lock was lost"):
             store.exhausted(0)
-        assert (store.path / "manifest.json").read_bytes() == before
+        assert (tmp_path / "batch" / "manifest.json").read_bytes() == before
     with EvalStore(tmp_path / "batch", True):
         pass
 
@@ -86,6 +87,17 @@ def test_missing_resume_does_not_create_directory(tmp_path):
     with pytest.raises(ValueError, match="existing"):
         EvalStore(output, True)
     assert not output.exists()
+
+
+@pytest.mark.parametrize("remote", [False, True])
+def test_resume_with_same_count_preserves_manifest(tmp_path, task, ssh_files, remote):
+    output = tmp_path / "batch"
+    target = address(output) if remote else output
+    kwargs = dict(tasks=task, agent=GoodAgent(), config=config(), output_dir=target)
+    original = eval(**kwargs)
+    with (output / "manifest.json").open() as manifest:
+        assert eval(**kwargs, resume=True) == original
+        assert (output / "manifest.json").stat().st_ino == os.fstat(manifest.fileno()).st_ino
 
 
 def test_resume_before_task_count_is_known(tmp_path, task):

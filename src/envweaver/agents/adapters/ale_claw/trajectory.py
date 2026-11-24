@@ -13,15 +13,15 @@ def _link_calls(calls, steps):
     for call in calls:
         if not (200 <= (call.get("status") or 0) < 300) or not call.get("body"):
             continue
-        body = call["body"]
-        by_id[response_id(body)].append(call)
+        response_events = list(events(call["body"]))
+        by_id[response_id(response_events)].append(call)
         try:
-            text, _, ids = reply_signature(body)
+            text, _, ids = reply_signature(response_events)
         except (AttributeError, KeyError, TypeError):
             continue
         if ids or text:
             by_signature[(text, ids)].append(call)
-        for event in events(body):
+        for event in response_events:
             response = event.get("response") or event
             if isinstance(response, dict) and isinstance(usage := response.get("usage"), dict):
                 call["usage"] = usage

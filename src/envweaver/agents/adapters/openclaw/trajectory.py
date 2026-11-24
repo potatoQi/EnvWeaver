@@ -6,7 +6,7 @@ from collections import Counter, defaultdict
 from ....trajectory.atif import add_step, document
 from ....trajectory.pi_messages import add_message
 from ...capture import Media
-from .._provider_http import reply_signature, response_id
+from .._provider_http import events, reply_signature, response_id
 
 
 def _matches(messages, calls, output, *, match_content):
@@ -17,7 +17,7 @@ def _matches(messages, calls, output, *, match_content):
     by_id, by_reply = defaultdict(list), defaultdict(list)
     for index, call in enumerate(calls):
         body = call.get("body", "")
-        by_id[response_id(body)].append(index)
+        by_id[response_id(events(body))].append(index)
     unique_ids = {
         key: indices[0] for key, indices in by_id.items() if key and ids[key] == len(indices) == 1
     }
@@ -28,7 +28,7 @@ def _matches(messages, calls, output, *, match_content):
                 continue
             body = call.get("body", "")
             try:
-                text, thinking, tools = reply_signature(body)
+                text, thinking, tools = reply_signature(events(body))
             except (AttributeError, KeyError, TypeError):
                 # Unknown provider payloads stay archived without a content match.
                 continue

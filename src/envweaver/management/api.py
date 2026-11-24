@@ -169,10 +169,7 @@ def create_app(*, environment_files=None) -> FastAPI:
                     group_by=value.group_by,
                 ),
                 "tags": store.tag_counts(value.selection.kind, value.selection.pool_id),
-                "backends": store.backends(value.selection.kind, value.selection.pool_id),
-                "creators": store.creators(value.selection.kind, value.selection.pool_id),
-                "agents": store.rollout_values("agent", value.selection.kind, value.selection.pool_id),
-                "models": store.rollout_values("model", value.selection.kind, value.selection.pool_id),
+                **store.filter_options(value.selection.kind, value.selection.pool_id),
                 "revision": store.fingerprint(),
             }
 

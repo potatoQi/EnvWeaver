@@ -52,10 +52,9 @@ async def execute(job, config):
         api_url=job["url"], os_type=job["os"], ephemeral=False, headless=True
     )
     try:
-        try:
-            healthy = await asyncio.wait_for(session.check_status(), timeout=5)
-        except TimeoutError:
-            healthy = False
+        healthy = await asyncio.wait_for(session.check_status(), timeout=5)
+    except TimeoutError:
+        healthy = False
     finally:
         await session.close()
     if not healthy:

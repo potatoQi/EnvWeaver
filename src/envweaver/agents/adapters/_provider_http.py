@@ -24,8 +24,8 @@ def events(body):
             yield value
 
 
-def response_id(body):
-    for event in events(body):
+def response_id(response_events):
+    for event in response_events:
         record = event.get("message") or event.get("response") or event
         if isinstance(record, dict) and isinstance(identity := record.get("id"), str) and identity:
             return identity
@@ -89,10 +89,10 @@ def provider_failure(call):
     return None
 
 
-def reply_signature(body):
+def reply_signature(response_events):
     """Visible text, thinking and tool identities, independent of the response ID."""
     text, thinking, tools = [], [], []
-    for event in events(body):
+    for event in response_events:
         # Messages streams emit content blocks; Responses supplies the assembled
         # output on its terminal event. Ignore its deltas to avoid double counting.
         if event.get("type") in ("response.completed", "response.incomplete"):
