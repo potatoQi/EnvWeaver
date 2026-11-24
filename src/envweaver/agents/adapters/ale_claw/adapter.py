@@ -20,7 +20,7 @@ from .desktop import desktop
 from .trajectory import export, read_calls
 
 _REPO = "https://github.com/potatoQi/agents-last-exam"
-_REVISION = "99d8c84a33411003352785b46af781d225417fd4"
+_REVISION = "aca4b133daf19f0c8d520976b1f2027aa3ed192b"
 
 
 def _failure(report, calls):

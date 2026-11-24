@@ -105,14 +105,14 @@ results = eval(tasks=tasks, agent=agent, output_dir="outputs/openclaw")
 
 做题实例须已启动 CUA computer-server，可使用带桌面的 Linux Docker 或 Linux / Windows QEMU。控制器在执行 Eval 的 Linux 宿主机上访问模型；模型网关地址和凭据以该机器为准。题面支持文本，桌面文件通过 `Task.context` 提供。
 
-下例使用 AleClaw 的 OpenRouter 工具调用模式，通过 OpenAI 兼容网关调用 Qwen3.8-27B。
+`options["tool_calling"]` 控制主 Agent 和 GUI 子 Agent 如何调用工具。默认 `auto` 按模型选择；`function_calling` 通过 Chat Completions 的 `tools` 字段传入工具；`prompt` 在提示词中描述工具。使用 `prompt` 时，须在执行 Eval 的 Python 环境安装下方指定的 AleClaw，再执行 `pip install 'cua-agent[qwen]==0.7.38' torch torchvision soundfile`。
 
 ```python
 from envweaver import AleClawAgent, eval
 
 agent = AleClawAgent(
-    model="openrouter/Qwen3.8-27B",
-    options={"base_url": model_base_url, "api_key": api_key},
+    model="openai/Qwen3.8-27B",
+    options={"tool_calling": "function_calling", "base_url": model_base_url, "api_key": api_key},
 )
 results = eval(tasks=tasks, agent=agent, output_dir="outputs/ale-claw")
 ```
@@ -122,7 +122,7 @@ results = eval(tasks=tasks, agent=agent, output_dir="outputs/ale-claw")
 默认由 uv 准备控制器。也可在运行 Eval 的 Python 3.12 或 3.13 环境中提前安装：
 
 ```bash
-pip install 'ale-claw @ https://github.com/potatoQi/agents-last-exam/archive/99d8c84a33411003352785b46af781d225417fd4.tar.gz#subdirectory=ale_run/agents/ale_claw'
+pip install 'ale-claw @ https://github.com/potatoQi/agents-last-exam/archive/aca4b133daf19f0c8d520976b1f2027aa3ed192b.tar.gz#subdirectory=ale_run/agents/ale_claw'
 ```
 
 ## MiniSweAgent {#mini-swe-agent}

@@ -18,7 +18,7 @@ def prepare(config):
         raise ValueError(
             "AleClaw must support structured run results; install the documented revision"
         )
-    backend = find_agent_config(config.model)
+    backend = config.tool_loop_override or find_agent_config(config.model)
     if backend is None:
         raise ValueError(f"No CUA backend registered for {config.model}")
     if issubclass(backend.agent_class, GenericVlmConfig):
