@@ -1,4 +1,5 @@
 from .adapters import (
+    AleClawAgent,
     ClaudeCodeAgent,
     ClawEvalAgent,
     CodexAgent,
@@ -13,6 +14,7 @@ from .output import AgentOutput
 __all__ = [
     "Agent",
     "AgentOutput",
+    "AleClawAgent",
     "ClaudeCodeAgent",
     "ClawEvalAgent",
     "CodexAgent",

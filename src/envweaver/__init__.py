@@ -3,6 +3,7 @@
 from .agents import (
     Agent,
     AgentOutput,
+    AleClawAgent,
     ClaudeCodeAgent,
     ClawEvalAgent,
     CodexAgent,
@@ -28,6 +29,7 @@ __all__ = [
     "AgentOutput",
     "AgentStopReason",
     "ErrorType",
+    "AleClawAgent",
     "ClaudeCodeAgent",
     "ClawEvalAgent",
     "CodexAgent",

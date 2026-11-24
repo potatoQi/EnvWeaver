@@ -3,9 +3,9 @@ import json
 import pytest
 
 from envweaver import AgentOutput, OpenClawAgent
-from envweaver.agents.adapters.openclaw.adapter import failure, read_envelope
-from envweaver.agents.adapters.openclaw.protocol import repeated_outage
-from envweaver.agents.adapters.openclaw.trajectory import convert, model_calls
+from envweaver.agents.adapters._provider_http import model_calls
+from envweaver.agents.adapters.openclaw.adapter import failure, read_envelope, repeated_outage
+from envweaver.agents.adapters.openclaw.trajectory import convert
 from envweaver.errors import ErrorType
 from envweaver.trajectory.atif import validate_trajectory
 
@@ -80,7 +80,7 @@ def test_transcript_recovers_requests_from_unique_replies(tmp_path, response_ids
         messages.append({"role": "assistant", "content": [block], "responseId": identity})
         if not n:
             messages.append({"role": "toolResult", "toolCallId": "tool1", "content": "blue"})
-    calls = model_calls(records, output)
+    calls = model_calls(records, output, source="openclaw.http")
     doc = convert("one-session", messages, calls, {"final": "blue"}, output)
     validate_trajectory(doc)
     first, last = doc["steps"][1:]
@@ -234,6 +234,7 @@ def test_interrupted_attempt_keeps_goal_and_unanswered_requests(tmp_path):
             {"id": "b", "transport_error": "ECONNREFUSED"},
         ],
         output,
+        source="openclaw.http",
     )
     doc = convert("started", [], calls, {}, output)
     validate_trajectory(doc)
@@ -270,7 +271,7 @@ def test_reply_matching_uses_only_visible_thinking(tmp_path, thinking, expected)
     doc = convert(
         "session",
         [{"role": "assistant", "content": parts}],
-        model_calls(records, output),
+        model_calls(records, output, source="openclaw.http"),
         {},
         output,
     )
@@ -301,6 +302,7 @@ def test_ambiguous_reply_stays_unmapped_and_internal_messages_keep_origin(tmp_pa
             ]
         ],
         output,
+        source="openclaw.http",
     )
     doc = convert("session", messages, calls, {}, output)
     validate_trajectory(doc)

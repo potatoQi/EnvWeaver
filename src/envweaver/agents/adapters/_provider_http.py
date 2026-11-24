@@ -1,9 +1,10 @@
-"""Read provider responses recorded at OpenClaw's HTTP boundary."""
+"""Read provider responses recorded at the HTTP boundary."""
 
 import json
 
-from ....errors import ErrorType
-from .._provider_errors import context_limit_message, provider_error_type
+from ...errors import ErrorType
+from ...trajectory.atif import context
+from ._provider_errors import context_limit_message, provider_error_type
 
 
 def events(body):
@@ -88,15 +89,6 @@ def provider_failure(call):
     return None
 
 
-def repeated_outage(calls):
-    """Only attribute a deadline to the provider when every observed call confirms it."""
-    return len(calls) >= 2 and all(
-        (c.get("status") == 429 or 500 <= (c.get("status") or 0) < 600)
-        and provider_failure(c) == ErrorType.PROVIDER_TRANSIENT
-        for c in calls
-    )
-
-
 def reply_signature(body):
     """Visible text, thinking and tool identities, independent of the response ID."""
     text, thinking, tools = [], [], []
@@ -106,7 +98,7 @@ def reply_signature(body):
         if event.get("type") in ("response.completed", "response.incomplete"):
             event = event.get("response") or {}
         for item in event.get("output") or []:
-            if item.get("type") == "function_call":
+            if item.get("type") in ("function_call", "computer_call"):
                 tools.append(item.get("call_id"))
             for block in item.get("content") or []:
                 if block.get("type") == "output_text":
@@ -134,3 +126,19 @@ def reply_signature(body):
                 thinking.append(value)
             tools.extend(t["id"] for t in part.get("tool_calls") or [] if t.get("id"))
     return "".join(text), "".join(thinking), tuple(tools)
+
+
+def model_calls(records, output, *, source):
+    calls = {}
+    for row in records:
+        key = row["id"]
+        if "request" in row:
+            calls[key] = {"call_id": key, **context(output, row["request"], source=source)}
+        elif key in calls or row.get("transport_error"):
+            if key not in calls:
+                calls[key] = {
+                    "call_id": key,
+                    "context": {"complete": False, "missing": ["provider_request"]},
+                }
+            calls[key].update({k: v for k, v in row.items() if k != "id"})
+    return list(calls.values())

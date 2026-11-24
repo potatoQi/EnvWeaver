@@ -2,9 +2,9 @@
 
 Agent 为 [Eval](evaluation.md) 提供统一的执行接口。创建 Agent 对象时配置模型、环境变量和原生参数，再将对象传给 `eval(agent=...)`。
 
-内置 Agent 默认复用准备阶段有校验值的安装包，可传 `cache=False` 关闭。缓存目录通过当前进程的 `ENVWEAVER_CACHE_DIR` 设置，默认 `~/.cache/envweaver/downloads`，容量为 30 GiB。
+带 `cache` 参数的 Agent 默认复用准备阶段有校验值的安装包，可传 `cache=False` 关闭。缓存目录通过当前进程的 `ENVWEAVER_CACHE_DIR` 设置，默认 `~/.cache/envweaver/downloads`，容量为 30 GiB。
 
-已支持的 Agent：[Claude Code](#claude-code-agent)、[Codex CLI](#codex-agent)、[Pi](#pi-agent)、[OpenClaw](#openclaw-agent)、[mini-swe-agent](#mini-swe-agent)、[Claw-Eval](#claw-eval-agent)、[Terminus 2](#terminus-agent)、[自定义 Agent](#custom-agent)。
+已支持的 Agent：[Claude Code](#claude-code-agent)、[Codex CLI](#codex-agent)、[Pi](#pi-agent)、[OpenClaw](#openclaw-agent)、[ALE Claw](#ale-claw-agent)、[mini-swe-agent](#mini-swe-agent)、[Claw-Eval](#claw-eval-agent)、[Terminus 2](#terminus-agent)、[自定义 Agent](#custom-agent)。
 
 ## ClaudeCodeAgent {#claude-code-agent}
 
@@ -90,6 +90,40 @@ results = eval(tasks=tasks, agent=agent, output_dir="outputs/openclaw")
 `agent/trajectory.json` 保存主会话轨迹。HTTP 请求可按回复 ID 或唯一的回复内容关联。使用 WebSocket 或无法确定对应请求时，该步骤的 `extra.context.complete` 为 `false`。触发子会话但未导出其轨迹时，`extra.capture.missing` 包含 `subagent_sessions`。
 
 做题超时后通常继续评分。若采集到的多次请求全部因限流或服务端临时故障失败，Eval 将其记为 `provider_transient`，按 `max_retries` 重试。
+
+## AleClawAgent {#ale-claw-agent}
+
+<div class="table-responsive" markdown="1">
+
+::: envweaver.AleClawAgent
+    options:
+      show_root_heading: false
+      members: []
+      show_bases: false
+
+</div>
+
+做题实例须已启动 CUA computer-server，可使用带桌面的 Linux Docker 或 Linux / Windows QEMU。控制器在执行 Eval 的 Linux 宿主机上访问模型；模型网关地址和凭据以该机器为准。题面支持文本，桌面文件通过 `Task.context` 提供。
+
+下例使用 AleClaw 的 OpenRouter 工具调用模式，通过 OpenAI 兼容网关调用 Qwen3.8-27B。
+
+```python
+from envweaver import AleClawAgent, eval
+
+agent = AleClawAgent(
+    model="openrouter/Qwen3.8-27B",
+    options={"base_url": model_base_url, "api_key": api_key},
+)
+results = eval(tasks=tasks, agent=agent, output_dir="outputs/ale-claw")
+```
+
+`max_turns` 限制完成的做题步数。同一步连续溢出时最多压缩重试两次，仍然溢出则以 `context_limit` 结束并进入评分。可用 `EvalConfig(agent_timeout=...)` 限制做题总时长。
+
+默认由 uv 准备控制器。也可在运行 Eval 的 Python 3.12 或 3.13 环境中提前安装：
+
+```bash
+pip install 'ale-claw @ https://github.com/potatoQi/agents-last-exam/archive/99d8c84a33411003352785b46af781d225417fd4.tar.gz#subdirectory=ale_run/agents/ale_claw'
+```
 
 ## MiniSweAgent {#mini-swe-agent}
 

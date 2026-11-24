@@ -5,8 +5,17 @@ from ....errors import AgentError, ErrorType
 from ...capture import json_lines
 from .._cli import CliAgent
 from .._provider_errors import context_limit_message
-from .protocol import provider_failure, repeated_outage
-from .trajectory import convert, model_calls
+from .._provider_http import model_calls, provider_failure
+from .trajectory import convert
+
+
+def repeated_outage(calls):
+    """Only attribute a deadline to the provider when every observed call confirms it."""
+    return len(calls) >= 2 and all(
+        (c.get("status") == 429 or 500 <= (c.get("status") or 0) < 600)
+        and provider_failure(c) == ErrorType.PROVIDER_TRANSIENT
+        for c in calls
+    )
 
 
 def failure(envelope, calls, terminal=None):
@@ -176,7 +185,7 @@ class OpenClawAgent(CliAgent):
             self._output.update(metadata={"trajectory_export_error": self._redact(stderr.strip())})
         self._native.poll({"openclaw": self._remote + "/trace"})
         files = self._native.files
-        calls = model_calls(json_lines(files.get("openclaw/http.jsonl", "")), self._output)
+        calls = model_calls(json_lines(files.get("openclaw/http.jsonl", "")), self._output, source="openclaw.http")
         if self._cancelled.is_set() and repeated_outage(calls):
             self._outage = AgentError(
                 ErrorType.PROVIDER_TRANSIENT,

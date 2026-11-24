@@ -3,26 +3,10 @@
 import json
 from collections import Counter, defaultdict
 
-from ....trajectory.atif import add_step, context, document
+from ....trajectory.atif import add_step, document
 from ....trajectory.pi_messages import add_message
 from ...capture import Media
-from .protocol import reply_signature, response_id
-
-
-def model_calls(records, output):
-    calls = {}
-    for row in records:
-        key = row["id"]
-        if "request" in row:
-            calls[key] = {"call_id": key, **context(output, row["request"], source="openclaw.http")}
-        elif key in calls or row.get("transport_error"):
-            if key not in calls:
-                calls[key] = {
-                    "call_id": key,
-                    "context": {"complete": False, "missing": ["provider_request"]},
-                }
-            calls[key].update({k: v for k, v in row.items() if k != "id"})
-    return list(calls.values())
+from .._provider_http import reply_signature, response_id
 
 
 def _matches(messages, calls, output, *, match_content):
