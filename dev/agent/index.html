@@ -129,6 +129,10 @@
               <ul class="nav flex-column">
               </ul>
             </li>
+            <li class="nav-item" data-bs-level="2"><a href="#ale-claw-agent" class="nav-link">AleClawAgent</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
             <li class="nav-item" data-bs-level="2"><a href="#mini-swe-agent" class="nav-link">MiniSweAgent</a>
               <ul class="nav flex-column">
               </ul>
@@ -150,8 +154,8 @@
 
 <h1 id="agent">Agent<a class="headerlink" href="#agent" title="Permanent link">&para;</a></h1>
 <p>Agent 为 <a href="../evaluation/">Eval</a> 提供统一的执行接口。创建 Agent 对象时配置模型、环境变量和原生参数，再将对象传给 <code>eval(agent=...)</code>。</p>
-<p>内置 Agent 默认复用准备阶段有校验值的安装包，可传 <code>cache=False</code> 关闭。缓存目录通过当前进程的 <code>ENVWEAVER_CACHE_DIR</code> 设置，默认 <code>~/.cache/envweaver/downloads</code>，容量为 30 GiB。</p>
-<p>已支持的 Agent：<a href="#claude-code-agent">Claude Code</a>、<a href="#codex-agent">Codex CLI</a>、<a href="#pi-agent">Pi</a>、<a href="#openclaw-agent">OpenClaw</a>、<a href="#mini-swe-agent">mini-swe-agent</a>、<a href="#claw-eval-agent">Claw-Eval</a>、<a href="#terminus-agent">Terminus 2</a>、<a href="#custom-agent">自定义 Agent</a>。</p>
+<p>带 <code>cache</code> 参数的 Agent 默认复用准备阶段有校验值的安装包，可传 <code>cache=False</code> 关闭。缓存目录通过当前进程的 <code>ENVWEAVER_CACHE_DIR</code> 设置，默认 <code>~/.cache/envweaver/downloads</code>，容量为 30 GiB。</p>
+<p>已支持的 Agent：<a href="#claude-code-agent">Claude Code</a>、<a href="#codex-agent">Codex CLI</a>、<a href="#pi-agent">Pi</a>、<a href="#openclaw-agent">OpenClaw</a>、<a href="#ale-claw-agent">ALE Claw</a>、<a href="#mini-swe-agent">mini-swe-agent</a>、<a href="#claw-eval-agent">Claw-Eval</a>、<a href="#terminus-agent">Terminus 2</a>、<a href="#custom-agent">自定义 Agent</a>。</p>
 <h2 id="claude-code-agent">ClaudeCodeAgent<a class="headerlink" href="#claude-code-agent" title="Permanent link">&para;</a></h2>
 <div class="table-responsive">
 
@@ -728,6 +732,142 @@ results = eval(tasks=tasks, agent=agent, output_dir=&quot;outputs/openclaw&quot;
 <p>题面支持文本。每次尝试在 <code>Task.cwd</code> 下执行，使用独立会话目录，无需启动 OpenClaw Gateway。评分时仍需访问的预置服务可在 <code>Task.setup</code> 中启动。
 <code>agent/trajectory.json</code> 保存主会话轨迹。HTTP 请求可按回复 ID 或唯一的回复内容关联。使用 WebSocket 或无法确定对应请求时，该步骤的 <code>extra.context.complete</code> 为 <code>false</code>。触发子会话但未导出其轨迹时，<code>extra.capture.missing</code> 包含 <code>subagent_sessions</code>。</p>
 <p>做题超时后通常继续评分。若采集到的多次请求全部因限流或服务端临时故障失败，Eval 将其记为 <code>provider_transient</code>，按 <code>max_retries</code> 重试。</p>
+<h2 id="ale-claw-agent">AleClawAgent<a class="headerlink" href="#ale-claw-agent" title="Permanent link">&para;</a></h2>
+<div class="table-responsive">
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<a id="envweaver.AleClawAgent"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>model</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>LiteLLM 模型名，默认使用 AleClaw 的模型。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>options</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>AleClawConfig 的其余参数，如 base_url、api_key、max_turns。默认空表。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>port</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>做题实例内的 CUA 服务端口，默认 8000。</p>
+              </div>
+            </td>
+            <td>
+                  <code>8000</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>version</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Git 提交或标签。默认复用当前 Python 环境安装的 ale-claw；
+未安装时用 uv 从 GitHub 安装已验证的提交。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div></div>
+<p>做题实例须已启动 CUA computer-server，可使用带桌面的 Linux Docker 或 Linux / Windows QEMU。控制器在执行 Eval 的 Linux 宿主机上访问模型；模型网关地址和凭据以该机器为准。题面支持文本，桌面文件通过 <code>Task.context</code> 提供。</p>
+<p><code>options["tool_calling"]</code> 控制主 Agent 和 GUI 子 Agent 如何调用工具。默认 <code>auto</code> 按模型选择；<code>function_calling</code> 通过 Chat Completions 的 <code>tools</code> 字段传入工具；<code>prompt</code> 在提示词中描述工具。使用 <code>prompt</code> 时，须在执行 Eval 的 Python 环境安装下方指定的 AleClaw，再执行 <code>pip install 'cua-agent[qwen]==0.7.38' torch torchvision soundfile</code>。</p>
+<pre><code class="language-python">from envweaver import AleClawAgent, eval
+
+agent = AleClawAgent(
+    model=&quot;openai/Qwen3.8-27B&quot;,
+    options={&quot;tool_calling&quot;: &quot;function_calling&quot;, &quot;base_url&quot;: model_base_url, &quot;api_key&quot;: api_key},
+)
+results = eval(tasks=tasks, agent=agent, output_dir=&quot;outputs/ale-claw&quot;)
+</code></pre>
+<p><code>max_turns</code> 限制完成的做题步数。同一步连续溢出时最多压缩重试两次，仍然溢出则以 <code>context_limit</code> 结束并进入评分。可用 <code>EvalConfig(agent_timeout=...)</code> 限制做题总时长。</p>
+<p>默认由 uv 准备控制器。也可在运行 Eval 的 Python 3.12 或 3.13 环境中提前安装：</p>
+<pre><code class="language-bash">pip install 'ale-claw @ https://github.com/potatoQi/agents-last-exam/archive/aca4b133daf19f0c8d520976b1f2027aa3ed192b.tar.gz#subdirectory=ale_run/agents/ale_claw'
+</code></pre>
 <h2 id="mini-swe-agent">MiniSweAgent<a class="headerlink" href="#mini-swe-agent" title="Permanent link">&para;</a></h2>
 <div class="table-responsive">
 
