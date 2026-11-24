@@ -816,7 +816,7 @@ results = eval(tasks=tasks, agent=agent, output_dir=&quot;outputs/openclaw&quot;
             <td>
               <div class="doc-md-description">
                 <p>Git 提交或标签。默认复用当前 Python 环境安装的 ale-claw；
-未安装时用 uv 从 GitHub 安装已验证的提交。</p>
+未安装时用 uv 从 GitHub 安装已验证的提交。Eval 在派题前准备一次，同批任务和重试共用安装环境。</p>
               </div>
             </td>
             <td>
@@ -865,7 +865,8 @@ agent = AleClawAgent(
 results = eval(tasks=tasks, agent=agent, output_dir=&quot;outputs/ale-claw&quot;)
 </code></pre>
 <p><code>max_turns</code> 限制完成的做题步数。同一步连续溢出时最多压缩重试两次，仍然溢出则以 <code>context_limit</code> 结束并进入评分。可用 <code>EvalConfig(agent_timeout=...)</code> 限制做题总时长。</p>
-<p>默认由 uv 准备控制器。也可在运行 Eval 的 Python 3.12 或 3.13 环境中提前安装：</p>
+<p>每批 Eval 在首道待评测任务开始前准备一次宿主机控制器，所有题目和重试共用该环境。安装时间不计入单题 <code>setup_timeout</code>。准备失败时 Eval 直接报错，修好后用 <code>resume=True</code> 继续。</p>
+<p>默认由 uv 安装。也可在运行 Eval 的 Python 3.12 或 3.13 环境中提前安装：</p>
 <pre><code class="language-bash">pip install 'ale-claw @ https://github.com/potatoQi/agents-last-exam/archive/aca4b133daf19f0c8d520976b1f2027aa3ed192b.tar.gz#subdirectory=ale_run/agents/ale_claw'
 </code></pre>
 <h2 id="mini-swe-agent">MiniSweAgent<a class="headerlink" href="#mini-swe-agent" title="Permanent link">&para;</a></h2>
