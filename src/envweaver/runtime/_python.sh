@@ -9,11 +9,11 @@ if [ "$python" != python3 ]; then
     exit 1
 fi
 
-if [ "${mode-}" != finish ] && [ -n "${3-}" ]; then
+if [ "$mode" = plan ] && [ -n "$3" ]; then
     /bin/sh -c "$3"
 fi
 
-if [ -n "${2-}" ]; then
+if [ -n "$2" ]; then
     /bin/sh -c "$2"
     exec "$python" -c 'import sys; assert sys.version_info.major == 3, "Python 3 is required"'
 fi
@@ -28,10 +28,8 @@ else
 fi
 
 if command -v apt-get >/dev/null 2>&1; then
-    if [ "${mode-}" != finish ]; then
+    if [ "$mode" = plan ]; then
         "$@" apt-get update
-    fi
-    if [ "${mode-}" = plan ]; then
         echo ENVWEAVER_APT_DOWNLOADS
         "$@" apt-get -o Acquire::ForceHash=sha256 --print-uris install -y --no-install-recommends python3 ca-certificates
         exit

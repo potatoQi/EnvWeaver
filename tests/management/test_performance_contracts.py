@@ -122,14 +122,15 @@ def test_summary_scans_once_and_returns_pool_wide_options(tmp_path, monkeypatch)
 def test_scan_skips_unchanged_json_but_detects_nested_edits_and_symlinks(tmp_path):
     package(tmp_path / "alpha", "alpha")
     files = PoolFiles({"address": str(tmp_path), "kind": "task"})
-    original = files.call("scan")[0]
+    original = files.call("index")["items"][0]
     known = {"alpha": original["stamp"]}
-    assert files.call("scan", known=known) == [{"directory": "alpha", "stamp": original["stamp"]}]
+    assert files.call("index", known=known)["items"] == [{"directory": "alpha", "stamp": original["stamp"]}]
     (tmp_path / "alpha/context/input.txt").write_text("Changed outside the UI")
-    changed = files.call("scan", known=known)[0]
+    changed = files.call("index", known=known)["items"][0]
     assert changed["stamp"] != original["stamp"] and "spec" in changed
     (tmp_path / "alpha/context/link").symlink_to(tmp_path)
-    assert "symlink" in files.call("scan", known={"alpha": changed["stamp"]})[0]["error"]
+    items = files.call("index", known={"alpha": changed["stamp"]})["items"]
+    assert "symlink" in items[0]["error"]
 
 
 def test_remote_index_digest_detects_changes_without_transferring_all_stamps(tmp_path):

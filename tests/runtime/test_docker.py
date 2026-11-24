@@ -37,8 +37,8 @@ def test_python_bootstrap_runs_custom_installer_only_when_missing(tmp_path):
 
     def run(python, command):
         return subprocess.run(
-            ["/bin/sh", str(script), python, command],
-            env=environment,
+            ["/bin/sh", str(script), python, command, ""],
+            env={**environment, "mode": "plan"},
             capture_output=True,
             text=True,
         )

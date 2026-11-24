@@ -3,6 +3,7 @@
 import hashlib
 import json
 import uuid
+from collections import Counter
 from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -427,8 +428,8 @@ class Store:
         with self.transaction():
             ids = self.select(selection)
             for asset_id in ids:
-                row = self.record(asset_id)
-                self.set_tags(asset_id, (set(row["tags"]) | add) - remove)
+                tags = self.assets[asset_id]["tags"]
+                self.set_tags(asset_id, (set(tags) | add) - remove)
                 self.touch(asset_id, actor)
         return {"updated": len(ids)}
 
@@ -449,16 +450,18 @@ class Store:
     def tag_counts(self, kind, pool_id=None):
         with self.read():
             pool_id = self.resolve_pool(kind, pool_id)
+            tags = self.tags.get(pool_id)
+            if not tags:
+                return []
+            counts = Counter(
+                tag
+                for row in self.assets.values()
+                if row["pool_id"] == pool_id and not row["deleted"]
+                for tag in row["tags"]
+            )
             return [
-                dict(
-                    tag=tag,
-                    color=color,
-                    count=sum(
-                        r["pool_id"] == pool_id and not r["deleted"] and tag in r["tags"]
-                        for r in self.assets.values()
-                    ),
-                )
-                for tag, color in sorted(self.tags.get(pool_id, {}).items())
+                dict(tag=tag, color=color, count=counts[tag])
+                for tag, color in sorted(tags.items())
             ]
 
     def create_tag(self, kind, value, pool_id=None):

@@ -625,6 +625,8 @@ def _run_batch(iterator, agent, config, batch, concurrency, traj_pool, total):
                     results[index] = future.result()
                     panel.finish(index, results[index])
                     del pending[future]
+                    with saved_lock:
+                        saved_results.pop(index, None)
                     submit()
         except BaseException:
             cancelled.set()

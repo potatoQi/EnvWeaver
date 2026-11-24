@@ -248,7 +248,7 @@ def test_publish_recovery_and_symlink_guards(tmp_path):
     (root / "sample").rename(temporary / "old")
     (temporary / "intent.json").write_text(json.dumps({"pid": dead.pid, "directory": "sample"}))
     (root / ".sample.lock").touch()
-    found = pool_operation({"root": str(root), "kind": "task", "action": "scan"})
+    found = pool_operation({"root": str(root), "kind": "task", "action": "index"})["items"]
     assert len(found) == 1 and found[0]["spec"]["name"] == "sample"
     assert not temporary.exists() and not (root / ".sample.lock").exists()
     (root / "sample/escape").symlink_to(tmp_path)

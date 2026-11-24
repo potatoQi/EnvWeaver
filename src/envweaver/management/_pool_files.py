@@ -130,19 +130,6 @@ def pool_operation(payload):
     kind = payload["kind"]
     if action == "metadata":
         return metadata_operation(root, kind, payload)
-    if action == "index":
-        if "known_digest" in payload:
-            items = pool_operation({**payload, "action": "scan", "stamps_only": True})
-            unchanged = all("stamp" in item and not item.get("error") for item in items)
-            current = {item["directory"]: item.get("stamp") for item in items}
-            return {
-                "metadata": metadata_operation(root, kind, payload),
-                "unchanged": unchanged and index_digest(current) == payload["known_digest"],
-            }
-        return {
-            "metadata": metadata_operation(root, kind, payload),
-            "items": pool_operation({**payload, "action": "scan"}),
-        }
     base = root / "runtimes" if kind == "runtime" else root
     recover_publications(base)
     filename = {"task": "task.json", "runtime": "runtime.json", "trajectory": "result.json"}[kind]
@@ -151,12 +138,12 @@ def pool_operation(payload):
             pool_operation({**payload, **update, "action": "asset_metadata"})
             for update in payload["updates"]
         ]
-    if action == "scan":
+    if action == "index":
         known = payload.get("known", {})
+        digest_only = "known_digest" in payload
         items = []
-        if not base.exists():
-            return items
-        for directory in sorted(base.iterdir()):
+        directories = sorted(base.iterdir()) if base.exists() else []
+        for directory in directories:
             if directory.name.startswith(".") or not directory.is_dir():
                 continue
             item = {"directory": directory.name}
@@ -166,7 +153,7 @@ def pool_operation(payload):
                 if not (directory / filename).is_file():
                     continue
                 item["stamp"] = stamp(directory)
-                if payload.get("stamps_only") or known.get(directory.name) == item["stamp"]:
+                if digest_only or known.get(directory.name) == item["stamp"]:
                     items.append(item)
                     continue
                 item["spec"] = json.loads((directory / filename).read_text())
@@ -187,7 +174,13 @@ def pool_operation(payload):
             except (OSError, ValueError, TypeError, KeyError) as error:
                 item["error"] = str(error)
             items.append(item)
-        return items
+        metadata = metadata_operation(root, kind, payload)
+        if digest_only:
+            unchanged = not any("error" in item for item in items) and index_digest(
+                {item["directory"]: item["stamp"] for item in items}
+            ) == payload["known_digest"]
+            return {"metadata": metadata, "unchanged": unchanged}
+        return {"metadata": metadata, "items": items}
     name = payload["directory"]
     if not name or name.startswith(".") or Path(name).name != name or "\\" in name:
         raise ValueError("Invalid Pool directory")
