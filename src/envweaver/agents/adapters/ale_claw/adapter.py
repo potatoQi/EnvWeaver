@@ -116,7 +116,7 @@ class AleClawAgent(Agent):
 
         return redact_data(value, redact)
 
-    def _execute(self, cmd, cwd, payload=None, *, preparing=False):
+    def _execute(self, cmd, cwd, payload=None, *, preparing=False, poll=None):
         data = json.dumps(payload, default=os.fspath).encode() if payload is not None else None
         with tempfile.TemporaryFile() as errors:
             with self._lock:
@@ -132,7 +132,13 @@ class AleClawAgent(Agent):
                 )
                 self._process = process
             try:
-                data, _ = process.communicate(data)
+                while True:
+                    try:
+                        data, _ = process.communicate(data, timeout=2 if poll else None)
+                        break
+                    except subprocess.TimeoutExpired:
+                        data = None
+                        poll()
             except BaseException:
                 _kill_group(process)
                 process.wait()
@@ -244,20 +250,40 @@ class AleClawAgent(Agent):
             root = Path(directory)
             with desktop(runtime, instance, self._config["port"]) as url:
                 job = {"agent": self._options, "prompt": prompt, "url": url, "os": self._os}
+                calls = []
+                size = 0
+
+                def snapshot():
+                    nonlocal calls
+                    calls = read_calls(root, output, self._clean)
+                    return export(root, prompt, output, self._clean, calls)
+
+                def poll():
+                    nonlocal size
+                    try:
+                        path = next(root.glob("openclaw_sessions/*/transcript.jsonl"), None)
+                        if path is None or (current := path.stat().st_size) == size:
+                            return
+                        size = current
+                        snapshot()
+                    except Exception:
+                        # A growing transcript or its media may still be incomplete.
+                        # Final export below reports persistent errors.
+                        pass
+
                 try:
                     report = json.loads(
                         self._execute(
                             [self._controller[0], str(Path(__file__).with_name("worker.py"))],
                             root,
                             job,
+                            poll=poll,
                         )
                     )
                 finally:
-                    calls = []
                     # Preserve partial evidence without masking a cancellation or native error.
                     try:
-                        calls = read_calls(root, output, self._clean)
-                        final = export(root, prompt, output, self._clean, calls)
+                        final = snapshot()
                     except Exception as exc:
                         output.update(metadata={"trajectory_export_error": self._clean(str(exc))})
                         final = ""

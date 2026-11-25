@@ -1,4 +1,5 @@
 import json
+import time
 from pathlib import Path
 
 from ....errors import AgentError, ErrorType
@@ -94,6 +95,8 @@ class OpenClawAgent(CliAgent):
             )
 
     def _command(self, prompt, images):
+        self._main_session = None
+        self._next_snapshot = time.monotonic() + 2
         args = [
             "agent",
             "exec",
@@ -132,6 +135,11 @@ class OpenClawAgent(CliAgent):
                 raise self._outage from exc
             raise
 
+    def _poll_native(self):
+        if time.monotonic() >= self._next_snapshot:
+            self._snapshot()
+            self._next_snapshot = time.monotonic() + 2
+
     def _finalize_native(self):
         log = self._output.directory / "logs/stdout.log"
         envelope = read_envelope(log.read_text()) if log.exists() else {}
@@ -161,13 +169,19 @@ class OpenClawAgent(CliAgent):
                     if envelope.get(k) is not None
                 },
             )
+        self._snapshot(envelope)
+
+    def _snapshot(self, envelope=None):
         try:
             self._export(envelope)
         except Exception as exc:
-            self._output.update(metadata={"trajectory_export_error": self._redact(str(exc))})
+            self._set_trajectory_error(self._redact(str(exc)), sync=True)
 
     def _export(self, envelope):
-        code, _, stderr = self._runtime.exec(
+        final = envelope is not None
+        files = self._native.files
+        previous = files.get("openclaw/messages.json") if final else None
+        code, stdout, stderr = self._runtime.exec(
             instance=self._instance,
             command=[
                 "env",
@@ -175,38 +189,44 @@ class OpenClawAgent(CliAgent):
                 "OPENCLAW_STATE_DIR=" + self._remote,
                 "sh",
                 "-c",
-                'exec node "$1/snapshot.cjs" "$(command -v openclaw)"',
+                'exec node "$1/snapshot.cjs" "$(command -v openclaw)" "$2" "$3"',
                 "openclaw",
                 self._remote,
+                "final" if final else "live",
+                json.dumps(self._main_session),
             ],
             timeout=30,
         )
         if code:
-            self._output.update(metadata={"trajectory_export_error": self._redact(stderr.strip())})
-        self._native.poll({"openclaw": self._remote + "/trace"})
-        files = self._native.files
+            self._set_trajectory_error(self._redact(stderr.strip()), sync=True)
+        else:
+            self._main_session = json.loads(stdout) or self._main_session
+        changed = self._native.poll({"openclaw": self._remote + "/trace"})
+        if not final and (not changed or not self._main_session or code):
+            return
         calls = model_calls(json_lines(files.get("openclaw/http.jsonl", "")), self._output, source="openclaw.http")
-        if self._cancelled.is_set() and repeated_outage(calls):
+        if final and self._cancelled.is_set() and repeated_outage(calls):
             self._outage = AgentError(
                 ErrorType.PROVIDER_TRANSIENT,
                 f"All {len(calls)} observed OpenClaw requests failed with HTTP {sorted({c['status'] for c in calls})}",
             )
         sessions = json.loads(files.get("openclaw/messages.json", "{}"))
-        session = envelope.get("sessionId") or (
-            next(iter(sessions)) if len(sessions) == 1 else None
-        )
+        envelope = envelope or {}
+        session = envelope.get("sessionId") or (self._main_session or {}).get("sessionId")
         messages = sessions.get(session, [])
-        if not code and self._completed and not messages:
-            self._output.update(
-                metadata={
-                    "trajectory_export_error": "No transcript for the completed OpenClaw session"
-                }
-            )
+        missing_final = final and not messages
+        if not code:
+            warning = None
+            if missing_final and self._completed:
+                warning = "No transcript for the completed OpenClaw session"
+            self._set_trajectory_error(warning, sync=bool(warning))
+        if missing_final and previous and session:
+            messages = json.loads(previous).get(session, [])
 
         terminal = next((m for m in reversed(messages) if m.get("role") == "assistant"), None)
         if envelope and not self._completed:
             self._run_error = failure(envelope, calls, terminal)
-        if self._completed and terminal and terminal.get("stopReason") == "length":
+        if final and self._completed and terminal and terminal.get("stopReason") == "length":
             self._run_error = AgentError(
                 ErrorType.TOKEN_LIMIT, "OpenClaw reached the output token limit"
             )
@@ -217,6 +237,7 @@ class OpenClawAgent(CliAgent):
             envelope,
             self._output,
             multiple_sessions=len(sessions) > 1,
+            match_content=final and not missing_final,
         )
         if doc:
             self._output.save_trajectory(doc)

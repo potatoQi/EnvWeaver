@@ -241,7 +241,7 @@ def _evaluate(task, agent, config, output_dir, panel, key, cancelled, record_res
         current_stage = stage
 
         def run():
-            panel.update(key, task.name, current_stage)
+            panel.update(key, task.name, current_stage, output=agent.output if current_stage == "agent" else None)
             return function()
 
         return concurrency.start(current_stage, run, cancelled)
@@ -598,8 +598,6 @@ def _run_batch(iterator, agent, config, batch, concurrency, traj_pool, total):
 
         def submit():
             nonlocal submitted, exhausted, factory
-            if exhausted:
-                return
             item = next(iterator, None)
             if item is None:
                 exhausted = True
@@ -616,7 +614,7 @@ def _run_batch(iterator, agent, config, batch, concurrency, traj_pool, total):
             pending[executor.submit(run, index, task)] = index
 
         try:
-            for _ in range(concurrency.workers):
+            while not exhausted and len(pending) < concurrency.workers:
                 submit()
             while pending:
                 completed, _ = wait(pending, timeout=0.1, return_when=FIRST_COMPLETED)
@@ -627,7 +625,8 @@ def _run_batch(iterator, agent, config, batch, concurrency, traj_pool, total):
                     del pending[future]
                     with saved_lock:
                         saved_results.pop(index, None)
-                    submit()
+                    if not exhausted:
+                        submit()
         except BaseException:
             cancelled.set()
             raise

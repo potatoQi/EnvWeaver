@@ -80,8 +80,7 @@ class CodexAgent(CliAgent):
             warning = None
         except Exception as exc:
             warning = self._redact(f"{type(exc).__name__}: {exc}")
-        if self._output.result["metadata"].get("trajectory_export_error") != warning:
-            self._output.update(metadata={"trajectory_export_error": warning}, sync=False)
+        self._set_trajectory_error(warning)
 
     prompt_on_stdin = True
 

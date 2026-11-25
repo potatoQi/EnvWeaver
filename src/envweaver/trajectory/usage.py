@@ -76,29 +76,28 @@ def _token_usage(directory, trajectory):
     def count(value):
         return type(value) is int and value >= 0
 
-    totals = {}
-    for output, metric in (
-        ("input_tokens", "prompt_tokens"),
-        ("output_tokens", "completion_tokens"),
-    ):
-        total = 0
-        for doc in documents:
-            steps = [
-                s for s in doc["steps"] if s["source"] == "agent" and s.get("llm_call_count") != 0
-            ]
-            copied = any(s.get("is_copied_context") for s in steps)
-            values = [
-                (s.get("metrics") or {}).get(metric)
-                for s in steps
-                if not s.get("is_copied_context")
-            ]
+    totals = {"input_tokens": 0, "output_tokens": 0}
+    for doc in documents:
+        metrics = []
+        copied = False
+        for step in doc["steps"]:
+            if step["source"] == "agent" and step.get("llm_call_count") != 0:
+                if step.get("is_copied_context"):
+                    copied = True
+                else:
+                    metrics.append(step.get("metrics") or {})
+        for output, metric in (
+            ("input_tokens", "prompt_tokens"),
+            ("output_tokens", "completion_tokens"),
+        ):
+            if totals[output] is None:
+                continue
+            values = [entry.get(metric) for entry in metrics]
             final = (doc.get("final_metrics") or {}).get("total_" + metric)
             if not copied and count(final):
-                total += final
-            elif values and all(count(value) for value in values):
-                total += sum(values)
-            elif values:
-                total = None
-                break
-        totals[output] = total
+                totals[output] += final
+            elif all(count(value) for value in values):
+                totals[output] += sum(values)
+            else:
+                totals[output] = None
     return totals

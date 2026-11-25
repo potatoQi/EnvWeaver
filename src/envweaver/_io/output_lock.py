@@ -1,13 +1,13 @@
 """A process-owned file lock; closing stdin also releases remote locks."""
 
 import select
-import subprocess
 import sys
 from contextlib import contextmanager
 from pathlib import Path
 
 from . import ssh_transport as _ssh_transport
 from .paths import _location, normalize_address
+from .process import open_pipe
 
 _LOCK = """
 import fcntl, sys
@@ -31,10 +31,7 @@ def output_lock(address, *, wait=False):
     else:
         host, path = _location(address)
         command = _ssh_transport.command_args(host, ["python3", "-c", _LOCK, path, mode])
-    process = subprocess.Popen(
-        command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-    )
-    try:
+    with open_pipe(command) as process:
         if not select.select([process.stdout], [], [], 30)[0]:
             raise TimeoutError("Timed out acquiring Eval output lock")
         response = process.stdout.readline()
@@ -43,12 +40,3 @@ def output_lock(address, *, wait=False):
         if response != b"locked\n":
             raise OSError("Cannot lock Eval output: " + process.stderr.read().decode(errors="replace"))
         yield process
-    finally:
-        process.stdin.close()
-        try:
-            process.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            process.kill()
-            process.wait()
-        process.stdout.close()
-        process.stderr.close()

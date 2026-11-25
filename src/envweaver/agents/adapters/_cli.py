@@ -290,7 +290,7 @@ class CliAgent(Agent):
                         self._consume(name, text, preparing)
                         if capture_stdout and name == "stdout":
                             captured.append(text)
-                if not preparing:
+                if not preparing and not finished:
                     self._poll_native()
                 if finished and all(
                     offsets[name] >= end for name, end in response["status"]["offsets"].items()
@@ -364,6 +364,10 @@ class CliAgent(Agent):
 
     def _poll_native(self):
         pass
+
+    def _set_trajectory_error(self, message, *, sync=False):
+        if self._output.result["metadata"].get("trajectory_export_error") != message:
+            self._output.update(metadata={"trajectory_export_error": message}, sync=sync)
 
     def _read_remote(self, path):
         data = self._rpc("read", self._remote, {"path": path})["data"]

@@ -20,6 +20,12 @@ from .runtimes import normalize_ref, same_environment
 from .store import ANNOTATIONS, Conflict, digest
 
 
+def _restore_annotations(row, annotation):
+    for key in ANNOTATIONS:
+        if key in annotation and (key != "host" or row["kind"] == "task"):
+            row[key] = deepcopy(annotation[key])
+
+
 class PoolFiles:
     def __init__(self, row):
         self.root = normalize_address(row["address"])
@@ -178,13 +184,7 @@ class Pools:
                     if row["pool_id"] != pool["id"]:
                         continue
                     annotation = saved["data"]["assets"].get(source["directory"], {})
-                    row.update(
-                        {
-                            k: deepcopy(annotation[k])
-                            for k in ANNOTATIONS
-                            if k in annotation and (k != "host" or pool["kind"] == "task")
-                        }
-                    )
+                    _restore_annotations(row, annotation)
                 store.documents[pool["id"]] = {**saved, "baseline": deepcopy(saved["data"])}
             known = {
                 s["directory"]: s
@@ -304,13 +304,7 @@ class Pools:
             )
             timestamp = datetime.fromtimestamp(item["mtime"], timezone.utc).isoformat()
             store.assets[asset_id].update(created_at=timestamp, updated_at=timestamp)
-            store.assets[asset_id].update(
-                {
-                    k: deepcopy(annotation[k])
-                    for k in ANNOTATIONS
-                    if k in annotation and (k != "host" or pool["kind"] == "task")
-                }
-            )
+            _restore_annotations(store.assets[asset_id], annotation)
             if annotation and annotation.get("stamp") != item["stamp"]:
                 store.assets[asset_id].update(deleted=False, state="registered")
                 store.touch(asset_id, actor)

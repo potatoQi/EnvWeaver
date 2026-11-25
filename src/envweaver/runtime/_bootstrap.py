@@ -10,7 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from ..cache import DownloadCache
+from ..cache import DownloadCache, _download_proxies
 
 
 def apt_downloads(plan):
@@ -52,9 +52,7 @@ def prepare_python(docker, cid, python, install_command, env, *, prepare_command
         return
     packages = list(apt_downloads(output.split(marker, 1)[1]))
     cache = DownloadCache()
-    proxies = {scheme: env.get(scheme + "_proxy", env.get(scheme.upper() + "_PROXY"))
-               for scheme in ("http", "https")}
-    proxies = {key: value for key, value in proxies.items() if value}
+    proxies = _download_proxies(env)
     cancelled = threading.Event()
     with tempfile.TemporaryDirectory(prefix="envweaver-apt-") as directory:
         folder = Path(directory)
@@ -65,7 +63,7 @@ def prepare_python(docker, cid, python, install_command, env, *, prepare_command
             target = folder / filename
             try:
                 cache._download(url=url, checksum=checksum, target=target,
-                                proxies=proxies or None, cancelled=cancelled)
+                                proxies=proxies, cancelled=cancelled)
             except InterruptedError:
                 raise TimeoutError("Python bootstrap timed out") from None
             except OSError:

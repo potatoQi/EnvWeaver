@@ -10,9 +10,7 @@ from .retry import connection_error, retry
 from .ssh_config import flags
 
 
-def _validate_host(host):
-    if host is None:
-        return None
+def _parse_host(host):
     if not isinstance(host, str):
         raise ValueError("host must be an SSH URL, e.g. ssh://user@server:22")
     parsed = urlsplit(host)
@@ -26,12 +24,18 @@ def _validate_host(host):
         or any(c.isspace() for c in host)
     ):
         raise ValueError("host must be an SSH URL without a password or path")
-    parsed.port  # Validate port syntax and range.
+    _ = parsed.port  # Validate port syntax and range.
+    return parsed
+
+
+def _validate_host(host):
+    if host is not None:
+        _parse_host(host)
     return host
 
 
 def command_args(host, command, *, ssh_options=None):
-    parsed = urlsplit(_validate_host(host))
+    parsed = _parse_host(host)
     destination = parsed.hostname
     if parsed.username:
         destination = f"{parsed.username}@{destination}"

@@ -75,6 +75,8 @@ def test_join_provider_calls_and_tool_results(tmp_path):
 )
 def test_native_limits(subtype, expected):
     agent = ClaudeCodeAgent()
+    agent._python, agent._remote = "python3", "/test"
+    agent._command("test", [])
     agent._on_event({"type": "result", "subtype": subtype, "is_error": True})
     assert agent._run_error.type == expected
 
@@ -377,3 +379,26 @@ def test_capture_route_preserves_cli_settings_and_provider(tmp_path, monkeypatch
     assert capture.capture_upstream([]) == "http://local-gateway/tenant"
     monkeypatch.setenv("CLAUDE_CODE_USE_VERTEX", "1")
     assert capture.capture_upstream([]) is None
+
+
+def test_failed_live_export_retries_before_marking_snapshot_saved(tmp_path, monkeypatch):
+    from unittest.mock import Mock
+
+    agent = ClaudeCodeAgent()
+    agent._remote = "/attempt"
+    agent._python = "python3"
+    agent._output = AgentOutput(tmp_path, agent.metadata)
+    agent._native = Mock(files={})
+    agent._native.poll.side_effect = [True, False, False]
+    agent._command("goal", [])
+    save = agent._output.save_trajectory
+    writes = Mock(side_effect=OSError("temporary write failure"))
+    monkeypatch.setattr(agent._output, "save_trajectory", writes)
+    agent._poll_native()
+    assert agent._output.result["metadata"]["trajectory_export_error"] == "temporary write failure"
+    writes.side_effect = save
+    agent._poll_native()
+    agent._poll_native()
+    assert writes.call_count == 2
+    assert agent._output.result["metadata"]["trajectory_export_error"] is None
+    assert agent._output.result["artifacts"]["trajectory"] == "trajectory.json"

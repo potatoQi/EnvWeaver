@@ -2,6 +2,8 @@
 
 Eval 按统一的 Setup、Agent Run、Verify 流程评测 Task，并保存评测结果、轨迹和日志。
 
+终端面板的 `agent (step: 11)` 表示主 Agent 的 ATIF 轨迹已记录到第 11 步。子 Agent 单独执行的步骤不计入。尚未收到步骤时显示 `agent`，每次重试重新计数。
+
 进行一道题的评测需要 [task](task.md#task_1)、[agent](agent.md) 和 [config](#config)。
 
 <details markdown="1">

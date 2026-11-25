@@ -113,19 +113,18 @@ def _dispatch(root, payload):
     root = normalize_address(root)
     if isinstance(root, Path):
         return _operate({**payload, "root": str(root)})
-    else:
-        from .ssh_transport import ssh
+    from .ssh_transport import ssh
 
-        host, path = _location(root)
-        source = (
-            Path(__file__).with_name("files.py").read_text() + "\n" + Path(__file__).read_text()
-        )
-        output = retry(lambda: ssh(
-            host,
-            ["python3", "-c", source],
-            {**payload, "root": path},
-        ), replay=payload["action"] in {"exists", "read", "read_json", "fingerprint", "write", "publish", "remove"})
-        return json.loads(output)
+    host, path = _location(root)
+    source = (
+        Path(__file__).with_name("files.py").read_text() + "\n" + Path(__file__).read_text()
+    )
+    output = retry(lambda: ssh(
+        host,
+        ["python3", "-c", source],
+        {**payload, "root": path},
+    ), replay=payload["action"] in {"exists", "read", "read_json", "fingerprint", "write", "publish", "remove"})
+    return json.loads(output)
 
 
 def write_records(root, directory, records, *, private=False):

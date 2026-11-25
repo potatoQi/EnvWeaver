@@ -227,7 +227,6 @@ function editAsset(row) {
     field("名称", "name", row.name, { required: true }) +
       field("标签（逗号分隔）", "tags", row.tags.join(", ")) +
       field(task ? "Task JSON" : "RuntimeRef JSON", "spec", pretty(row.spec), {
-        area: true,
         rows: 16,
       }),
     {
@@ -270,7 +269,6 @@ function fileEditor(row, path, content) {
     readonly ? "task.json · 通过“编辑资产”修改" : "编辑文件",
     `<p>${esc(path)}</p>` +
       field("文字内容", "content", content, {
-        area: true,
         rows: 15,
         readonly,
       }) +

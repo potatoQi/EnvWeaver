@@ -1,4 +1,4 @@
-"""A scoped binary pipe to a sandbox process."""
+"""A scoped binary pipe to a subprocess."""
 
 import subprocess
 from contextlib import contextmanager

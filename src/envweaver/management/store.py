@@ -140,12 +140,12 @@ class Store:
                 ]
             )
 
-    def resolve_pool(self, kind, pool_id=None):
+    def resolve_pool(self, kind, pool_id):
         if pool_id is None:
             choices = [p["id"] for p in self.pools.values() if p["kind"] == kind]
             if len(choices) != 1:
                 raise ValueError(f"请指定 {kind} Pool")
-            pool_id = choices[0]
+            return choices[0]
         self.pool_record(pool_id, kind)
         return pool_id
 
@@ -213,14 +213,13 @@ class Store:
         name,
         spec,
         actor,
+        pool_id,
         host=None,
         asset_id=None,
-        pool_id=None,
-        reference=False,
     ):
         asset_id = asset_id or uuid.uuid4().hex
-        if not reference:
-            pool_id = self.resolve_pool(kind, pool_id)
+        if pool_id is not None:
+            self.pool_record(pool_id, kind)
         if asset_id in self.assets and not self.assets[asset_id]["deleted"]:
             raise Conflict("资产 ID 已存在")
         timestamp = now()
@@ -245,7 +244,7 @@ class Store:
         )
         self.update(asset_id, name=name)
         self.set_tags(asset_id, metadata_tags(metadata))
-        return self.record(asset_id)
+        return asset_id
 
     def set_tags(self, asset_id, tags):
         row = self.assets[asset_id]

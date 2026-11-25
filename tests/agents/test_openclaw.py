@@ -322,3 +322,83 @@ def test_outage_requires_exclusively_repeated_retryable_http_failures():
         [limited, {"status": 429, "body": '{"error":{"code":"insufficient_quota"}}'}],
     ):
         assert not repeated_outage(calls)
+
+
+def test_live_snapshot_reads_only_the_explicit_root(tmp_path):
+    import shutil
+    import subprocess
+    from pathlib import Path
+
+    from envweaver.agents.adapters.openclaw import adapter
+
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("snapshot.cjs requires Node")
+    script = tmp_path / "snapshot.cjs"
+    shutil.copy(Path(adapter.__file__).with_name(script.name), script)
+    (tmp_path / "trace").mkdir()
+    cli = tmp_path / "openclaw"
+    cli.write_text('#!/bin/sh\ncat "$(dirname "$0")/catalog.json"\n')
+    cli.chmod(0o700)
+    sdk = tmp_path / "node_modules/openclaw/plugin-sdk"
+    sdk.mkdir(parents=True)
+    (sdk / "session-transcript-runtime.js").write_text(
+        "exports.readSessionTranscriptEvents = async s => "
+        "[{type:'message', message:{role:'assistant', content:s.sessionId}}];"
+    )
+
+    def row(scope, identity):
+        return {"key": f"agent:team:{scope}:{identity}", "sessionId": identity, "agentId": "team"}
+
+    def snapshot(rows, mode="live", pinned=None):
+        (tmp_path / "catalog.json").write_text(json.dumps({
+            "stores": [{"agentId": "team", "path": "/store"}], "sessions": rows,
+        }))
+        return json.loads(subprocess.check_output(
+            [node, script, cli, mode, json.dumps(pinned)], text=True
+        ))
+
+    child, root = row("subagent", "child"), row("explicit", "root")
+    messages = tmp_path / "trace/messages.json"
+    assert snapshot([child]) is None
+    assert snapshot([root, row("explicit", "other"), child]) is None
+    assert not messages.exists()
+    pinned = snapshot([child, root])
+    assert pinned["sessionId"] == "root"
+    assert list(json.loads(messages.read_text())) == ["root"]
+    assert snapshot([child, root], "final", pinned) == pinned
+    assert set(json.loads(messages.read_text())) == {"child", "root"}
+
+
+@pytest.mark.parametrize("final_id", ["main-session", "other-session"])
+def test_empty_final_snapshot_only_reuses_same_session(tmp_path, final_id):
+    from unittest.mock import Mock
+
+    agent = OpenClawAgent()
+    agent._output = AgentOutput(tmp_path, agent.metadata)
+    agent._runtime = Mock()
+    agent._runtime.exec.return_value = (0, "null", "")
+    agent._instance = Mock()
+    agent._remote = "/attempt"
+    agent._sandbox_path = "/bin"
+    agent._main_session = {"sessionId": "main-session"}
+    agent._completed = True
+    files = {"openclaw/messages.json": json.dumps({
+        "main-session": [
+            {"role": "user", "content": "goal"},
+            {"role": "assistant", "content": [{"type": "text", "text": "observed"}]},
+        ]
+    })}
+
+    def poll(sources):
+        files["openclaw/messages.json"] = "{}"
+        return True
+
+    agent._native = Mock(files=files, poll=poll)
+    agent._export({"sessionId": final_id, "ok": True, "final": "finished"})
+    doc = json.loads((tmp_path / "trajectory.json").read_text())
+    validate_trajectory(doc)
+    replies = [s["message"] for s in doc["steps"] if s["source"] == "agent"]
+    expected = [[{"type": "text", "text": "observed"}]] if final_id == "main-session" else ["finished"]
+    assert replies == expected
+    assert agent._output.result["metadata"]["trajectory_export_error"]

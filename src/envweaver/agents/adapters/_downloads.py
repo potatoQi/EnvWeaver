@@ -10,7 +10,7 @@ import urllib.error
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path, PurePosixPath
 
-from ...cache import DownloadCache
+from ...cache import DownloadCache, _download_proxies
 from .sandbox import SANDBOX_SCRIPTS
 
 
@@ -35,11 +35,7 @@ class PreparationDownloads:
         self.python = instance.data.get("python", "python3")
         self.cancelled = cancelled
         self.redact = redact
-        self.proxies = {
-            scheme: env.get(scheme + "_proxy", env.get(scheme.upper() + "_PROXY"))
-            for scheme in ("http", "https")
-        }
-        self.proxies = {key: value for key, value in self.proxies.items() if value}
+        self.proxies = _download_proxies(env)
         self.cache = DownloadCache()
         self._pipe = None
         self._pipe_context = None
@@ -91,13 +87,13 @@ class PreparationDownloads:
                     url=f"https://raw.githubusercontent.com/astral-sh/uv/{version}"
                     "/crates/uv-python-managed/download-metadata.json",
                     target=target, validate=_validate_python_catalog,
-                    proxies=self.proxies or None,
+                    proxies=self.proxies,
                     cancelled=self._cancelled if self._pipe else self.cancelled,
                 )
                 return {}
             self.cache._download(
                 url=request["url"], checksum=request["checksum"], target=target,
-                proxies=self.proxies or None,
+                proxies=self.proxies,
                 cancelled=self._cancelled if self._pipe else self.cancelled,
             )
             return {}

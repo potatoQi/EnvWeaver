@@ -83,7 +83,7 @@ class Tasks:
             old = self.store.assets.get(links.get(role))
             if old and old["host"] == host and same_environment(old["spec"], manifest[role]):
                 continue
-            links[role] = self.runtimes.ensure(manifest[role], host, actor)["id"]
+            links[role] = self.runtimes.ensure(manifest[role], host, actor)
 
     @contextmanager
     def replacement(self, asset_id, revision):

@@ -103,6 +103,7 @@ class ClaudeCodeAgent(CliAgent):
     def _command(self, prompt, images):
         self._prompt = prompt
         self._events = []
+        self._saved_events = 0
         self._last_api_error = {}
         self._terminal_reason = None
         args = ["claude", "-p", "--verbose", "--output-format", "stream-json"]
@@ -170,7 +171,7 @@ class ClaudeCodeAgent(CliAgent):
             else:
                 message = text or "; ".join(event.get("errors", [])) or str(self._run_error or "")
                 evidence = {
-                    **getattr(self, "_last_api_error", {}),
+                    **self._last_api_error,
                     **{k: v for k, v in event.items() if v is not None},
                 }
                 self._run_error = _failure(evidence, message)
@@ -220,28 +221,30 @@ class ClaudeCodeAgent(CliAgent):
         if len(reasons) == 1 and (reason := reasons.pop()) != ErrorType.UNKNOWN:
             self._run_error = AgentError(reason, str(self._run_error))
 
-    def _poll_native(self):
-        try:
-            self._native.poll({"claude": self._remote + "/calls.jsonl"})
-            warning = None
-        except Exception as exc:
-            warning = self._redact(f"{type(exc).__name__}: {exc}")
-        if self._output.result["metadata"].get("trajectory_export_error") != warning:
-            self._output.update(metadata={"trajectory_export_error": warning}, sync=False)
-
     def _finalize_native(self):
-        self._poll_native()
+        self._poll_native(final=True)
+
+    def _poll_native(self, *, final=False):
+        warning = None
+        try:
+            changed = self._native.poll({"claude": self._remote + "/calls.jsonl"})
+        except Exception as exc:
+            warning = self._redact(str(exc))
+            changed = False
+        if not final and not changed and warning is None and len(self._events) == self._saved_events:
+            return
         try:
             records = json_lines(self._native.files.get("claude/calls.jsonl", ""))
             trace = convert(
                 self._events, records, self._output.result["metadata"], self._prompt, self._output
             )
-            try:
-                self._output.save_trajectory(trace)
-            finally:
+            if final:
                 self._classify_provider_error(records, trace["extra"]["model_calls"])
+            self._output.save_trajectory(trace)
         except Exception as exc:
-            self._output.update(metadata={"trajectory_export_error": self._redact(str(exc))})
+            warning = self._redact(str(exc))
+        self._saved_events = len(self._events) if warning is None else None
+        self._set_trajectory_error(warning)
 
 
 def _has_user_prompt(request, prompt):

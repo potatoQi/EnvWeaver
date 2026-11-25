@@ -121,14 +121,14 @@ class Runtimes:
             )
         )
         if matches:
-            return self.store.record(matches[0]["id"], deleted=True)
+            return matches[0]["id"]
         return self.store.insert(
             kind="runtime",
             name=ref["name"],
             spec=ref,
             host=host,
             actor=actor,
-            reference=True,
+            pool_id=None,
         )
 
     def persist(self, row, *, directory=None):
@@ -199,7 +199,7 @@ class Runtimes:
                 raise ValueError("请先将环境引用保存到 Runtime Pool")
             ref = normalize_ref({**row["spec"], "name": value.name})
             directory = uuid.uuid4().hex
-            copied = self.store.insert(
+            new_id = self.store.insert(
                 kind="runtime",
                 name=ref["name"],
                 spec=ref,
@@ -208,6 +208,7 @@ class Runtimes:
                 actor=actor,
                 asset_id=digest([row["pool_id"], directory]),
             )
+            copied = self.store.assets[new_id]
             self.persist(copied, directory=directory)
-            self.store.assets[copied["id"]]["state"] = row["state"]
-            return self.store.record(copied["id"])
+            copied["state"] = row["state"]
+            return self.store.record(new_id)

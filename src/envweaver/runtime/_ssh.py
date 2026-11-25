@@ -6,11 +6,10 @@ import shlex
 import subprocess
 import zlib
 from pathlib import Path
-from urllib.parse import urlsplit
 
 from .._io.retry import connection_error, retry
 from .._io.ssh_config import flags
-from .._io.ssh_transport import _validate_host
+from .._io.ssh_transport import _parse_host
 from ..errors import RuntimeError
 
 
@@ -23,7 +22,7 @@ def command_args(connection, command):
     guest_options = flags(connection)
     args = ["ssh", *guest_options, "-T", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10"]
     if connection.get("via"):
-        jump = urlsplit(_validate_host(connection["via"]))
+        jump = _parse_host(connection["via"])
         address = (jump.username + "@" if jump.username else "") + jump.hostname
         jump_options = connection.get("via_ssh")
         if jump_options or guest_options:

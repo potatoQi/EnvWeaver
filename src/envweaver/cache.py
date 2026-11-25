@@ -15,6 +15,14 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 
+def _download_proxies(env):
+    proxies = {}
+    for scheme in ("http", "https"):
+        if value := env.get(f"{scheme}_proxy", env.get(f"{scheme.upper()}_PROXY")):
+            proxies[scheme] = value
+    return proxies or None
+
+
 def _check_cancelled(cancelled):
     if cancelled is not None and cancelled.is_set():
         raise InterruptedError("Download cancelled")

@@ -13,6 +13,21 @@ from .._util import write_json
 from ..trajectory.atif import validate_trajectory
 
 
+def _main_steps(trajectory, related):
+    count = 0
+    seen = set()
+    while trajectory is not None and id(trajectory) not in seen:
+        seen.add(id(trajectory))
+        count += sum(
+            step["source"] == "agent"
+            and not step.get("is_copied_context")
+            and step.get("llm_call_count") != 0
+            for step in trajectory["steps"]
+        )
+        trajectory = related.get(trajectory.get("continued_trajectory_ref"))
+    return count
+
+
 def validate_result(result, directory):
     if not isinstance(result, dict):
         raise ValueError("Agent result must be an object")
@@ -71,6 +86,7 @@ class AgentOutput:
 
     def __init__(self, address: str | Path, metadata: dict):
         self._lock = threading.RLock()
+        self._step = 0
         self._seq = 0
         self._output_store = OutputDirectory(
             address, exist_ok=True, sentinel="result.json", source_lock=self._lock,
@@ -235,6 +251,7 @@ class AgentOutput:
             for name, document in related.items():
                 write_json(self.directory / name, document, private=True)
             write_json(self.directory / "trajectory.json", trajectory, private=True)
+            self._step = _main_steps(trajectory, related)
             paths = list(dict.fromkeys([*self._result["artifacts"]["files"], *related]))
             self.update(artifacts={"trajectory": "trajectory.json", "files": paths}, sync=False)
         self._output_store.sync()

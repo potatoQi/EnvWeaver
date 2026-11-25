@@ -1,4 +1,5 @@
 import json
+import sys
 from threading import Thread
 
 import pytest
@@ -7,6 +8,47 @@ from envweaver import AgentOutput, AleClawAgent
 from envweaver.agents.adapters.ale_claw.adapter import _failure
 from envweaver.agents.adapters.ale_claw.trajectory import export, read_calls
 from envweaver.errors import ErrorType
+
+
+def test_run_exports_atif_before_worker_exits(tmp_path, monkeypatch):
+    from contextlib import nullcontext
+
+    from envweaver.agents.adapters.ale_claw import adapter
+
+    output = AgentOutput(tmp_path / "out", AleClawAgent().metadata)
+    saved = output.directory / "trajectory.json"
+    script = """
+import json, sys, time
+from pathlib import Path
+job = json.load(sys.stdin)
+path = Path("openclaw_sessions/main/transcript.jsonl")
+path.parent.mkdir(parents=True)
+def record(text):
+    with path.open("a") as file:
+        print(json.dumps({"type": "message", "message": {"role": "assistant",
+              "content": [{"type": "text", "text": text}]}}), file=file)
+record("first")
+deadline = time.monotonic() + 10
+while not Path(job["agent"]["snapshot"]).exists():
+    if time.monotonic() > deadline:
+        raise RuntimeError("No live ATIF")
+    time.sleep(0.05)
+trace = json.loads(Path(job["agent"]["snapshot"]).read_text())
+assert [s["message"] for s in trace["steps"] if s["source"] == "agent"] == ["first"]
+record("second")
+print(json.dumps({"status": "completed"}))
+"""
+    (tmp_path / "worker.py").write_text(script)
+    monkeypatch.setattr(adapter, "__file__", str(tmp_path / "adapter.py"))
+    monkeypatch.setattr(adapter, "desktop", lambda *args: nullcontext("unused"))
+    agent = AleClawAgent(options={"snapshot": str(saved)})
+    agent._controller = (sys.executable, "test", "test")
+    agent._os = "linux"
+    result = agent.run(goal=[{"type": "text", "text": "go"}], runtime=None,
+                       instance=None, output=output, cwd="/work")
+    assert result["output"] == [{"type": "text", "text": "second"}]
+    assert [s["message"] for s in json.loads(saved.read_text())["steps"]
+            if s["source"] == "agent"] == ["first", "second"]
 
 
 @pytest.mark.parametrize(
@@ -134,7 +176,6 @@ def test_identical_replies_require_distinct_response_ids(tmp_path, unique_ids):
 
 
 def test_stop_ale_controller(tmp_path):
-    import sys
     import time
 
     agent = AleClawAgent()

@@ -81,7 +81,7 @@ def test_cli_drains_terminal_output_without_stop(monkeypatch, preparing, capture
         }
 
     monkeypatch.setattr(agent, "_rpc", rpc)
-    monkeypatch.setattr(agent, "_poll_native", lambda: None)
+    monkeypatch.setattr(agent, "_poll_native", lambda: pytest.fail("a finished CLI is finalized by run()"))
     monkeypatch.setattr(agent, "_consume", lambda name, text, preparing: output.append(text))
     monkeypatch.setattr("envweaver.agents.adapters._cli._POLL_INTERVAL", 0)
     assert agent._execute(

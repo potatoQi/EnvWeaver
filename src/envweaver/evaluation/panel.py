@@ -41,7 +41,8 @@ class _Panel:
             scores = [score for score in self.finished.values() if score is not None]
             mean = f"{sum(scores) / len(scores):.3f}".rstrip("0").rstrip(".") if scores else "—"
             running = sum(key not in self.finished for key in self.rows) if self.stopped is None else 0
-            seconds = int((self.stopped if self.stopped is not None else time.monotonic()) - self.started)
+            now = self.stopped if self.stopped is not None else time.monotonic()
+            seconds = int(now - self.started)
             if seconds >= 3600:
                 elapsed = f"{seconds // 3600}h {seconds % 3600 // 60}m"
             elif seconds >= 60:
@@ -69,21 +70,23 @@ class _Panel:
     def _table(self):
         table = Table(title="Eval", expand=True)
         table.add_column("Task", ratio=1, no_wrap=True, overflow="ellipsis")
-        table.add_column("Stage", width=13)
+        table.add_column("Stage", no_wrap=True)
         table.add_column("Score", width=5)
         table.add_column("Error", ratio=1, no_wrap=True, overflow="ellipsis")
         rows = sorted(
             reversed(self.rows.values()), key=lambda row: row[1] in {"done", "failed", "resumed"}
         )
-        for name, stage, score, error in rows:
+        for name, stage, score, error, output in rows:
+            if output is not None and (step := output._step):
+                stage = f"{stage} (step: {step})"
             table.add_row(Text(name), Text(stage), Text(score), Text(" ".join(error.split())))
         return table
 
-    def update(self, key, name, stage, result=None):
+    def update(self, key, name, stage, result=None, *, output=None):
         with self.lock:
             verification = (result or {}).get("verification_result")
             score = str(verification["score"]) if verification else "—"
             errors = result["errors"] if result else []
             # Reinsert so dictionary order tracks the latest update, including retries.
             self.rows.pop(key, None)
-            self.rows[key] = (name, stage, score, errors[-1]["message"] if errors else "")
+            self.rows[key] = (name, stage, score, errors[-1]["message"] if errors else "", output)

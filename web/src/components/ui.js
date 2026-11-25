@@ -43,8 +43,11 @@ export function toast(message, error = false) {
   clearTimeout(el.timer);
   el.timer = setTimeout(() => (el.hidden = true), 6000);
 }
-export function field(label, name, value = "", options = {}) {
-  return `<label>${esc(label)}${options.area ? `<textarea name="${name}" rows="${options.rows || 5}" ${options.readonly ? "readonly" : ""}>${esc(value)}</textarea>` : `<input name="${name}" value="${esc(value)}" ${options.required ? "required" : ""} ${options.placeholder ? `placeholder="${esc(options.placeholder)}"` : ""}>`}</label>`;
+export function field(label, name, value, { rows, readonly, required, placeholder } = {}) {
+  const control = rows
+    ? `<textarea name="${name}" rows="${rows}" ${readonly ? "readonly" : ""}>${esc(value)}</textarea>`
+    : `<input name="${name}" value="${esc(value)}" ${required ? "required" : ""} ${placeholder ? `placeholder="${esc(placeholder)}"` : ""}>`;
+  return `<label>${esc(label)}${control}</label>`;
 }
 export function showModal(
   title,

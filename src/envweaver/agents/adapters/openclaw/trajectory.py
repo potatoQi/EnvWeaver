@@ -83,10 +83,10 @@ def _follows(call, previous, output):
     )
 
 
-def convert(session, messages, calls, envelope, output, *, multiple_sessions=False):
+def convert(session, messages, calls, envelope, output, *, multiple_sessions=False, match_content=True):
     doc = document(output.result["metadata"], session)
     media = Media(output)
-    matches = _matches(messages, calls, output, match_content=not multiple_sessions)
+    matches = _matches(messages, calls, output, match_content=match_content and not multiple_sessions)
     tools = {}
     for i, message in enumerate(messages):
         step = None
@@ -122,7 +122,7 @@ def convert(session, messages, calls, envelope, output, *, multiple_sessions=Fal
         if not doc["steps"]:
             initial = output.directory / "trajectory.json"
             if initial.exists():
-                doc["steps"] = json.loads(initial.read_text())["steps"]
+                doc["steps"] = json.loads(initial.read_text())["steps"][:1]
         if envelope.get("ok") is True and envelope.get("final"):
             add_step(
                 doc,

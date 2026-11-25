@@ -441,12 +441,12 @@ def test_interrupt_during_backoff_leaves_task_resumable(tmp_path, task, monkeypa
     original = _Panel.update
     interrupted = False
 
-    def update(self, key, name, stage, result=None):
+    def update(self, key, name, stage, result=None, **kwargs):
         nonlocal interrupted
         if stage == "retry" and not interrupted:
             interrupted = True
             raise KeyboardInterrupt()
-        return original(self, key, name, stage, result)
+        return original(self, key, name, stage, result, **kwargs)
 
     class FlakyAgent(GoodAgent):
         def run(self, goal, *, runtime, instance, output, cwd: str):
