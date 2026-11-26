@@ -1,0 +1,230 @@
+/* Keep a plain reading surface in both color modes. */
+body,
+body::before {
+  background: var(--bs-body-bg);
+}
+
+.table {
+  --bs-table-bg: var(--bs-body-bg);
+  --bs-table-striped-bg: var(--bs-body-bg);
+  --bs-table-hover-bg: var(--bs-body-bg);
+}
+
+#error-type p:has(> .doc-section-title),
+#agent-stop-reasons p:has(> .doc-section-title) {
+  display: none;
+}
+
+#error-fields thead,
+#error-type thead,
+#agent-stop-reasons thead {
+  display: none;
+}
+
+/* Let short tables fit their content instead of stretching across the page. */
+[role="main"] .table {
+  width: auto;
+  max-width: 100%;
+}
+
+[role="main"] .table td {
+  vertical-align: middle;
+}
+
+/* Reserve room for short union types and wrap long parameter descriptions. */
+.table-responsive .doc-section-item:has(> td:nth-child(4)) > td:nth-child(2) {
+  min-width: 7.5rem;
+}
+
+.table-responsive .doc-section-item:has(> td:nth-child(4)) > td:nth-child(3) {
+  max-width: 48rem;
+}
+
+#task-fields :is(th, td):nth-child(2) {
+  max-width: 40rem;
+}
+
+/* Distinguish code examples from the white parameter tables. */
+[role="main"] pre {
+  width: fit-content;
+  max-width: 100%;
+  border: 0;
+  border-radius: 0.5rem;
+  background: var(--bs-tertiary-bg);
+}
+
+[data-bs-theme="light"] [role="main"] pre {
+  background: #f3f6f9;
+}
+
+[role="main"] code {
+  border: 0;
+  background: transparent;
+  padding: 0.1em 0.2em;
+}
+
+[role="main"] pre code {
+  padding: 1rem;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* Separate API sections without loosening the content inside each section. */
+[role="main"] > h2 {
+  margin-top: 2.5rem;
+  font-size: 1.375rem;
+  font-weight: 500;
+}
+
+[role="main"] > h3 {
+  font-size: 1.125rem;
+  font-weight: 500;
+}
+
+/* Adapter reference sections sit inside the custom Agent disclosure. */
+#custom-agent > h3 {
+  margin: 1.5rem 0 0.75rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+/* Backend methods are details within register, not top-level API sections. */
+#register-backend .doc-function {
+  margin-top: 1.25rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--bs-border-color);
+}
+
+#register-backend .doc-heading {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  line-height: 1.6;
+  font-weight: 600;
+}
+
+#register-backend .doc-heading code {
+  padding: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* Keep the outline within reach without reserving a full sidebar column. */
+.bs-sidebar .navbar-toggler {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem;
+  color: var(--bs-body-color);
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.bs-sidebar .navbar-toggler::after {
+  content: "大纲";
+}
+
+#mkdocs-search-results:not(:empty) {
+  margin-top: 1rem;
+}
+
+#searchModalLabel {
+  font-size: 1.125rem;
+}
+
+#mkdocs-search-results h3 {
+  margin: 0 0 0.375rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+#mkdocs-search-results h3 a {
+  text-decoration: none;
+}
+
+#mkdocs-search-results h3 a:hover {
+  text-decoration: underline;
+}
+
+#mkdocs-search-results p {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+#mkdocs-search-results article + article {
+  margin-top: 1.25rem;
+}
+
+#mkdocs-search-results mark {
+  padding: 0 0.1em;
+  border-radius: 0.125rem;
+  background: #ffe082;
+  color: #242424;
+}
+
+/* Keep navigation controls near the edge and visually separate. */
+.navbar > .container {
+  max-width: none;
+  padding-inline: 1rem;
+}
+
+#navbar-collapse > .navbar-nav.ms-md-auto {
+  gap: 0.75rem;
+}
+
+#navbar-collapse > .navbar-nav.ms-md-auto > .nav-item > .nav-link {
+  width: fit-content;
+  padding: 0.375rem 0.625rem;
+  border: 1px solid rgb(255 255 255 / 45%);
+  border-radius: 0.375rem;
+}
+
+#navbar-collapse > .navbar-nav.ms-md-auto > .nav-item > .nav-link:hover {
+  background: rgb(255 255 255 / 10%);
+  border-color: rgb(255 255 255 / 75%);
+}
+
+@media screen and (min-width: 992px) {
+  #navbar-collapse > .navbar-nav:first-child {
+    column-gap: 0.75rem;
+  }
+}
+
+@media screen and (min-width: 768px) {
+  .container > .row > .col-md-3 {
+    width: 5rem;
+  }
+
+  .container > .row > [role="main"] {
+    width: calc(100% - 5rem);
+  }
+
+  .bs-sidebar.affix {
+    position: fixed;
+    left: 1rem;
+    width: max-content;
+    z-index: 1020;
+  }
+
+  .bs-sidebar #toc-collapse {
+    display: none !important;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: min(20rem, calc(100vw - 2rem));
+    max-height: calc(100vh - 9rem);
+    overflow-y: auto;
+    background: var(--bs-body-bg) !important;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 10%);
+  }
+
+  .bs-sidebar:hover #toc-collapse,
+  .bs-sidebar:has(:focus-visible) #toc-collapse,
+  .bs-sidebar #toc-collapse.show {
+    display: block !important;
+  }
+}
