@@ -6,6 +6,7 @@ from .adapters import (
     MiniSweAgent,
     OpenClawAgent,
     PiAgent,
+    StirrupAgent,
     Terminus2Agent,
 )
 from .base import Agent
@@ -21,5 +22,6 @@ __all__ = [
     "MiniSweAgent",
     "OpenClawAgent",
     "PiAgent",
+    "StirrupAgent",
     "Terminus2Agent",
 ]

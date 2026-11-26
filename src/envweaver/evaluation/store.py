@@ -14,6 +14,7 @@ from .._io.output_lock import output_lock
 from .._io.paths import join_address
 from .._io.storage import _dispatch
 from .._util import write_json
+from ..agents._redaction import is_credential_name
 from ..errors import ErrorType
 from ..verifier import _entry_directory
 
@@ -32,7 +33,7 @@ def configuration(agent, config):
     """Record readable settings without persisting credentials or opaque CLI arguments."""
     values = {"agent": agent._identity(), "eval": asdict(config)}
 
-    def redact(value):
+    def redact(value, *, request_options=False):
         if isinstance(value, dict):
             result = {}
             for key, item in value.items():
@@ -40,16 +41,13 @@ def configuration(agent, config):
                     result[key] = {name: "[REDACTED]" for name in item}
                 elif key == "extra_args":
                     result[key] = ["[REDACTED]" for _ in item] if isinstance(item, list) else "[REDACTED]"
-                elif re.search(
-                    r"password|secret|credential|authorization|api[_-]?key|private[_-]?key"
-                    r"|(?:^|[_-])(?:key|token|auth)(?:$|[_-])", str(key), re.I,
-                ):
+                elif is_credential_name(key, request_options=request_options):
                     result[key] = "[REDACTED]"
                 else:
-                    result[key] = redact(item)
+                    result[key] = redact(item, request_options=request_options or key == "client_kwargs")
             return result
         if isinstance(value, (list, tuple)):
-            return [redact(item) for item in value]
+            return [redact(item, request_options=request_options) for item in value]
         return str(value) if isinstance(value, Path) else deepcopy(value)
 
     return {"values": redact(values), "fingerprint": fingerprint(values)}

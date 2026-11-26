@@ -7,7 +7,7 @@ from ...._util import write_json
 from ....errors import AgentError, ErrorType
 from ..._redaction import redact_data
 from .._cli import CliAgent
-from ..sandbox import SANDBOX_SCRIPTS
+from ..sandbox import upload_model_capture
 
 _ERROR_TYPES = {
     "StepLimit": ErrorType.STEP_LIMIT,
@@ -143,8 +143,7 @@ class Terminus2Agent(CliAgent):
             source=Path(__file__).with_name("monkey_patches"),
             target=self._remote + "/monkey_patches",
         )
-        runtime.upload(instance=instance, source=SANDBOX_SCRIPTS / "_model_capture.py", target=self._remote + "/model_capture.py")
-        runtime.upload(instance=instance, source=Path(__file__).parents[2] / "_redaction.py", target=self._remote + "/_redaction.py")
+        upload_model_capture(runtime, instance, self._remote)
         settings = {key: self._config[key] for key in ("model", "env", "options")}
         self._upload_text("config.json", json.dumps(settings))
         code, _ = self._execute(self._runner("prepare"), preparing=True)

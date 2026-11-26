@@ -10,6 +10,7 @@ from .agents import (
     MiniSweAgent,
     OpenClawAgent,
     PiAgent,
+    StirrupAgent,
     Terminus2Agent,
 )
 from .cache import DownloadCache
@@ -36,6 +37,7 @@ __all__ = [
     "OpenClawAgent",
     "PiAgent",
     "MiniSweAgent",
+    "StirrupAgent",
     "Terminus2Agent",
     "EvalConfig",
     "eval",

@@ -4,8 +4,8 @@ import json
 from collections import Counter, defaultdict
 
 from ....trajectory.atif import add_step, document
-from ....trajectory.pi_messages import add_message
 from ...capture import Media
+from ...capture.pi_messages import add_message
 from .._provider_http import events, reply_signature, response_id
 
 

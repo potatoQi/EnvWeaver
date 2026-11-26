@@ -350,7 +350,7 @@ def test_mini_retries_and_final_tool_result(output):
     native = {
         "messages": [{"role": "tool", "tool_call_id": "last", "content": "submission accepted"}]
     }
-    doc = mini(events, output, native=native)
+    doc = mini(events, output, session_id="mini-test", native=native)
     validate_trajectory(doc)
     agents = [s for s in doc["steps"] if s["source"] == "agent"]
     assert agents[0]["extra"]["response_status"] == "failed"
@@ -614,7 +614,7 @@ def test_mini_changed_context_does_not_duplicate_tool_results(output):
                 },
             }
         )
-    doc = mini(events, output)
+    doc = mini(events, output, session_id="mini-test")
     validate_trajectory(doc)
     tool_step = next(s for s in doc["steps"] if s.get("tool_calls"))
     assert len(tool_step["observation"]["results"]) == 1
@@ -888,6 +888,7 @@ def test_non_object_tool_arguments_are_preserved(output, raw, adapter):
                 },
             ],
             output,
+            session_id="mini-test",
         )
     validate_trajectory(doc)
     call = doc["steps"][0]["tool_calls"][0]

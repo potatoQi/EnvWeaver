@@ -1,6 +1,6 @@
 """Native Pi message format shared by Pi and OpenClaw."""
 
-from .atif import add_step
+from ...trajectory.atif import add_step
 
 
 def content(value, media):

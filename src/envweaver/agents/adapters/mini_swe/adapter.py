@@ -5,7 +5,7 @@ from ...._util import write_json
 from ....errors import AgentError, ErrorType
 from ..._redaction import redact_data
 from .._cli import CliAgent
-from ..sandbox import SANDBOX_SCRIPTS
+from ..sandbox import upload_model_capture
 
 _ERROR_TYPES = {
     "LimitsExceeded": ErrorType.OTHER_LIMIT,
@@ -80,10 +80,11 @@ class MiniSweAgent(CliAgent):
         self._native_snapshot = None
         self._snapshot = None
         super().prepare(runtime=runtime, instance=instance, output=output, cwd=cwd)
-        for source, name in ((Path(__file__).with_name("runner.py"), "mini-runner.py"),
-                             (SANDBOX_SCRIPTS / "_model_capture.py", "model_capture.py"),
-                             (Path(__file__).parents[2] / "_redaction.py", "_redaction.py")):
-            runtime.upload(instance=instance, source=source, target=self._remote + "/" + name)
+        upload_model_capture(runtime, instance, self._remote)
+        runtime.upload(
+            instance=instance, source=Path(__file__).with_name("runner.py"),
+            target=self._remote + "/mini-runner.py",
+        )
         if not self._output.result["metadata"]["agent_version"].startswith("2."):
             raise RuntimeError("MiniSweAgent requires mini-swe-agent 2.x")
 
@@ -119,7 +120,10 @@ class MiniSweAgent(CliAgent):
         calls = self._native.files.get("mini/model-calls.jsonl", "")
 
         def save_trajectory():
-            trajectory = convert(json_lines(calls), self._output, self._read_remote, self._native_snapshot)
+            trajectory = convert(
+                json_lines(calls), self._output, self._read_remote, self._native_snapshot,
+                session_id=Path(self._remote).name,
+            )
             if trajectory is not None:
                 self._output.save_trajectory(trajectory)
             return trajectory is None or not trajectory["extra"]["media_missing"]

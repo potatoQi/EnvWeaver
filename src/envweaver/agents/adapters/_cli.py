@@ -1,6 +1,7 @@
 import base64
 import codecs
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -18,6 +19,17 @@ from ._downloads import PreparationDownloads
 from .sandbox import SANDBOX_SCRIPTS
 
 _POLL_INTERVAL = 2.0
+
+
+def _matches_version(output, requested):
+    banner = output.strip()
+    if banner == requested:
+        return True
+    match = re.fullmatch(
+        r"(?:[A-Za-z][\w./@-]* )?v?(\d+\.\d+\.\d+(?:[-+][\w.+-]+)?)(?: \([^()\n]+\))?",
+        banner,
+    )
+    return match is not None and match[1] == requested.removeprefix("v")
 
 
 class CliAgent(Agent):
@@ -159,8 +171,8 @@ class CliAgent(Agent):
         code, output = self._execute(
             self._version_command(), preparing=True, capture_stdout=True
         )
-        requested = self._output.result["metadata"]["agent_version"]
-        if code or requested is not None:
+        requested = self._config.get("version")
+        if code or (requested is not None and not _matches_version(output, requested)):
             try:
                 if self.config["cache"]:
                     self._downloads = PreparationDownloads(

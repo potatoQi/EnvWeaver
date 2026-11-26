@@ -4,7 +4,7 @@ Agent 为 [Eval](evaluation.md) 提供统一的执行接口。创建 Agent 对�
 
 带 `cache` 参数的 Agent 默认复用准备阶段有校验值的安装包，可传 `cache=False` 关闭。缓存目录通过当前进程的 `ENVWEAVER_CACHE_DIR` 设置，默认 `~/.cache/envweaver/downloads`，容量为 30 GiB。
 
-已支持的 Agent：[Claude Code](#claude-code-agent)、[Codex CLI](#codex-agent)、[Pi](#pi-agent)、[OpenClaw](#openclaw-agent)、[ALE Claw](#ale-claw-agent)、[mini-swe-agent](#mini-swe-agent)、[Claw-Eval](#claw-eval-agent)、[Terminus 2](#terminus-agent)、[自定义 Agent](#custom-agent)。
+已支持的 Agent：[Claude Code](#claude-code-agent)、[Codex CLI](#codex-agent)、[Pi](#pi-agent)、[OpenClaw](#openclaw-agent)、[ALE Claw](#ale-claw-agent)、[Stirrup](#stirrup-agent)、[mini-swe-agent](#mini-swe-agent)、[Claw-Eval](#claw-eval-agent)、[Terminus 2](#terminus-agent)、[自定义 Agent](#custom-agent)。
 
 ## ClaudeCodeAgent {#claude-code-agent}
 
@@ -110,6 +110,34 @@ agent = AleClawAgent(
     options={"tool_calling": "function_calling", "base_url": model_base_url, "api_key": api_key},
 )
 results = eval(tasks=tasks, agent=agent, output_dir="outputs/ale-claw")
+```
+
+## StirrupAgent {#stirrup-agent}
+
+<div class="table-responsive" markdown="1">
+
+::: envweaver.StirrupAgent
+    options:
+      show_root_heading: false
+      members: []
+      show_bases: false
+
+</div>
+
+```python
+from envweaver import StirrupAgent, eval
+
+agent = StirrupAgent(
+    model="openai/Qwen3.5-9B",
+    context_window_tokens=131072,
+    max_tokens=16384,
+    client_kwargs={"api_base": gateway_url, "temperature": 0.7},
+    env={"OPENAI_API_KEY": api_key},
+    view_image=True,
+    submission_dir="/workspace",
+    web=False,
+)
+results = eval(tasks=tasks, agent=agent, output_dir="outputs/stirrup")
 ```
 
 ## MiniSweAgent {#mini-swe-agent}

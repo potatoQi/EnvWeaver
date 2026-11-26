@@ -1,8 +1,8 @@
 """Pi provider-boundary capture and native message events."""
 
 from ....trajectory.atif import add_step, context, document
-from ....trajectory.pi_messages import add_message
 from ...capture import Media
+from ...capture.pi_messages import add_message
 
 
 def convert(events, output):

@@ -77,7 +77,7 @@ def test_final_snapshot_keeps_results_on_their_original_step(
                 },
             }
         )
-    doc = convert(events, output, native={"messages": messages})
+    doc = convert(events, output, session_id="mini-test", native={"messages": messages})
     validate_trajectory(doc)
     steps = [step for step in doc["steps"] if step["source"] == "agent"]
     for index, step in enumerate(steps[:2]):
@@ -92,6 +92,7 @@ def test_unmatched_native_tool_result_keeps_content_and_metadata(tmp_path):
     doc = convert(
         [],
         output,
+        session_id="mini-test",
         native={
             "messages": [
                 {

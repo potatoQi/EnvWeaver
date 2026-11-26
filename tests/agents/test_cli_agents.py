@@ -321,12 +321,18 @@ def test_pi_image_output_is_archived(tmp_path, sandbox):
         shutil.rmtree(agent._remote, ignore_errors=True)
 
 
-@pytest.mark.parametrize("available,version", [(True, None), (False, None), (True, "1.2.3")])
-def test_prepare_reuses_or_installs_cli(tmp_path, sandbox, monkeypatch, available, version):
+@pytest.mark.parametrize("available,version,banner,should_install", [
+    (True, None, "existing", False), (False, None, "", True),
+    (True, "1.2.3", "codex-cli 1.2.3", False),
+    (True, "1.2.3", "codex-cli 1.2.30", True),
+    (True, "1.2.3", "codex-cli 1.2.3-beta.1", True),
+    (True, "latest", "codex-cli 1.2.3", True),
+])
+def test_prepare_reuses_or_installs_cli(tmp_path, sandbox, monkeypatch, available, version, banner, should_install):
     runtime, instance, env = sandbox
     agent = CodexAgent(env=env, version=version)
     agent_execution = AgentExecution(agent)
-    checks = iter([(0 if available else 1, "existing"), (0, "installed")])
+    checks = iter([(0 if available else 1, banner), (0, "installed")])
     installations = []
     dependencies = []
 
@@ -343,12 +349,11 @@ def test_prepare_reuses_or_installs_cli(tmp_path, sandbox, monkeypatch, availabl
     monkeypatch.setattr(agent, "_ensure_dependencies", lambda: dependencies.append(True))
     try:
         agent_execution.prepare(runtime=runtime, instance=instance, output_dir=tmp_path / "result", cwd=str(tmp_path))
-        should_install = not available or version is not None
         assert len(installations) == len(dependencies) == int(should_install)
         if should_install:
             assert installations[0][-1] == "@openai/codex" + (f"@{version}" if version else "")
         result = json.loads((tmp_path / "result/result.json").read_text())
-        assert result["metadata"]["agent_version"] == ("installed" if should_install else "existing")
+        assert result["metadata"]["agent_version"] == ("installed" if should_install else banner)
     finally:
         agent_execution.stop()
         shutil.rmtree(agent._remote, ignore_errors=True)

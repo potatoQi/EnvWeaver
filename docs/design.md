@@ -314,9 +314,11 @@ RuntimeRef.name 保存环境名称，不填时使用 image；Runtime.create 接�
 
 ## ATIF 轨迹
 
+Stirrup 在做题沙箱中运行原生 Agent 循环。EnvWeaver 保留任务工作目录，采集 LiteLLM 请求和回答，按请求 ID 和工具调用记录结果。若同一回复含重复的工具调用 ID，Stirrup 以 configuration 结束；ATIF 保留原始回复，并为冲突调用分配轨迹内 ID。框架插入的提示记录为 system 步骤，压缩请求带有触发原因，同次生成的重试关联首次请求。启用交付目录后，finish 校验文件位于该目录内，将原件保存到 Agent 产物，metadata.submitted_files 将提交路径映射到保存路径。主动放弃会结束做题并记录 metadata.abandoned，仍由 Verifier 评分。Stirrup 和 mini-swe-agent 共用 ATIF 转换器，每次评测尝试各有独立的轨迹 ID。
+
 ATIF 固定为 Harbor v1.8，Schema 来源提交 `509b119db0d97b141dcd9c80f4f7ab861c47c2d6`，与 Task 格式版本和包版本独立。升级时同时更新 Schema、转换器和回归样本；不在运行时下载协议。Schema 保留上游许可证，补充检查步骤序号、媒体类型、工具结果及子轨迹关联。
 
-`trajectory/atif.py` 定义和校验 ATIF，`agents/capture/` 采集原生记录和媒体。各适配器在自己的 `trajectory.py` 中转换轨迹，Pi 和 OpenClaw 共用 `trajectory/pi_messages.py` 解析 Pi 消息。`logs/events.jsonl` 保存执行事件，`logs/native` 保存采集的原生记录，`artifacts.trajectory` 指向 `trajectory.json`。新增适配器通过 `AgentOutput.save_trajectory` 发布 ATIF，并在模型调用边界保存上下文。 采集器显式接收 Runtime、Instance、Python、产物目录对象和脱敏函数，不读取 Agent 的私有属性。转换器返回 ATIF 文档；独立子轨迹及续接轨迹通过 `save_trajectory(related=...)` 统一校验、写入并登记，先保存关联文件，再保存主轨迹。 原生 JSONL 只按 LF 分隔记录，保留字符串中的 Unicode 分隔字符；并发写入留下的半个 UTF-8 字符和未完成记录等待下一次快照。Pi 无法识别的压缩响应保留原文，并标记 `response_conversion_missing`。
+`trajectory/atif.py` 定义和校验 ATIF，`agents/capture/` 采集原生记录和媒体。适配器专用的转换逻辑放在各自的目录，Pi 和 OpenClaw 共用 `agents/capture/pi_messages.py` 解析 Pi 消息。`logs/events.jsonl` 保存执行事件，`logs/native` 保存采集的原生记录，`artifacts.trajectory` 指向 `trajectory.json`。新增适配器通过 `AgentOutput.save_trajectory` 发布 ATIF，并在模型调用边界保存上下文。 采集器显式接收 Runtime、Instance、Python、产物目录对象和脱敏函数，不读取 Agent 的私有属性。转换器返回 ATIF 文档；独立子轨迹及续接轨迹通过 `save_trajectory(related=...)` 统一校验、写入并登记，先保存关联文件，再保存主轨迹。 原生 JSONL 只按 LF 分隔记录，保留字符串中的 Unicode 分隔字符；并发写入留下的半个 UTF-8 字符和未完成记录等待下一次快照。Pi 无法识别的压缩响应保留原文，并标记 `response_conversion_missing`。
 
 Codex 根据 CLI 事件判定停止原因，独立将 rollout trace v1、v2 和 v3 转成 ATIF。v1/v2 按相对路径读取 JSON，v3 按分片号和记录 ID 解压，按引用顺序拼回拆分的 JSON。未取齐的载荷在轨迹中标记为缺失。导出失败时保留最近一次写入的轨迹，并将错误记入 Agent 结果的 metadata.trajectory_export_error。Pi 通过扩展采集 provider request、消息及压缩事件，并记录 fetch 的请求正文和原生响应以覆盖压缩请求；mini 在沙箱入口记录 LiteLLM 调用并结合原生消息；Terminus 保留 Harbor 的 raw_content 和 linear_history 轨迹，补充 LiteLLM 上下文。LiteLLM 快照是调用参数，不冒充供应商在服务端展开后的提示词；Pi 优先保存 fetch 请求正文，无法观察自定义传输时保留 before_provider_request 快照，不推测后续改写。
 
