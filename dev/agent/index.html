@@ -133,6 +133,10 @@
               <ul class="nav flex-column">
               </ul>
             </li>
+            <li class="nav-item" data-bs-level="2"><a href="#stirrup-agent" class="nav-link">StirrupAgent</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
             <li class="nav-item" data-bs-level="2"><a href="#mini-swe-agent" class="nav-link">MiniSweAgent</a>
               <ul class="nav flex-column">
               </ul>
@@ -155,7 +159,7 @@
 <h1 id="agent">Agent<a class="headerlink" href="#agent" title="Permanent link">&para;</a></h1>
 <p>Agent 为 <a href="../evaluation/">Eval</a> 提供统一的执行接口。创建 Agent 对象时配置模型、环境变量和原生参数，再将对象传给 <code>eval(agent=...)</code>。</p>
 <p>带 <code>cache</code> 参数的 Agent 默认复用准备阶段有校验值的安装包，可传 <code>cache=False</code> 关闭。缓存目录通过当前进程的 <code>ENVWEAVER_CACHE_DIR</code> 设置，默认 <code>~/.cache/envweaver/downloads</code>，容量为 30 GiB。</p>
-<p>已支持的 Agent：<a href="#claude-code-agent">Claude Code</a>、<a href="#codex-agent">Codex CLI</a>、<a href="#pi-agent">Pi</a>、<a href="#openclaw-agent">OpenClaw</a>、<a href="#ale-claw-agent">ALE Claw</a>、<a href="#mini-swe-agent">mini-swe-agent</a>、<a href="#claw-eval-agent">Claw-Eval</a>、<a href="#terminus-agent">Terminus 2</a>、<a href="#custom-agent">自定义 Agent</a>。</p>
+<p>已支持的 Agent：<a href="#claude-code-agent">Claude Code</a>、<a href="#codex-agent">Codex CLI</a>、<a href="#pi-agent">Pi</a>、<a href="#openclaw-agent">OpenClaw</a>、<a href="#ale-claw-agent">ALE Claw</a>、<a href="#stirrup-agent">Stirrup</a>、<a href="#mini-swe-agent">mini-swe-agent</a>、<a href="#claw-eval-agent">Claw-Eval</a>、<a href="#terminus-agent">Terminus 2</a>、<a href="#custom-agent">自定义 Agent</a>。</p>
 <h2 id="claude-code-agent">ClaudeCodeAgent<a class="headerlink" href="#claude-code-agent" title="Permanent link">&para;</a></h2>
 <div class="table-responsive">
 
@@ -860,6 +864,366 @@ agent = AleClawAgent(
     options={&quot;tool_calling&quot;: &quot;function_calling&quot;, &quot;base_url&quot;: model_base_url, &quot;api_key&quot;: api_key},
 )
 results = eval(tasks=tasks, agent=agent, output_dir=&quot;outputs/ale-claw&quot;)
+</code></pre>
+<h2 id="stirrup-agent">StirrupAgent<a class="headerlink" href="#stirrup-agent" title="Permanent link">&para;</a></h2>
+<div class="table-responsive">
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<a id="envweaver.StirrupAgent"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>model</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>必填，带提供方前缀的模型名，例如 openai/Qwen3.5-9B。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>context_window_tokens</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>必填，模型的上下文窗口大小，单位为 token。</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>max_tokens</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>单次回复的 token 上限，默认 64000，须小于或等于上下文窗口。</p>
+              </div>
+            </td>
+            <td>
+                  <code>64000</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>max_turns</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>最多执行的模型轮数，默认 30。</p>
+              </div>
+            </td>
+            <td>
+                  <code>30</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>version</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>沙箱内的 Stirrup 0.2.x 版本。默认复用已安装版本，缺少时从 PyPI 安装。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>reasoning_effort</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>模型的推理强度，默认 None，使用提供方默认值。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>client_kwargs</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>传给 LiteLLM 的请求参数，如 api_base、temperature；默认 None。凭据通过 env 提供。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>system_prompt</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>系统指令，默认 None，使用 Stirrup 自带提示。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>system_prompt_mode</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>append 将指令追加到原提示（默认），replace 使用完整的 system_prompt。</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;append&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>view_image</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>允许模型查看沙箱内的图片，默认 False。</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>allow_abandon</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>提供单独的放弃任务工具，默认 False。</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>command_timeout</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>每条 shell 命令的时限，单位秒，默认 300。</p>
+              </div>
+            </td>
+            <td>
+                  <code>300</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>submission_dir</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>允许交付文件的沙箱绝对目录。填写时保存 finish 提交的原件；
+默认 None，仅在结果 metadata.submitted_paths 中记录提交路径。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>web</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>启用 Stirrup 网页工具，默认 True。</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>turns_remaining_warning_threshold</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>剩余多少轮开始提醒，默认 20；0 关闭轮数提醒。</p>
+              </div>
+            </td>
+            <td>
+                  <code>20</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>context_summarization_cutoff</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>触发上下文压缩的窗口占用比例，默认 0.7。</p>
+              </div>
+            </td>
+            <td>
+                  <code>0.7</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>env</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="str">str</span>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>沙箱环境变量，例如 OPENAI_API_KEY、OPENAI_API_BASE，默认 None。</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>cache</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>是否使用 EnvWeaver 的安装缓存，默认 True。</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div></div>
+<pre><code class="language-python">from envweaver import StirrupAgent, eval
+
+agent = StirrupAgent(
+    model=&quot;openai/Qwen3.5-9B&quot;,
+    context_window_tokens=131072,
+    max_tokens=16384,
+    client_kwargs={&quot;api_base&quot;: gateway_url, &quot;temperature&quot;: 0.7},
+    env={&quot;OPENAI_API_KEY&quot;: api_key},
+    view_image=True,
+    submission_dir=&quot;/workspace&quot;,
+    web=False,
+)
+results = eval(tasks=tasks, agent=agent, output_dir=&quot;outputs/stirrup&quot;)
 </code></pre>
 <h2 id="mini-swe-agent">MiniSweAgent<a class="headerlink" href="#mini-swe-agent" title="Permanent link">&para;</a></h2>
 <div class="table-responsive">
