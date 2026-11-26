@@ -286,8 +286,7 @@ class Store:
             agent=info.get("agent") or config.get("config", {}).get("name") or config.get("class", "").rsplit(".", 1)[-1] or None, model=info.get("model") or config.get("config", {}).get("model"),
             score=(spec.get("verification_result") or {}).get("score") if spec.get("score_valid") else None,
             duration_seconds=spec.get("duration_seconds"),
-            input_tokens=row.get("token_usage", {}).get("input_tokens"),
-            output_tokens=row.get("token_usage", {}).get("output_tokens"),
+            **row.get("trajectory_stats", {}),
             error_count=len(spec["errors"]),
             agent_stop_reason=spec.get("agent_stop_reason"), completed=completed(spec),
             rollout_id=spec["id"], started_at=spec.get("started_at"),
@@ -391,11 +390,9 @@ class Store:
                 # Rows are already sorted: each group follows its first matching rollout.
                 for row in rows:
                     key = self.task_group(row)
-                    group = groups.setdefault(key, dict(
-                        key=key, name=row["spec"]["name"],
-                        task_ref=row["spec"].get("task_ref"), count=0,
-                    ))
-                    group["count"] += 1
+                    if key not in groups:
+                        groups[key] = dict(key=key, name=row["spec"]["name"], count=0)
+                    groups[key]["count"] += 1
                 return dict(
                     items=[], groups=list(groups.values())[(page - 1) * page_size:page * page_size],
                     group_total=len(groups), total=len(rows), page=page, page_size=page_size,

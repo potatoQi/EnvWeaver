@@ -427,10 +427,6 @@ tbody tr:hover {
 .task-group-toggle:hover { background: #eaf0fc; }
 .task-group-arrow { width: 12px; flex-shrink: 0; }
 .task-group-count { white-space: nowrap; font-size: 12px; }
-.task-group-path {
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  color: #59677d; font-size: 12px;
-}
 .task-group-more td { padding-left: 34px; }
 .status {
   display: inline-flex;

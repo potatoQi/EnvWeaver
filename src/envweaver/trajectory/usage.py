@@ -1,46 +1,85 @@
-"""Token totals from ATIF fields only; usable on storage hosts without dependencies."""
+"""ATIF list statistics, also evaluated on storage hosts without dependencies."""
 
 import json
+from functools import cache
 from pathlib import Path
 
 
-def token_usage(directory, trajectory):
-    """Sum recorded model usage, excluding copied context; unknown totals stay None.
+def main_agent_steps(document, resolve):
+    """Yield recorded model steps in the main session, following continuations once."""
+    seen = set()
+    while document is not None and id(document) not in seen:
+        seen.add(id(document))
+        yield from (
+            step
+            for step in document["steps"]
+            if _model_step(step) and not step.get("is_copied_context")
+        )
+        reference = document.get("continued_trajectory_ref")
+        document = resolve(reference) if reference else None
 
-    Paths are relative to the Agent directory. Files are visited once, embedded IDs
-    are scoped to their parent, and a ref resolving to an embedded child does not
-    additionally count its file representation. Missing or unsafe references make
-    both totals unknown instead of returning an apparently complete partial sum.
-    """
-    try:
-        return _token_usage(directory, trajectory)
-    except (OSError, ValueError, KeyError, TypeError, AttributeError):
-        return {"input_tokens": None, "output_tokens": None}
+
+def _model_step(step):
+    return step["source"] == "agent" and step.get("llm_call_count") != 0
 
 
-def _token_usage(directory, trajectory):
-    unknown = {"input_tokens": None, "output_tokens": None}
+def _count(value):
+    return type(value) is int and value >= 0
+
+
+def trajectory_stats(directory, trajectory):
+    """Read each ATIF file once. Missing or incomplete measurements stay unknown."""
+    stats = dict.fromkeys(("input_tokens", "output_tokens", "trajectory_length", "step_count"))
     if not trajectory:
-        return unknown
+        return stats
     root = Path(directory).resolve()
-    files, documents = set(), []
-    pending = [trajectory]
+
+    @cache
+    def read(relative):
+        path = root / relative
+        if (
+            relative.is_absolute()
+            or ".." in relative.parts
+            or "\\" in str(relative)
+            or any(p.is_symlink() for p in [path, *path.parents] if p != root.parent)
+            or not path.resolve().is_relative_to(root)
+        ):
+            raise ValueError("Unsafe trajectory reference")
+        return json.loads(path.read_text())
+
+    def resolve(reference):
+        return read(Path(reference))
+
+    try:
+        document = resolve(trajectory)
+        steps = 0
+        last = None
+        for step in main_agent_steps(document, resolve):
+            steps += 1
+            last = step
+        stats["step_count"] = steps
+        if last is not None and last.get("llm_call_count") in (None, 1):
+            metrics = last.get("metrics") or {}
+            prompt, completion = metrics.get("prompt_tokens"), metrics.get("completion_tokens")
+            if _count(prompt) and _count(completion):
+                stats["trajectory_length"] = prompt + completion
+        stats.update(_token_totals(document, resolve))
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        pass
+    return stats
+
+
+def _token_totals(document, resolve):
+    unknown = {"input_tokens": None, "output_tokens": None}
+    seen, documents = set(), []
+    pending = [document]
     while pending:
         value = pending.pop()
         if isinstance(value, str):
-            relative = Path(value)
-            if relative.is_absolute() or ".." in relative.parts or "\\" in value:
-                return unknown
-            path = root / relative
-            resolved = path.resolve()
-            if not resolved.is_relative_to(root) or any(
-                part.is_symlink() for part in [path, *path.parents] if part != root.parent
-            ):
-                return unknown
-            if resolved in files:
-                continue
-            files.add(resolved)
-            value = json.loads(resolved.read_text())
+            value = resolve(value)
+        if id(value) in seen:
+            continue
+        seen.add(id(value))
         if not isinstance(value, dict) or not isinstance(value.get("steps"), list):
             return unknown
         documents.append(value)
@@ -73,15 +112,12 @@ def _token_usage(directory, trajectory):
             ):
                 return unknown
 
-    def count(value):
-        return type(value) is int and value >= 0
-
     totals = {"input_tokens": 0, "output_tokens": 0}
     for doc in documents:
         metrics = []
         copied = False
         for step in doc["steps"]:
-            if step["source"] == "agent" and step.get("llm_call_count") != 0:
+            if _model_step(step):
                 if step.get("is_copied_context"):
                     copied = True
                 else:
@@ -94,9 +130,9 @@ def _token_usage(directory, trajectory):
                 continue
             values = [entry.get(metric) for entry in metrics]
             final = (doc.get("final_metrics") or {}).get("total_" + metric)
-            if not copied and count(final):
+            if not copied and _count(final):
                 totals[output] += final
-            elif all(count(value) for value in values):
+            elif all(_count(value) for value in values):
                 totals[output] += sum(values)
             else:
                 totals[output] = None

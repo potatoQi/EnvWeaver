@@ -94,6 +94,8 @@ function rowFields(row) {
     agent: row.agent || "—",
     model: row.model || "—",
     duration_seconds: formatDuration(row.duration_seconds),
+    trajectory_length: formatTokens(row.trajectory_length),
+    step_count: row.step_count ?? "—",
     input_tokens: formatTokens(row.input_tokens),
     output_tokens: formatTokens(row.output_tokens),
     score: row.score ?? "—",

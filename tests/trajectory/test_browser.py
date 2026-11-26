@@ -159,6 +159,8 @@ def test_trajectory_browser(tmp_path):
             page.locator(".task-group-toggle").click()
             expect(page.locator("#rows [data-open]")).to_have_count(3, timeout=10000)
             assert page.evaluate("window.groupPolls") == 0
+            assert "1.23K" in page.locator('#rows td[data-column="trajectory_length"]').all_text_contents()
+            assert "1" in page.locator('#rows td[data-column="step_count"]').all_text_contents()
             assert (
                 "1.23K" in page.locator('#rows td[data-column="input_tokens"]').all_text_contents()
             )
@@ -178,7 +180,7 @@ def test_trajectory_browser(tmp_path):
             page.locator("#clear-selection").click()
             page.locator(".task-group-toggle").click()
             expect(page.locator("#rows [data-open]")).to_have_count(1)
-            expect(page.locator("thead th")).to_have_count(11)
+            expect(page.locator("thead th")).to_have_count(13)
             expect(page.locator('#rows td[data-column="input_tokens"]')).to_have_text("—")
             expect(page.locator('#rows td[data-column="output_tokens"]')).to_have_text("—")
             expect(page.locator('#rows td[data-column="agent_stop_reason"]')).to_have_text(
@@ -201,7 +203,7 @@ def test_trajectory_browser(tmp_path):
             expect(page.locator("#trajectory-content")).not_to_contain_text("ATIF-v1.8")
             expect(page.locator("#trajectory-metrics")).to_contain_text('"total_steps": 2')
             expect(page.locator("#trajectory-metrics")).to_contain_text('"total_cost_usd": 0')
-            expect(page.locator("#trajectory-content summary").filter(has_text="汇总指标")).to_have_count(0)
+            expect(page.locator("#trajectory-content summary").filter(has_text="轨迹统计")).to_have_count(0)
             expect(page.locator("#trajectory-content").get_by_text("补充字段", exact=True)).to_have_count(0)
             expect(page.locator("#files")).to_contain_text("trajectory.child.json")
             page.locator('#files [data-file="result.json"]').click()
@@ -341,7 +343,7 @@ def test_trajectory_browser(tmp_path):
                     route.continue_()
 
             page.route("**/api/assets/page*", fail_first_group_request)
-            group = page.locator('.task-group-toggle[title="/tasks/example/task.json"]')
+            group = page.locator(".task-group-toggle").filter(has_text="31 条轨迹")
             group_check = page.locator('[data-group-select="ref:/tasks/example/task.json"]')
             group_check.check()
             expect(page.locator("#selected-label")).to_have_text(" · 已选 31 条")
@@ -390,7 +392,7 @@ def test_trajectory_browser(tmp_path):
             page.get_by_role("button", name="Task Pool", exact=True).click()
             expect(page.locator("thead th")).to_have_count(8)
             page.get_by_role("button", name="Traj Pool", exact=True).click()
-            expect(page.locator("thead th")).to_have_count(11)
+            expect(page.locator("thead th")).to_have_count(13)
             # Reader-only fixtures replace the document; isolate them from the
             # management page's in-flight requests and background refresh timer.
             page.route("**/reader-fixture", lambda route: route.fulfill(

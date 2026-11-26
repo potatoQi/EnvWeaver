@@ -265,13 +265,13 @@ def test_usage_and_errors_are_indexed_once_per_file_change(tmp_path, monkeypatch
     pool = TrajPool(tmp_path / "pool")
     archived = Path(pool.save(output_dir=source))
     calls = []
-    original = _pool_files.token_usage
+    original = _pool_files.trajectory_stats
 
     def counted(*args):
         calls.append(args)
         return original(*args)
 
-    monkeypatch.setattr(_pool_files, "token_usage", counted)
+    monkeypatch.setattr(_pool_files, "trajectory_stats", counted)
     with TestClient(create_app()) as client:
         pool_id = choose(client, pool.root)
         for _ in range(2):
@@ -290,4 +290,4 @@ def test_usage_and_errors_are_indexed_once_per_file_change(tmp_path, monkeypatch
         assert listing(client, pool_id)["items"][0]["input_tokens"] == 5678
         assert len(calls) == 2
         # Derived statistics do not mutate the original or archived Eval result.
-        assert "token_usage" not in read_json(archived)
+        assert "trajectory_stats" not in read_json(archived)

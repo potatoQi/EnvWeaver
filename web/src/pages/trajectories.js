@@ -14,7 +14,7 @@ export function trajectorySummary(row) {
   const taskLink = task
     ? `<button class="task-reference" data-related="${esc(task.id)}" title="${esc(result.task_ref || "")}" ${task.deleted ? "disabled" : ""}>${esc(taskName)} ↗</button>`
     : `<span title="${esc(result.task_ref || "")}">${esc(taskName || "—")}</span>`;
-  return `<dl class="facts trajectory-facts"><dt>关联 Task</dt><dd>${taskLink}</dd><dt>Agent</dt><dd>${esc(agent)}</dd><dt>模型</dt><dd>${esc(model)}</dd><dt>得分</dt><dd>${esc(result.score_valid ? result.verification_result?.score : "—")}</dd><dt>退出原因</dt><dd>${esc(result.agent_stop_reason || "—")}</dd><dt>开始时间</dt><dd>${date(result.started_at)}</dd><dt>结束时间</dt><dd>${result.ended_at ? date(result.ended_at) : "—"}</dd><dt>耗时</dt><dd>${formatDuration(result.duration_seconds)}</dd><dt>汇总指标</dt><dd id="trajectory-metrics" class="trajectory-metrics">加载中…</dd></dl><section><h3>ATIF 轨迹</h3><div id="trajectory-content">加载中…</div></section>`;
+  return `<dl class="facts trajectory-facts"><dt>关联 Task</dt><dd>${taskLink}</dd><dt>Agent</dt><dd>${esc(agent)}</dd><dt>模型</dt><dd>${esc(model)}</dd><dt>得分</dt><dd>${esc(result.score_valid ? result.verification_result?.score : "—")}</dd><dt>退出原因</dt><dd>${esc(result.agent_stop_reason || "—")}</dd><dt>开始时间</dt><dd>${date(result.started_at)}</dd><dt>结束时间</dt><dd>${result.ended_at ? date(result.ended_at) : "—"}</dd><dt>耗时</dt><dd>${formatDuration(result.duration_seconds)}</dd><dt>轨迹统计</dt><dd id="trajectory-metrics" class="trajectory-metrics">加载中…</dd></dl><section><h3>ATIF 轨迹</h3><div id="trajectory-content">加载中…</div></section>`;
 }
 
 function fileBlob(row, path, signal) {
@@ -40,7 +40,7 @@ function render(row, target, value, signal, metricsTarget = null, path = null) {
     target.append(segment);
     let nextIndex;
     try {
-      nextIndex = renderTrajectory(segment, trajectory, {...options, metricsTarget: continuation ? null : metricsTarget, continuation, startIndex});
+      nextIndex = renderTrajectory(segment, trajectory, {...options, metricsTarget, continuation, startIndex});
     } catch (error) { segment.remove(); throw error; }
     const next = trajectory.continued_trajectory_ref;
     if (!next) return;

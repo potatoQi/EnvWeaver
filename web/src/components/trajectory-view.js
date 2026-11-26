@@ -54,8 +54,12 @@ export function renderTrajectory(target, trajectory, {
   function card(number, role, type, body, extra = "") {
     return `<article class="trace-card"><div class="trace-card-heading"><span>#${number}</span><span>${esc(role)}</span><span class="trace-kind">${esc(type)}</span>${extra}</div><div class="trace-card-body">${body}</div></article>`;
   }
-  const metrics = trajectory.final_metrics == null ? "—" : renderJson(trajectory.final_metrics);
-  if (metricsTarget) metricsTarget.innerHTML = metrics;
+  let summary = "";
+  if (!continuation) {
+    const metrics = trajectory.final_metrics == null ? "—" : renderJson(trajectory.final_metrics);
+    if (metricsTarget) metricsTarget.innerHTML = metrics;
+    else summary = `<dl class="facts"><dt>轨迹统计</dt><dd class="trajectory-metrics">${metrics}</dd></dl>`;
+  }
   const roles = {system: "SYSTEM", user: "USER", agent: "AGENT"};
   let index = startIndex;
   let encryptedContext = false;
@@ -89,7 +93,7 @@ export function renderTrajectory(target, trajectory, {
   }).join("");
   // Preserve access when a producer saved a child without its call-site reference.
   const orphans = children.filter(child => !referenced.has(child));
-  target.innerHTML = (metricsTarget || continuation ? "" : `<dl class="facts"><dt>汇总指标</dt><dd class="trajectory-metrics">${metrics}</dd></dl>`)
+  target.innerHTML = summary
     + html + (steps.length ? "" : '<p class="muted">暂无步骤</p>')
     + (orphans.length ? `<details><summary>未记录调用位置的子 Agent</summary><div class="trajectory-links">${orphans.map(child => childLink(child)).join("")}</div></details>` : "");
   target.onclick = async event => {

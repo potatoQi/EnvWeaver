@@ -11,21 +11,7 @@ from typing import Any
 from .._io.output import OutputDirectory
 from .._util import write_json
 from ..trajectory.atif import validate_trajectory
-
-
-def _main_steps(trajectory, related):
-    count = 0
-    seen = set()
-    while trajectory is not None and id(trajectory) not in seen:
-        seen.add(id(trajectory))
-        count += sum(
-            step["source"] == "agent"
-            and not step.get("is_copied_context")
-            and step.get("llm_call_count") != 0
-            for step in trajectory["steps"]
-        )
-        trajectory = related.get(trajectory.get("continued_trajectory_ref"))
-    return count
+from ..trajectory.usage import main_agent_steps
 
 
 def validate_result(result, directory):
@@ -251,7 +237,7 @@ class AgentOutput:
             for name, document in related.items():
                 write_json(self.directory / name, document, private=True)
             write_json(self.directory / "trajectory.json", trajectory, private=True)
-            self._step = _main_steps(trajectory, related)
+            self._step = sum(1 for _ in main_agent_steps(trajectory, related.get))
             paths = list(dict.fromkeys([*self._result["artifacts"]["files"], *related]))
             self.update(artifacts={"trajectory": "trajectory.json", "files": paths}, sync=False)
         self._output_store.sync()

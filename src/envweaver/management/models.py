@@ -224,6 +224,8 @@ class AssetRow(BaseModel):
     model: str | None = None
     score: float | None = None
     duration_seconds: float | None = None
+    trajectory_length: int | None = Field(default=None, description="主会话最后一个模型步骤的输入与输出 Token 数之和。")
+    step_count: int | None = Field(default=None, description="主会话记录的模型步骤数，包含续接。")
     input_tokens: int | None = None
     output_tokens: int | None = None
     error_count: int = 0
@@ -238,9 +240,10 @@ class AssetRow(BaseModel):
 
 
 class TaskGroup(BaseModel):
+    """按来源区分的轨迹分组，包含分组键、任务名称和匹配的轨迹数。"""
+
     key: str
     name: str
-    task_ref: str | None
     count: int
 
 

@@ -310,7 +310,7 @@ class Pools:
                 store.touch(asset_id, actor)
         store.remember_source(asset_id, directory, item["stamp"])
         if pool["kind"] == "trajectory":
-            store.assets[asset_id]["token_usage"] = item["token_usage"]
+            store.assets[asset_id]["trajectory_stats"] = item["trajectory_stats"]
         if pool["kind"] == "task":
             self.tasks.link(asset_id, spec, store.assets[asset_id]["host"], actor)
         elif pool["kind"] == "runtime":

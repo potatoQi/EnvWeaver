@@ -42,8 +42,8 @@ export function taskGroups(container, renderRow, bindRows, selection) {
     const current = generation;
     const columnCount = container.closest("table").querySelectorAll("thead th").length;
     container.innerHTML = groups.map(group => `
-      <tr class="task-group"><td class="check"><input type="checkbox" data-group-select="${esc(group.key)}" aria-label="选择 ${esc(group.name)} 的全部轨迹"></td><td colspan="${columnCount - 1}"><button class="task-group-toggle" aria-expanded="false" title="${esc(group.task_ref || "未记录 Task 路径")}">
-        <span class="task-group-arrow" aria-hidden="true">▸</span><strong>${esc(group.name)}</strong><span class="task-group-count">${group.count} 条轨迹</span><span class="task-group-path">${esc(group.task_ref || "")}</span>
+      <tr class="task-group"><td class="check"><input type="checkbox" data-group-select="${esc(group.key)}" aria-label="选择 ${esc(group.name)} 的全部轨迹"></td><td colspan="${columnCount - 1}"><button class="task-group-toggle" aria-expanded="false">
+        <span class="task-group-arrow" aria-hidden="true">▸</span><strong>${esc(group.name)}</strong><span class="task-group-count">${group.count} 条轨迹</span>
       </button></td></tr><tr class="task-group-more" hidden><td colspan="${columnCount}"></td></tr>`).join("");
 
     groupChecks = [];

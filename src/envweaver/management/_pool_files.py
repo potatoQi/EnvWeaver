@@ -12,7 +12,7 @@ from pathlib import Path
 
 if __package__:
     from .._io.files import unpack
-    from ..trajectory.usage import token_usage
+    from ..trajectory.usage import trajectory_stats
 
 
 def stamp(directory):
@@ -159,7 +159,9 @@ def pool_operation(payload):
                 item["spec"] = json.loads((directory / filename).read_text())
                 if kind == "trajectory":
                     agent = item["spec"].get("agent_result") or {}
-                    item["token_usage"] = token_usage(directory / "agent", (agent.get("artifacts") or {}).get("trajectory"))
+                    item["trajectory_stats"] = trajectory_stats(
+                        directory / "agent", (agent.get("artifacts") or {}).get("trajectory")
+                    )
                 if kind == "task":
                     spec = item["spec"]
                     paths = [p["path"] for p in spec.get("goal", []) if p.get("type") == "image"]

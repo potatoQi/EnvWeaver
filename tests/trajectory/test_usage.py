@@ -3,7 +3,7 @@ from copy import deepcopy
 
 import pytest
 
-from envweaver.trajectory.usage import token_usage
+from envweaver.trajectory.usage import trajectory_stats
 
 
 def doc(input_tokens=10, output_tokens=3, **fields):
@@ -29,27 +29,53 @@ def save(root, name, value):
 
 def test_totals_prefer_reported_aggregate_without_adding_steps(tmp_path):
     value = doc(final_metrics={"total_prompt_tokens": 100, "total_completion_tokens": 20})
-    assert token_usage(tmp_path, save(tmp_path, "main.json", value)) == {
+    assert trajectory_stats(tmp_path, save(tmp_path, "main.json", value)) == {
         "input_tokens": 100,
         "output_tokens": 20,
+        "trajectory_length": 13,
+        "step_count": 1,
     }
 
 
 @pytest.mark.parametrize("missing", [None, -1, True, 1.5, "10"])
 def test_unknown_input_does_not_zero_or_hide_known_output(tmp_path, missing):
-    assert token_usage(tmp_path, save(tmp_path, "main.json", doc(missing))) == {
+    assert trajectory_stats(tmp_path, save(tmp_path, "main.json", doc(missing))) == {
         "input_tokens": None,
         "output_tokens": 3,
+        "trajectory_length": None,
+        "step_count": 1,
     }
 
 
 def test_zero_is_known_and_missing_step_invalidates_total(tmp_path):
     value = doc(0, 0)
     path = save(tmp_path, "main.json", value)
-    assert token_usage(tmp_path, path) == {"input_tokens": 0, "output_tokens": 0}
+    assert trajectory_stats(tmp_path, path) == {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "trajectory_length": 0,
+        "step_count": 1,
+    }
     value["steps"].append({"source": "agent"})
     save(tmp_path, path, value)
-    assert token_usage(tmp_path, path) == {"input_tokens": None, "output_tokens": None}
+    assert trajectory_stats(tmp_path, path) == {
+        "input_tokens": None,
+        "output_tokens": None,
+        "trajectory_length": None,
+        "step_count": 2,
+    }
+
+
+def test_aggregated_step_counts_once_but_has_no_single_request_length(tmp_path):
+    value = doc()
+    value["steps"][0]["llm_call_count"] = 2
+    stats = trajectory_stats(tmp_path, save(tmp_path, "main.json", value))
+    assert stats == {
+        "input_tokens": 10,
+        "output_tokens": 3,
+        "trajectory_length": None,
+        "step_count": 1,
+    }
 
 
 def test_copied_context_and_non_model_steps_do_not_count(tmp_path):
@@ -57,13 +83,20 @@ def test_copied_context_and_non_model_steps_do_not_count(tmp_path):
     copied = deepcopy(value["steps"][0])
     copied["is_copied_context"] = True
     value["steps"] += [copied, {"source": "user"}, {"source": "agent", "llm_call_count": 0}]
-    assert token_usage(tmp_path, save(tmp_path, "main.json", value)) == {
+    assert trajectory_stats(tmp_path, save(tmp_path, "main.json", value)) == {
         "input_tokens": 10,
         "output_tokens": 3,
+        "trajectory_length": 13,
+        "step_count": 1,
     }
     value["steps"][0]["metrics"] = {}
     save(tmp_path, "main.json", value)
-    assert token_usage(tmp_path, "main.json") == {"input_tokens": None, "output_tokens": None}
+    assert trajectory_stats(tmp_path, "main.json") == {
+        "input_tokens": None,
+        "output_tokens": None,
+        "trajectory_length": None,
+        "step_count": 1,
+    }
 
 
 def test_reference_graph_scopes_embedded_ids_and_visits_external_files_once(tmp_path):
@@ -88,9 +121,11 @@ def test_reference_graph_scopes_embedded_ids_and_visits_external_files_once(tmp_
     continued["steps"].append(copied)
     save(tmp_path, "continued.json", continued)
     save(tmp_path, "external.json", doc(50, 11))
-    assert token_usage(tmp_path, save(tmp_path, "main.json", root)) == {
+    assert trajectory_stats(tmp_path, save(tmp_path, "main.json", root)) == {
         "input_tokens": 150,
         "output_tokens": 35,
+        "trajectory_length": 49,
+        "step_count": 2,
     }
 
 
@@ -103,9 +138,11 @@ def test_bad_reference_never_returns_partial_total(tmp_path, reference):
     save(tmp_path, "target.json", doc())
     (tmp_path / "symlink.json").symlink_to(tmp_path / "target.json")
     root = doc(continued_trajectory_ref=reference)
-    assert token_usage(tmp_path, save(tmp_path, "main.json", root)) == {
+    assert trajectory_stats(tmp_path, save(tmp_path, "main.json", root)) == {
         "input_tokens": None,
         "output_tokens": None,
+        "trajectory_length": None,
+        "step_count": None,
     }
 
 
@@ -119,9 +156,11 @@ def test_bad_reference_never_returns_partial_total(tmp_path, reference):
 )
 def test_unmeasured_requests_make_totals_unknown(tmp_path, extra):
     value = doc(extra=extra, final_metrics={"total_prompt_tokens": 10})
-    assert token_usage(tmp_path, save(tmp_path, "main.json", value)) == {
+    assert trajectory_stats(tmp_path, save(tmp_path, "main.json", value)) == {
         "input_tokens": None,
         "output_tokens": None,
+        "trajectory_length": 13,
+        "step_count": 1,
     }
 
 
@@ -135,31 +174,42 @@ def test_mapped_requests_are_not_counted_twice(tmp_path):
         }
     )
     value["steps"][0]["extra"] = {"call_id": "request"}
-    assert token_usage(tmp_path, save(tmp_path, "main.json", value)) == {
+    assert trajectory_stats(tmp_path, save(tmp_path, "main.json", value)) == {
         "input_tokens": 10,
         "output_tokens": 3,
+        "trajectory_length": 13,
+        "step_count": 1,
     }
 
 
 def test_no_trajectory_is_unknown_and_empty_trajectory_has_no_calls(tmp_path):
-    assert token_usage(tmp_path, None) == {"input_tokens": None, "output_tokens": None}
-    assert token_usage(tmp_path, save(tmp_path, "empty.json", {"steps": []})) == {
+    assert trajectory_stats(tmp_path, None) == {
+        "input_tokens": None,
+        "output_tokens": None,
+        "trajectory_length": None,
+        "step_count": None,
+    }
+    assert trajectory_stats(tmp_path, save(tmp_path, "empty.json", {"steps": []})) == {
         "input_tokens": 0,
         "output_tokens": 0,
+        "trajectory_length": None,
+        "step_count": 0,
     }
 
 
 @pytest.mark.parametrize(
-    "value",
+    ("value", "steps"),
     [
-        {"steps": [None]},
-        {"steps": [{"source": "agent", "metrics": "invalid"}]},
-        {"steps": [], "extra": "invalid"},
-        {"steps": [], "subagent_trajectories": [None]},
+        ({"steps": [None]}, None),
+        ({"steps": [{"source": "agent", "metrics": "invalid"}]}, 1),
+        ({"steps": [], "extra": "invalid"}, 0),
+        ({"steps": [], "subagent_trajectories": [None]}, 0),
     ],
 )
-def test_malformed_trajectory_does_not_break_listing(tmp_path, value):
-    assert token_usage(tmp_path, save(tmp_path, "main.json", value)) == {
+def test_malformed_trajectory_does_not_break_listing(tmp_path, value, steps):
+    assert trajectory_stats(tmp_path, save(tmp_path, "main.json", value)) == {
         "input_tokens": None,
         "output_tokens": None,
+        "trajectory_length": None,
+        "step_count": steps,
     }

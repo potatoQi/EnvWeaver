@@ -7,7 +7,8 @@ export function setupTableColumns(table) {
   const base = columns.map((column, i) => [column.dataset.column, headers[i].textContent.trim(), Number(column.dataset.width), Number(column.dataset.min)]);
   const trajectory = [base[0], ["name", "Rollout", 150, 140], ["tags", "标签", 160, 120],
     ["agent", "Agent", 95, 80], ["model", "模型", 130, 100],
-    ["duration_seconds", "耗时", 90, 80], ["input_tokens", "输入 Token", 105, 100],
+    ["duration_seconds", "耗时", 90, 80], ["trajectory_length", "轨迹长度", 100, 90, "主会话最后一个模型步骤的输入与输出 Token 之和"],
+    ["step_count", "步数", 65, 60, "主会话及其续接中记录的模型步骤数"], ["input_tokens", "输入 Token", 105, 100],
     ["output_tokens", "输出 Token", 105, 100], ["score", "得分", 65, 65],
     ["agent_stop_reason", "退出原因", 110, 100], ["errors", "Errors", 100, 90]];
   let kind;
@@ -123,7 +124,7 @@ export function setupTableColumns(table) {
     const heading = table.querySelector("thead tr");
     colgroup.replaceChildren();
     [...heading.children].slice(1).forEach(header => header.remove());
-    schema.forEach(([name, label, width, min], index) => {
+    schema.forEach(([name, label, width, min, hint], index) => {
       const column = document.createElement("col");
       Object.assign(column.dataset, {column: name, width, min});
       colgroup.append(column);
@@ -131,6 +132,7 @@ export function setupTableColumns(table) {
         const header = document.createElement("th");
         const span = document.createElement("span");
         span.textContent = label;
+        if (hint) span.title = hint;
         header.append(span);
         heading.append(header);
       }
