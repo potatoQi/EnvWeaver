@@ -159,6 +159,7 @@
 <h1 id="agent">Agent<a class="headerlink" href="#agent" title="Permanent link">&para;</a></h1>
 <p>Agent 为 <a href="../evaluation/">Eval</a> 提供统一的执行接口。创建 Agent 对象时配置模型、环境变量和原生参数，再将对象传给 <code>eval(agent=...)</code>。</p>
 <p>带 <code>cache</code> 参数的 Agent 默认复用准备阶段有校验值的安装包，可传 <code>cache=False</code> 关闭。缓存目录通过当前进程的 <code>ENVWEAVER_CACHE_DIR</code> 设置，默认 <code>~/.cache/envweaver/downloads</code>，容量为 30 GiB。</p>
+<p>运行中读取 CLI 轨迹遇到暂时的传输故障时，面板保留上次进度，下一次刷新继续采集。</p>
 <p>已支持的 Agent：<a href="#claude-code-agent">Claude Code</a>、<a href="#codex-agent">Codex CLI</a>、<a href="#pi-agent">Pi</a>、<a href="#openclaw-agent">OpenClaw</a>、<a href="#ale-claw-agent">ALE Claw</a>、<a href="#stirrup-agent">Stirrup</a>、<a href="#mini-swe-agent">mini-swe-agent</a>、<a href="#claw-eval-agent">Claw-Eval</a>、<a href="#terminus-agent">Terminus 2</a>、<a href="#custom-agent">自定义 Agent</a>。</p>
 <h2 id="claude-code-agent">ClaudeCodeAgent<a class="headerlink" href="#claude-code-agent" title="Permanent link">&para;</a></h2>
 <div class="table-responsive">
