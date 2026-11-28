@@ -7,7 +7,7 @@ import subprocess
 import zlib
 from pathlib import Path
 
-from .._io.retry import connection_error, retry
+from .._io.retry import connection_error, decode_reply, retry
 from .._io.ssh_config import flags
 from .._io.ssh_transport import _parse_host
 from ..errors import RuntimeError
@@ -100,13 +100,9 @@ print(json.dumps(response))
             if response.returncode == 255:
                 raise connection_error(message)
             raise RuntimeError(message)
-        return response
+        return decode_reply(response.stdout, "SSH target")
 
-    response = retry(send, replay=action in {"health", "upload", "download"})
-    try:
-        result = json.loads(response.stdout)
-    except ValueError as error:
-        raise RuntimeError("SSH target did not return a Python response") from error
+    result = retry(send, replay=action in {"health", "upload", "download"})
     if "error" in result:
         error = result["error"]
         cls = {

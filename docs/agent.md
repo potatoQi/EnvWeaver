@@ -4,6 +4,8 @@ Agent 为 [Eval](evaluation.md) 提供统一的执行接口。创建 Agent 对�
 
 带 `cache` 参数的 Agent 默认复用准备阶段有校验值的安装包，可传 `cache=False` 关闭。缓存目录通过当前进程的 `ENVWEAVER_CACHE_DIR` 设置，默认 `~/.cache/envweaver/downloads`，容量为 30 GiB。
 
+运行中读取 CLI 轨迹遇到暂时的传输故障时，面板保留上次进度，下一次刷新继续采集。
+
 已支持的 Agent：[Claude Code](#claude-code-agent)、[Codex CLI](#codex-agent)、[Pi](#pi-agent)、[OpenClaw](#openclaw-agent)、[ALE Claw](#ale-claw-agent)、[Stirrup](#stirrup-agent)、[mini-swe-agent](#mini-swe-agent)、[Claw-Eval](#claw-eval-agent)、[Terminus 2](#terminus-agent)、[自定义 Agent](#custom-agent)。
 
 ## ClaudeCodeAgent {#claude-code-agent}

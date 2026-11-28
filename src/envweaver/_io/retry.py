@@ -1,5 +1,6 @@
 """Bounded recovery for transport operations, without replaying arbitrary commands."""
 
+import json
 import re
 import subprocess
 import time
@@ -7,6 +8,7 @@ from contextvars import ContextVar
 
 from ..errors import RuntimeError
 
+TRANSPORT_ERRORS = (ConnectionError, TimeoutError, subprocess.TimeoutExpired)
 _active = ContextVar("envweaver_transport_retry", default=False)
 
 
@@ -14,6 +16,14 @@ class ConnectionFailure(RuntimeError, ConnectionError):
     def __init__(self, message, *, before_dispatch=False):
         super().__init__(message)
         self.before_dispatch = before_dispatch
+
+
+def decode_reply(raw, source):
+    """Decode a transport envelope. A broken reply does not imply the command failed."""
+    try:
+        return json.loads(raw)
+    except (json.JSONDecodeError, UnicodeDecodeError) as error:
+        raise ConnectionFailure(f"Invalid JSON reply from {source}: {error}") from error
 
 
 def connection_error(message):
@@ -47,7 +57,7 @@ def retry(operation, *, replay=False, cancelled=None):
                 raise InterruptedError("Transport recovery cancelled")
             try:
                 return operation()
-            except (ConnectionError, TimeoutError, subprocess.TimeoutExpired) as error:
+            except TRANSPORT_ERRORS as error:
                 if attempt == 2 or not (replay or getattr(error, "before_dispatch", False)):
                     raise
                 delay = 0.5 * 2 ** attempt

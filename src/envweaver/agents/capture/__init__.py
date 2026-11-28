@@ -9,6 +9,7 @@ from pathlib import Path
 
 from PIL import Image
 
+from ..._io.retry import TRANSPORT_ERRORS, decode_reply, retry
 from .._redaction import redact_data
 
 _SCAN = Path(__file__).with_name("_scan.py").read_text()
@@ -21,6 +22,7 @@ class NativeFiles:
         self.python = python
         self.output = output
         self.redact = redact
+        self.finalizing = False
         self.stamps = {}
         self.files = {}
         self._prefixes = {}
@@ -29,14 +31,25 @@ class NativeFiles:
         if not sources:
             return False
         archives = archives or {}
-        code, stdout, stderr = self.runtime.exec(
-            instance=self.instance,
-            command=[self.python, "-c", _SCAN, json.dumps([sources, self.stamps, list(archives)])],
-            timeout=30,
-        )
-        if code:
-            raise RuntimeError(f"Cannot collect Agent native records: {self.redact(stderr)}")
-        changed = json.loads(stdout)
+
+        def scan():
+            code, stdout, stderr = self.runtime.exec(
+                instance=self.instance,
+                command=[self.python, "-c", _SCAN, json.dumps([sources, self.stamps, list(archives)])],
+                timeout=30,
+            )
+            if code:
+                raise RuntimeError(f"Cannot collect Agent native records: {self.redact(stderr)}")
+            return decode_reply(stdout, "Agent trajectory scan")
+
+        if self.finalizing:
+            changed = retry(scan, replay=True)
+        else:
+            try:
+                changed = scan()
+            except TRANSPORT_ERRORS:
+                # No complete snapshot yet. Keep the cursor for the next refresh.
+                return False
         saved = []
 
         def records():

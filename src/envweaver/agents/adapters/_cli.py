@@ -2,7 +2,6 @@ import base64
 import codecs
 import json
 import re
-import subprocess
 import sys
 import tempfile
 import threading
@@ -10,7 +9,7 @@ import time
 import uuid
 from pathlib import Path
 
-from ..._io.retry import retry
+from ..._io.retry import TRANSPORT_ERRORS, decode_reply, retry
 from ...errors import AgentError, ErrorType
 from .._redaction import redact_data
 from ..base import Agent
@@ -103,8 +102,9 @@ class CliAgent(Agent):
         if action == "start" and len(encoded) > 32 * 1024:
             filename = "rpc-" + uuid.uuid4().hex + ".json"
             encoded = "@" + self._upload_text(filename, encoded)
-        try:
-            code, stdout, stderr = retry(lambda: self._runtime.exec(
+
+        def request():
+            code, stdout, stderr = self._runtime.exec(
                 instance=self._instance,
                 command=[
                     self._python,
@@ -114,17 +114,22 @@ class CliAgent(Agent):
                     encoded,
                 ],
                 timeout=30,
-            ), replay=action in {"poll", "read", "stop"},
-                cancelled=None if action == "stop" or self._cancelled.is_set() else self._cancelled)
-        except (ConnectionError, TimeoutError, subprocess.TimeoutExpired) as error:
-            raise AgentError(
-                ErrorType.TRANSPORT, "Agent sandbox transport failed",
-            ) from error
-        if code:
-            raise AgentError(
-                ErrorType.SANDBOX, f"Agent process transport failed: {self._redact(stderr)}",
             )
-        return json.loads(stdout)
+            if code:
+                raise AgentError(
+                    ErrorType.SANDBOX, f"Agent process transport failed: {self._redact(stderr)}",
+                )
+            return decode_reply(stdout, f"Agent process {action}")
+
+        try:
+            return retry(
+                request, replay=action in {"poll", "read", "stop"},
+                cancelled=None if action == "stop" or self._cancelled.is_set() else self._cancelled,
+            )
+        except TRANSPORT_ERRORS as error:
+            raise AgentError(
+                ErrorType.TRANSPORT, f"Agent sandbox transport failed during {action}",
+            ) from error
 
     def _redact(self, text):
         for key, value in self._env.items():
@@ -423,6 +428,7 @@ class CliAgent(Agent):
         finally:
             original_error = sys.exception()
             try:
+                self._native.finalizing = True
                 self._finalize_native()
             except Exception as error:
                 if original_error is None:

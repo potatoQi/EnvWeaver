@@ -217,7 +217,7 @@ class Runtime:
         Raises:
             TimeoutError: 目标命令或 SSH 操作超时。
             ValueError: 后端未注册，或连接配置、访问密钥有误。
-            envweaver.errors.RuntimeError: 无法执行后端操作或目标连接服务报错。
+            envweaver.errors.RuntimeError: 后端操作失败，或未收到可解析的执行响应。
             OSError: 无法启动所需程序。
             subprocess.TimeoutExpired: Docker 命令超时。
 

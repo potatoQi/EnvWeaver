@@ -44,10 +44,14 @@ def test_agent_rpc_recovers_after_lost_reply(tmp_path, monkeypatch, adapter, act
         return response
 
     monkeypatch.setattr(runtime, "exec", execute)
-    monkeypatch.setattr(recovery.time, "sleep", lambda delay: None)
+    delays = []
     if action == "stop":
         agent._cancelled.set()  # Recovery must also work during shutdown.
+        monkeypatch.setattr(recovery.time, "sleep", delays.append)
+    else:
+        monkeypatch.setattr(agent._cancelled, "wait", delays.append)
     result = agent._rpc(action, str(directory), payload)
+    assert delays == [0.5, 1.0]
     assert calls[0] == calls[1] == calls[2]
     assert all(call["instance"] is instance for call in calls)
     if action == "poll":
@@ -101,7 +105,6 @@ def test_cli_recovers_without_duplicate_events_or_launches(tmp_path, sandbox, mo
         return response
 
     monkeypatch.setattr(runtime, "exec", execute)
-    monkeypatch.setattr(recovery.time, "sleep", lambda delay: None)
     try:
         result = agent_execution.run(goal=[{"type": "text", "text": "solve"}], runtime=runtime,
                            instance=instance, output_dir=directory)
@@ -114,4 +117,114 @@ def test_cli_recovers_without_duplicate_events_or_launches(tmp_path, sandbox, mo
         assert types.count(terminal) == 1
     finally:
         agent_execution.stop()
+        shutil.rmtree(agent._remote)
+
+
+@pytest.mark.parametrize(("action", "attempts"), [("poll", 3), ("start", 1)])
+def test_persistently_truncated_process_reply(tmp_path, monkeypatch, action, attempts):
+    from envweaver.errors import AgentError, ErrorType
+
+    agent = PiAgent()
+    agent._runtime, agent._instance = LocalTransport(), Instance("test", "local")
+    agent._python, agent._remote = sys.executable, str(tmp_path)
+    replies = []
+
+    def execute(**kwargs):
+        replies.append(kwargs["command"])
+        return 0, '{"status":', ""
+
+    monkeypatch.setattr(agent._runtime, "exec", execute)
+    monkeypatch.setattr(agent._cancelled, "wait", lambda delay: False)
+    with pytest.raises(AgentError) as failure:
+        agent._rpc(action, str(tmp_path))
+    assert failure.value.type is ErrorType.TRANSPORT
+    assert len(replies) == attempts and all(command == replies[0] for command in replies)
+
+
+def test_truncated_replies_preserve_running_agent_and_final_atif(tmp_path, sandbox, monkeypatch):
+    from envweaver.agents.capture import _SCAN
+    from envweaver.runtime.docker import DockerBackend
+    from envweaver.trajectory.atif import validate_trajectory
+
+    runtime, _, env = sandbox
+    instance = Instance("test", "docker", data={"python": sys.executable, "host_ssh": None})
+    agent = PiAgent(env=env)
+    run = AgentExecution(agent)
+    output = tmp_path / "artifacts"
+    monkeypatch.setattr("envweaver.agents.adapters._cli._POLL_INTERVAL", 0.03)
+    run.prepare(runtime=runtime, instance=instance, output_dir=output, cwd=str(tmp_path))
+
+    user = {"role": "user", "content": "solve"}
+    answer = {"role": "assistant", "content": [{"type": "text", "text": "done"}], "stopReason": "stop"}
+    events = [
+        {"type": "message", "call_id": None, "data": user},
+        {"type": "request", "call_id": "turn1", "data": {"payload": {"messages": [user]}}},
+        {"type": "message", "call_id": "turn1", "data": answer},
+    ]
+    (tmp_path / "events").write_text("".join(json.dumps(event) + "\n" for event in events))
+    (tmp_path / "bin/pi").write_text(f"""#!{sys.executable}
+import json, sys, time
+from pathlib import Path
+trace = Path(sys.argv[sys.argv.index('--session') + 1]).with_name('events.jsonl')
+trace.parent.mkdir(exist_ok=True)
+first, *rest = Path('events').read_text().splitlines(keepends=True)
+trace.write_text(first)
+for _ in range(1000):
+    if Path('continue').exists():
+        break
+    time.sleep(0.01)
+else:
+    raise RuntimeError('live capture never recovered')
+with trace.open('a') as f:
+    f.writelines(rest)
+Path('answer.txt').write_text('done')
+print(json.dumps({{'type': 'message_end', 'message': json.loads(rest[-1])['data']}}))
+print(json.dumps({{'type': 'agent_settled'}}))
+""")
+    backend = DockerBackend()
+    local_exec = runtime.exec
+    launches, polls, scans = [], [], []
+    finished = False
+
+    def docker_exec(action, cid, python, flag, script, payload, **kwargs):
+        nonlocal finished
+        command = json.loads(payload)["command"]
+        code, stdout, stderr = local_exec(instance, command)
+        if command[1].endswith("/process.py"):
+            if command[2] == "start":
+                launches.append(command)
+            if command[2] == "poll":
+                polls.append(command)
+                if len(polls) == 1:
+                    return '{"exit_code": 0, "stdout": "'  # Outer Docker exec envelope.
+                finished = json.loads(stdout)["status"] is not None
+        if command[1:3] == ["-c", _SCAN] and (finished or json.loads(stdout)):
+            if not scans or finished != scans[-1][0]:
+                stdout = stdout[:len(stdout) // 2]  # Inner scanner reply.
+            elif not finished:
+                (tmp_path / "continue").touch()
+            scans.append((finished, len(polls)))
+        return json.dumps({"exit_code": code, "stdout": stdout, "stderr": stderr})
+
+    monkeypatch.setattr(backend, "_docker", docker_exec)
+    monkeypatch.setattr(runtime, "exec", backend.exec)
+    try:
+        result = run.run(goal=[{"type": "text", "text": "solve"}], runtime=runtime,
+                         instance=instance, output_dir=output)
+        assert len(launches) == 1 and polls[0] == polls[1]
+        assert not scans[1][0] and scans[1][1] > scans[0][1]  # Next live refresh.
+        assert scans[-2:] == [(True, len(polls))] * 2  # Retry the final read.
+        assert result["output"] == [{"type": "text", "text": "done"}]
+        assert (tmp_path / "answer.txt").read_text() == "done"
+        native = (output / "logs/native/pi/events.jsonl").read_text()
+        assert [json.loads(line) for line in native.splitlines()] == events
+        doc = json.loads((output / "trajectory.json").read_text())
+        validate_trajectory(doc)
+        question, reply = doc["steps"]
+        assert question["source"] == "user" and question["message"] == "solve"
+        assert reply["source"] == "agent" and reply["extra"]["native_message"] == answer
+        context = reply["extra"]["context"]
+        assert context["complete"] and json.loads((output / context["path"]).read_text()) == {"messages": [user]}
+    finally:
+        run.stop()
         shutil.rmtree(agent._remote)

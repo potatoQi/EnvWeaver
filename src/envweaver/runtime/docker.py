@@ -12,7 +12,7 @@ from pathlib import Path
 
 from .._io.paths import normalize_address
 from .._io.process import open_pipe
-from .._io.retry import connection_error, retry
+from .._io.retry import connection_error, decode_reply, retry
 from .._io.ssh_config import docker_environment, reconnect_options
 from .._io.ssh_config import normalize as normalize_ssh
 from .._io.ssh_transport import _validate_host
@@ -199,7 +199,7 @@ class DockerBackend:
             host=instance.host,
             ssh=instance.data["host_ssh"],
         )
-        result = json.loads(raw)
+        result = decode_reply(raw, "Docker exec")
         if "error" in result:
             raise TimeoutError(result["message"])
         return result["exit_code"], result["stdout"], result["stderr"]
